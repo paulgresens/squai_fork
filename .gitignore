@@ -17,7 +17,7 @@ sdist/
 var/
 wheels/
 *.egg-info/
-.installed.cfg
+.instgit ed.cfg
 *.egg
 MANIFEST
 
@@ -67,7 +67,7 @@ data/benchmarks/*
 *.model
 *.pkl
 *.out
-*.sh
+#*.sh
 
 # FAISS indexes
 *.faiss
@@ -94,7 +94,6 @@ results/*
 *.swo
 *~
 .nfs*
-*.txt
 split_questions/
 C_split_questions/questions_split_*.jsonl
 local_db/

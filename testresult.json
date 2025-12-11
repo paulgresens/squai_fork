@@ -1,0 +1,88 @@
+{
+  "question": "What are the measurable performance differences between dense retrieval and sparse BM25 retrieval when searching for exact LaTeX equations in a multi-million document corpus?",
+  "answer": "LexBoost, a method that combines dense and sparse retrieval, shows statistically significant improvements over state-of-the-art lexical retrieval methods, including BM25, for a wide range of combinations of fusion parameter λ and number of neighbors considered [1]. This is because LexBoost effectively utilizes knowledge about the neighborhood of a document in dense retrieval space, which contributes to stronger ranking effectiveness with negligible additional latency overheads [1]. On the other hand, dense retrieval approaches, such as DPR, can be affected by the curse of dense low-dimensional information retrieval for large index sizes, where the performance can decrease quicker than sparse representations for increasing index sizes [2]. This is because lower-dimensional representations can have issues with large indices, leading to a higher chance of false positives, i.e., returning irrelevant documents [2]. In the case of searching for exact LaTeX equations in a multi-million document corpus, dense retrieval may not be the best choice due to the large index size and the potential for false positives [2]. In contrast, sparse BM25 retrieval may be more effective in this scenario, as it is less affected by the curse of dense low-dimensional information retrieval [2].",
+  "nativePassages": {
+    "1": "Then, during retrieval, we consider both a document's lexical relevance scores and its neighbors' scores to rank the documents. In LexBoost this remarkably simple application of the Cluster Hypothesis contributes to stronger ranking effectiveness while contributing little computational overhead (since the corpus graph is constructed offline). The method is robust across the number of neighbors considered, various fusion parameters for determining the scores, and different dataset construction me...",
+    "2": "However, no previous work investigated how dense representations perform with large index sizes. We show theoretically and empirically that the performance for dense representations decreases quicker than sparse representations for increasing index sizes. In extreme cases, this can even lead to a tipping point where at a certain index size sparse representations outperform dense representations. We show that this behavior is tightly connected to the number of dimensions of the representations: T..."
+  },
+  "nativePassagesJudgement": [
+    {
+      "faithfulness": 3,
+      "relevance": 5,
+      "consistency": 3,
+      "supportCoverage": 3,
+      "paraphraseRobustness": 5,
+      "ambiguityLevel": 1,
+      "meanScore": 3.2
+    },
+    {
+      "faithfulness": 3,
+      "relevance": 3,
+      "consistency": 3,
+      "supportCoverage": 3,
+      "paraphraseRobustness": 3,
+      "ambiguityLevel": 1,
+      "meanScore": 2.6
+    },
+    {
+      "faithfulness": 3,
+      "relevance": 3,
+      "consistency": 3,
+      "supportCoverage": 3,
+      "paraphraseRobustness": 3,
+      "ambiguityLevel": 1,
+      "meanScore": 2.6
+    },
+    null,
+    null,
+    {
+      "faithfulness": 1,
+      "relevance": 1,
+      "consistency": 3,
+      "supportCoverage": 1,
+      "paraphraseRobustness": 1,
+      "ambiguityLevel": 1,
+      "meanScore": 1
+    },
+    {
+      "faithfulness": 3,
+      "relevance": 3,
+      "consistency": 3,
+      "supportCoverage": 3,
+      "paraphraseRobustness": 3,
+      "ambiguityLevel": 1,
+      "meanScore": 2.6
+    },
+    {
+      "faithfulness": 3,
+      "relevance": 3,
+      "consistency": 3,
+      "supportCoverage": 3,
+      "paraphraseRobustness": 3,
+      "ambiguityLevel": 1,
+      "meanScore": 2.6
+    },
+    null,
+    {
+      "faithfulness": 2.6666666666666665,
+      "relevance": 3.0,
+      "consistency": 3.0,
+      "supportCoverage": 2.6666666666666665,
+      "paraphraseRobustness": 3.0,
+      "ambiguityLevel": 1.0,
+      "meanScore": 2.433333333333333
+    }
+  ],
+  "llmExtractedPassages": {
+    "1": [
+      "We propose LexBoost that first builds a network of dense neighbors (a corpus graph) using a dense retrieval approach while indexing. Then, during retrieval, we consider both a document's lexical relevance scores and its neighbors' scores to rank the documents. In LexBoost this remarkably simple application of the Cluster Hypothesis contributes to stronger ranking effectiveness while contributing little computational overhead (since the corpus graph is constructed offline). The method is robust across the number of neighbors considered, various fusion parameters for determining the scores, and different dataset construction methods. We also show that re-ranking on top of LexBoost outperforms traditional dense re-ranking and leads to results comparable with higher-latency exhaustive dense retrieval.",
+      "Then, during retrieval, we consider both a document's lexical relevance scores and its neighbors' scores to rank the documents. In LexBoost this remarkably simple application of the Cluster Hypothesis contributes to stronger ranking effectiveness while contributing little computational overhead (since the corpus graph is constructed offline). The method is robust across the number of neighbors considered, various fusion parameters for determining the scores, and different dataset construction methods. We also show that re-ranking on top of LexBoost outperforms traditional dense re-ranking and leads to results comparable with higher-latency exhaustive dense retrieval."
+    ],
+    "2": [
+      "We show theoretically and empirically that the performance for dense representations decreases quicker than sparse representations for increasing index sizes. In extreme cases, this can even lead to a tipping point where at a certain index size sparse representations outperform dense representations. The lower the dimension, the higher the chance for false positives, i. returning irrelevant documents.",
+      "However, these approaches suffer from the lexical gap problem. To overcome this issue, dense representations have been proposed : Queries and documents are mapped to a dense vector space and relevant documents are retrieved e. The lower the dimension, the higher the chance for false positives, i.",
+      "We show that the performance for dense representations decreases quicker than sparse representations for increasing index sizes. In extreme cases, this can even lead to a tipping point where at a certain index size sparse representations outperform dense representations. The lower the dimension, the higher the chance for false positives, i. returning irrelevant documents.",
+      "We show that this behavior is tightly connected to the number of dimensions of the representations: The lower the dimension, the higher the chance for false positives, i. returning irrelevant documents. In extreme cases, this can even lead to a tipping point where at a certain index size sparse representations outperform dense representations."
+    ]
+  }
+}

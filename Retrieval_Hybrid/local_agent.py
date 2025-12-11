@@ -2,9 +2,10 @@ import torch
 import os
 import logging
 from transformers import AutoTokenizer, AutoModelForCausalLM
+import dotenv
 
 logger = logging.getLogger(__name__)
-
+load_dotenv()
 
 class LLMAgent:
     """LLM agent that uses language models directly on the local system with model sharing support"""
@@ -61,6 +62,9 @@ class LLMAgent:
         self.shared_model = shared_model
 
         token = os.environ.get("HUGGING_FACE_HUB_TOKEN")
+        print("+++++++++++++++++++++++++++++++++")
+        print("using token: " + token)
+        print("+++++++++++++++++++++++++++++++++")
 
         # Load tokenizer
         if tokenizer is not None:

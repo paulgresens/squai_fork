@@ -1,0 +1,24 @@
+{
+  "topic overlaps": [
+    "Superconducting proximity effect",
+    "Topological insulators",
+    "Majorana fermions",
+    "Spin-orbit coupling",
+    "Interface states",
+    "Fu-Kane model",
+    "Green's function techniques",
+    "Recursive Green's function method",
+    "Self-consistent calculations",
+    "Spin currents"
+  ],
+  "question": "How does the superconducting proximity effect manifest differently in topological insulators compared to non-centrosymmetric superconductors, and what are the implications for the formation of Majorana fermions?",
+  "answer": "The superconducting proximity effect in topological insulators (TIs) and non-centrosymmetric superconductors (NCSs) manifests differently due to the unique properties of each material. In TIs, the proximity effect can induce a superconducting gap in the surface states, leading to the formation of Majorana fermions at interfaces or vortices. This is described by the Fu-Kane model, which predicts a spinless p-wave superconducting state at the TI surface. In contrast, in NCSs, the proximity effect can lead to the formation of Andreev bound states with spin currents that have a polarization normal to the bulk current. The spin-orbit coupling in NCSs can cause a qualitative change in the Andreev spectrum, which can be probed by point contact tunneling. The presence of Majorana fermions in TIs is more robust and protected by topology, whereas in NCSs, the Majorana modes are less stable and can be affected by disorder and other perturbations.",
+  "papers": ["1111.0445", "0804.2464", "1101.2904", "1010.4625"],
+  "paperUsedForGeneration": [
+    { "ArXiv": "1111.0445", "category": "cond-mat.supr-con" },
+    { "ArXiv": "0804.2464", "category": "cond-mat.supr-con" },
+    { "ArXiv": "1101.2904", "category": "cond-mat.supr-con" },
+    { "ArXiv": "cond-mat/0411733", "category": "cond-mat.mes-hall" },
+    { "ArXiv": "1010.4625", "category": "cond-mat.supr-con" }
+  ]
+}

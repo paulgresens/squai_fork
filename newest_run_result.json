@@ -1,0 +1,271 @@
+{
+  "qualityMeasures": {
+    "question": "How many Optical Modules are equipped on the MILOM and what is their purpose?",
+    "groundTruthAnswer": "The MILOM is equipped with four Optical Modules, comprising a triplet of OMs on the second storey, similar to a standard ANTARES optical line storey, and a single additional OM fixed on the top storey.",
+    "groundTruthDocument": "astro-ph/0606229",
+    "modelAnswer": [
+      {
+        "sentence": "The MILOM line consists of an instrumented releasable anchor, the Bottom String Socket (BSS), and of three storeys located respectively at 100 m, 117 m and 169 m above the sea bed, and each storey is equipped with a triplet of Optical Modules.",
+        "documentId": 1
+      },
+      {
+        "sentence": "The main objective of the MILOM operation is to provide an in-situ check of the modified detector elements and a validation of the performance of the time calibration and the acoustic positioning devices.",
+        "documentId": 1
+      }
+    ],
+    "documentsUsed": [
+      "astro-ph/0606229",
+      "1803.04841",
+      "2211.01012",
+      "1510.01561",
+      "2309.13371",
+      "1405.0839"
+    ],
+    "recallAt1": 1.0,
+    "recallAtMaxK": 1,
+    "reciprocalRank": 1.0
+  },
+  "referencesNative": {
+    "1": {
+      "title": "Unknown Title",
+      "paperId": "arXiv:astro-ph/0606229",
+      "contextPassage": "The various data acquired during the continuous operation from April to December 2005 of the MILOM confirm the satisfactory performance of the Optical Modules, their front-end electronics and readout system, as well as the calibration devices of the detector. The in-situ measurement of the Optical Module time response yields a resolution better than 0."
+    }
+  },
+  "referencesWithCosineSimilarity": {
+    "1": [
+      {
+        "context": "{{figure:3238509c-0be5-439e-855d-2b36dc16effb}}\nThe MILOM line: As shown in figure REF , the MILOM consists of an instrumented releasable anchor, the Bottom String Socket (BSS), and of three storeys located respectively at 100 m, 117 m and 169 m above the sea bed (the inter-storey spacings indicated in figure correspond to the cable lengths).",
+        "sentence": "The MILOM line consists of an instrumented releasable anchor, the Bottom String Socket (BSS), and of three storeys located respectively at 100 m, 117 m and 169 m above the sea bed, and each storey is equipped with a triplet of Optical Modules.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      },
+      {
+        "context": "The main objective of the MILOM operation is to provide an in-situ check of the modified detector elements and a validation of the performance of the time calibration and the acoustic positioning devices.",
+        "sentence": "The main objective of the MILOM operation is to provide an in-situ check of the modified detector elements and a validation of the performance of the time calibration and the acoustic positioning devices.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 1
+      }
+    ],
+    "meanJudgements": {
+      "faithfulness": 3.0,
+      "relevance": 3.0,
+      "consistency": 3.0,
+      "supportCoverage": 3.0,
+      "paraphraseRobustness": 3.0,
+      "ambiguityLevel": 1.0
+    }
+  },
+  "referencesWithCosineSimilarityAndKeywordMatching": {
+    "1": [
+      {
+        "context": "It has been operating since then with almost permanent shift crews from the ANTARES shore station located in La Seyne-sur-Mer. This paper highlights the main results obtained from the MILOM operation in 2005, in particular the analysis of the Optical Module signals and of the calibration device data. {{figure:3238509c-0be5-439e-855d-2b36dc16effb}}\nThe MILOM line: As shown in figure REF , the MILOM consists of an instrumented releasable anchor, the Bottom String Socket (BSS), and of three storeys located respectively at 100 m, 117 m and 169 m above the sea bed (the inter-storey spacings indicated in figure correspond to the cable lengths). [BOTTOM 2963 chars]: Some correlation between the storey rotations and the water direction changes can also be noticed, especially when the current velocity is large as during the first days of November 2005. {{figure:5d8ababe-291e-48de-9d76-2baa6619148b}}The seismometer read out by the MILOM has been delivering continuous data to the ANTARES shore station.",
+        "sentence": "The MILOM line consists of an instrumented releasable anchor, the Bottom String Socket (BSS), and of three storeys located respectively at 100 m, 117 m and 169 m above the sea bed, and each storey is equipped with a triplet of Optical Modules.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 5,
+          "consistency": 5,
+          "supportCoverage": 5,
+          "paraphraseRobustness": 5,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      },
+      {
+        "context": "The main objective of the MILOM operation is to provide an in-situ check of the modified detector elements and a validation of the performance of the time calibration and the acoustic positioning devices.",
+        "sentence": "The main objective of the MILOM operation is to provide an in-situ check of the modified detector elements and a validation of the performance of the time calibration and the acoustic positioning devices.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 1
+      }
+    ],
+    "meanJudgements": {
+      "faithfulness": 3.0,
+      "relevance": 4.0,
+      "consistency": 4.0,
+      "supportCoverage": 4.0,
+      "paraphraseRobustness": 4.0,
+      "ambiguityLevel": 1.0
+    }
+  },
+  "referencesWithCosineSimilarityAndCrossEncoder": {
+    "1": [
+      {
+        "context": "{{figure:3238509c-0be5-439e-855d-2b36dc16effb}}\nThe MILOM line: As shown in figure REF , the MILOM consists of an instrumented releasable anchor, the Bottom String Socket (BSS), and of three storeys located respectively at 100 m, 117 m and 169 m above the sea bed (the inter-storey spacings indicated in figure correspond to the cable lengths). [BOTTOM 2963 chars]: Some correlation between the storey rotations and the water direction changes can also be noticed, especially when the current velocity is large as during the first days of November 2005. {{figure:5d8ababe-291e-48de-9d76-2baa6619148b}}The seismometer read out by the MILOM has been delivering continuous data to the ANTARES shore station.",
+        "sentence": "The MILOM line consists of an instrumented releasable anchor, the Bottom String Socket (BSS), and of three storeys located respectively at 100 m, 117 m and 169 m above the sea bed, and each storey is equipped with a triplet of Optical Modules.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      },
+      {
+        "context": "The main objective of the MILOM operation is to provide an in-situ check of the modified detector elements and a validation of the performance of the time calibration and the acoustic positioning devices. It was also an excellent opportunity to validate the tools and procedures used during the integration and deployment of a line before their application to the first complete ANTARES detector line. Furthermore, the MILOM houses environmental instruments needed for the calibration of the detector and the monitoring of the water physical properties.",
+        "sentence": "The main objective of the MILOM operation is to provide an in-situ check of the modified detector elements and a validation of the performance of the time calibration and the acoustic positioning devices.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 1
+      }
+    ],
+    "meanJudgements": {
+      "faithfulness": 3.0,
+      "relevance": 3.0,
+      "consistency": 3.0,
+      "supportCoverage": 3.0,
+      "paraphraseRobustness": 3.0,
+      "ambiguityLevel": 1.0
+    }
+  },
+  "referencesWithBiencoderAndBm25": {
+    "1": [
+      {
+        "context": "{{figure:3238509c-0be5-439e-855d-2b36dc16effb}}\nThe MILOM line: As shown in figure REF , the MILOM consists of an instrumented releasable anchor, the Bottom String Socket (BSS), and of three storeys located respectively at 100 m, 117 m and 169 m above the sea bed (the inter-storey spacings indicated in figure correspond to the cable lengths).",
+        "sentence": "The MILOM line consists of an instrumented releasable anchor, the Bottom String Socket (BSS), and of three storeys located respectively at 100 m, 117 m and 169 m above the sea bed, and each storey is equipped with a triplet of Optical Modules.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      },
+      {
+        "context": "The main objective of the MILOM operation is to provide an in-situ check of the modified detector elements and a validation of the performance of the time calibration and the acoustic positioning devices.",
+        "sentence": "The main objective of the MILOM operation is to provide an in-situ check of the modified detector elements and a validation of the performance of the time calibration and the acoustic positioning devices.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 1
+      }
+    ],
+    "meanJudgements": {
+      "faithfulness": 3.0,
+      "relevance": 3.0,
+      "consistency": 3.0,
+      "supportCoverage": 3.0,
+      "paraphraseRobustness": 3.0,
+      "ambiguityLevel": 1.0
+    }
+  },
+  "referencesWithBiencoderAndBm25AndCrossEncoder": {
+    "1": [
+      {
+        "context": "{{figure:3238509c-0be5-439e-855d-2b36dc16effb}}\nThe MILOM line: As shown in figure REF , the MILOM consists of an instrumented releasable anchor, the Bottom String Socket (BSS), and of three storeys located respectively at 100 m, 117 m and 169 m above the sea bed (the inter-storey spacings indicated in figure correspond to the cable lengths). [BOTTOM 2963 chars]: Some correlation between the storey rotations and the water direction changes can also be noticed, especially when the current velocity is large as during the first days of November 2005. {{figure:5d8ababe-291e-48de-9d76-2baa6619148b}}The seismometer read out by the MILOM has been delivering continuous data to the ANTARES shore station.",
+        "sentence": "The MILOM line consists of an instrumented releasable anchor, the Bottom String Socket (BSS), and of three storeys located respectively at 100 m, 117 m and 169 m above the sea bed, and each storey is equipped with a triplet of Optical Modules.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      },
+      {
+        "context": "The main objective of the MILOM operation is to provide an in-situ check of the modified detector elements and a validation of the performance of the time calibration and the acoustic positioning devices. It was also an excellent opportunity to validate the tools and procedures used during the integration and deployment of a line before their application to the first complete ANTARES detector line. Furthermore, the MILOM houses environmental instruments needed for the calibration of the detector and the monitoring of the water physical properties.",
+        "sentence": "The main objective of the MILOM operation is to provide an in-situ check of the modified detector elements and a validation of the performance of the time calibration and the acoustic positioning devices.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 1
+      }
+    ],
+    "meanJudgements": {
+      "faithfulness": 3.0,
+      "relevance": 3.0,
+      "consistency": 3.0,
+      "supportCoverage": 3.0,
+      "paraphraseRobustness": 3.0,
+      "ambiguityLevel": 1.0
+    }
+  },
+  "referencesWithLLM": {
+    "1": [
+      {
+        "context": "The MILOM line: As shown in figure REF, the MILOM consists of an instrumented releasable anchor, the Bottom String Socket (BSS), and of three storeys located respectively at 100 m, 117 m and 169 m above the sea bed (the inter-storey spacings indicated in figure correspond to the cable lengths). The ANTARES detector will consist of 12 lines of 25 storeys, each storey being equipped with a triplet of Optical Modules and an electronic container mounted on a titanium frame, giving thus a grand total of 900 OMs.",
+        "sentence": "The MILOM line consists of an instrumented releasable anchor, the Bottom String Socket (BSS), and of three storeys located respectively at 100 m, 117 m and 169 m above the sea bed, and each storey is equipped with a triplet of Optical Modules.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 5,
+          "consistency": 3,
+          "supportCoverage": 5,
+          "paraphraseRobustness": 5,
+          "ambiguityLevel": 1
+        },
+        "entailment": 1
+      },
+      {
+        "context": "In parallel to the launching of the mass production of all detector elements, the ANTARES Collaboration built a new version of the Mini Instrumentation Line based on the final design of all electronics and mechanics. This line, which also includes an extra storey with three OMs, has been named the MILOM. The main objective of the MILOM operation is to provide an in-situ check of the modified detector elements and a validation of the performance of the time calibration and the acoustic positioning devices. It was also an excellent opportunity to validate the tools and procedures used during the integration and deployment of a line before their application to the first complete ANTARES detector line. Furthermore, the MILOM houses environmental instruments needed for the calibration of the detector and the monitoring of the water physical properties.",
+        "sentence": "The main objective of the MILOM operation is to provide an in-situ check of the modified detector elements and a validation of the performance of the time calibration and the acoustic positioning devices.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 1
+      }
+    ],
+    "meanJudgements": {
+      "faithfulness": 3.0,
+      "relevance": 4.0,
+      "consistency": 3.0,
+      "supportCoverage": 4.0,
+      "paraphraseRobustness": 4.0,
+      "ambiguityLevel": 1.0
+    }
+  },
+  "meanJudgement": {
+    "faithfulness": 3.0,
+    "relevance": 3.3333333333333335,
+    "consistency": 3.1666666666666665,
+    "supportCoverage": 3.3333333333333335,
+    "paraphraseRobustness": 3.3333333333333335,
+    "ambiguityLevel": 1.0
+  }
+}

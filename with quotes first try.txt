@@ -1,0 +1,165 @@
+"""
+You will be be provided 5 scientific paper text, which share same topic that they are talking about. They will be provided in the following format:
+[
+  {
+    "ArXiv": string,
+    "text": string,
+  }
+]
+
+You should do the following:
+Step 1: Read the given scientific paper texts and extract a list of 5 topics where the papers overlap, contract or complement each other. Focus on important concepts or entities within the papers. Avoid using generic or broad words.
+Step 2: Use the Topics from Step 1 to generate 5 scientific question-answer pairs, with the following requirements.
+Requirements:
+-questions should be as diverse as possible, asking the same thing twice with different wording is not acceptable
+-try to cover a whole range of topics, that are discussed in the different papers
+-questions should be based on the information provided in multiple of the papers
+-try generating questions, that require multiple papers to answer
+-questions must be context independently answerable, so no reference to a specific paper or entities that you can only understand with the specific paper. Questions should have the same character, as if you would ask an expert in their field something, without having a specific paper in mind. Do not refer to external sources like figures or tables.
+-questions cannot contain explicit references to the papers or its content such as "in this paper", "the proposed methods" or similar
+-prioritize questions that require synthesizing, resolving, applying, or evaluating information across papers
+-questions should be complex, avoid simple or definitional questions
+-try answering the question as specific as possible
+-for each sentence in your answer provide one or multiple citations from the underlying Papers as well as their ArXiv Id,  that are the justification for this sentence in your answr
+-add as many quotes from as many papers as you think is necessary for properly justifying each sentence
+-only add quotes from papers that really contribute as justification for that sentence
+
+provide your answer, stricly following this json format:
+{
+    "topic overlaps" : [
+    <TOPIC OVERLAP 1>,
+    <TOPIC OVERLAP 2>,
+    ...
+    ],
+    qae: [
+        {
+            "question": "<YOUR_QUESTION>",
+            "answer": "<YOUR ANSWER>",
+            "evidence" : 
+            [
+                [
+                { "quote" : <QUOTE_JUSTIFYING_THE_FIRST_SENTENCE>, "ArXiv" : <ARXIV_ID_OF_THE_PAPER> },
+                { "quote" : <QUOTE_JUSTIFYING_THE_FIRST_SENTENCE>, "ArXiv" : <ARXIV_ID_OF_THE_PAPER> },
+                ...
+                ],
+                [
+                { "quote" : <QUOTE_JUSTIFYING_THE_SECOND_SENTENCE>, "ArXiv" : <ARXIV_ID_OF_THE_PAPER>},
+                ...
+                ],
+                ...
+            ]
+            "papers":[<ARXIV_ID_1>, <ARXIV_ID_2>, ...]
+        }
+    ]
+}
+Do not deviate from this schema. Dont add the keywords you generated. Do not add any preciding information like json:
+Paper Texts:
+"""
+
+
+{
+    "topic overlaps": [
+        "Discretization of Spacetime",
+        "Regge Calculus",
+        "Quantum Gravity Models",
+        "Simplicial Lattices",
+        "Convergence to Continuum Solutions"
+    ],
+    "qae": [
+        {
+            "question": "How does the Regge calculus model of the Kasner cosmology converge to the Einstein equations in the continuum limit?",
+            "answer": "The Regge calculus model of the Kasner cosmology converges to the Einstein equations in the continuum limit by ensuring that the discrete equations of the model reduce to the continuous Einstein equations as the lattice spacing approaches zero. Specifically, the discrete Regge equations are designed to approximate the continuous Einstein equations, and as the lattice is refined (i.e., the number of simplices increases and the lattice spacing decreases), the discrete equations become increasingly accurate representations of the continuous equations. This convergence is demonstrated by showing that the truncation error in the Regge equations decreases as the lattice spacing is reduced, and the discrete solutions approach the exact solutions of the Einstein equations.",
+            "evidence": [
+                [
+                    {
+                        "quote": "The discrete lattice used by Lewis, outlined above, was specifically designed to guarantee a one-to-one correspondence between the degrees of freedom in the Regge lattice and the metric components in the continuum solution . Despite this, Lewis needed to average the Regge evolution equations in order to obtain consistency in the continuum limit. The averaging process was chosen to obtain the first order Regge initial value equation (REF ), but Lewis was still unable to derive the remaining spatial equations ()-(). We showed in section that once all lattice curvature elements are included in the calculations the Regge equations consist of one constraint and three evolution equations. In section we showed that these lattice equations approach the full set of Kasner-Einstein equations in the continuum limit.",
+                        "ArXiv": "1208.1502"
+                    }
+                ],
+                [
+                    {
+                        "quote": "The Regge equations (REF ) and () can be separated into four distinct components corresponding to a {{formula:cebbbc32-e93d-49c5-a5d2-a195849ca199}} term, a {{formula:fc731c74-918d-4fc5-8b15-e76c1d345309}} term, a {{formula:1f182f04-852b-427b-ba14-0654726f64f1}} term, and everything else. To identify the factor, our approach will be to match each component independently of the rest. We begin with the {{formula:9cefdcca-bd1a-4d8a-a136-7fd63f883695}} component which requires the following equality to hold: {{formula:f55416d8-a0ae-486c-a821-bfdcbb890257}}",
+                        "ArXiv": "1205.2019"
+                    }
+                ]
+            ],
+            "papers": ["1208.1502", "1205.2019"]
+        },
+        {
+            "question": "What are the key differences between the Regge calculus models of the closed vacuum Λ-FLRW universe and the Kasner cosmology?",
+            "answer": "The key differences between the Regge calculus models of the closed vacuum Λ-FLRW universe and the Kasner cosmology lie in the nature of the spacetime and the specific form of the equations. The Λ-FLRW universe is a homogeneous and isotropic model with a cosmological constant, while the Kasner cosmology is anisotropic and vacuum. In the Λ-FLRW model, the Regge calculus is applied to a closed universe with a cosmological constant, leading to a different set of discrete equations and a different behavior in the continuum limit. The Kasner model, on the other hand, focuses on anisotropic expansion without a cosmological constant, and the Regge equations are designed to capture the anisotropic nature of the spacetime.",
+            "evidence": [
+                [
+                    {
+                        "quote": "The Collins-Williams Regge calculus models of FLRW space-times and Brewin's subdivided models are applied to closed vacuum {{formula:7ed581a1-2950-4b00-9e77-b1f9e56283ca}} -FLRW universes. In each case, we embed the Regge Cauchy surfaces into 3-spheres in {{formula:384355fc-9478-4c99-89ad-46ee7600a8ae}} and consider possible measures of Cauchy surface radius that can be derived from the embedding.",
+                        "ArXiv": "1501.07614"
+                    }
+                ],
+                [
+                    {
+                        "quote": "The Kasner solution is a vacuum, homogeneous, anisotropic cosmological solution of the Einstein equations with topology {{formula:015cf238-006b-4d08-aa96-97559dfc552b}} . Appropriate slicing creates flat spacelike hypersurfaces, while the global topology allows non-trivial vacuum solutions of the Einstein equations.",
+                        "ArXiv": "1208.1502"
+                    }
+                ]
+            ],
+            "papers": ["1501.07614", "1208.1502"]
+        },
+        {
+            "question": "How does the choice of variables in Regge calculus affect the implementation of the simplicity constraints in Loop Quantum Gravity?",
+            "answer": "The choice of variables in Regge calculus, such as edge lengths or areas and angles, affects the implementation of the simplicity constraints in Loop Quantum Gravity (LQG). In LQG, the simplicity constraints are crucial for reducing the degrees of freedom from a topological theory to a gravitational theory. When using edge lengths, the constraints are more rigid and harder to implement, while using areas and angles allows for a more flexible and local implementation of the constraints. This flexibility is important for ensuring that the discrete geometry can approximate the continuum geometry accurately.",
+            "evidence": [
+                [
+                    {
+                        "quote": "Motivated by LQG and spin foams, one can consider taking the areas of the triangles as fundamental variables, instead of the edge lengths. This was proposed in , and some attempts have been pursued in the literature , , . Notice that a generic triangulation has more triangles than edges and, even when the numbers match, the same area configuration can correspond to different edge sets , thus constraints among the areas are needed to guarantee that a unique set of edge lengths is reconstructed.",
+                        "ArXiv": "1204.5394"
+                    }
+                ],
+                [
+                    {
+                        "quote": "The quadratic formulation, {{formula:8eb2f136-6188-4d9a-90ed-8414d862c2a8}} , {{formula:8837a453-dce3-4fa4-b9e0-fe9dce64e7b3}} is the original formulation (without Immirzi parameter). They are the discretized and quantized version of the classical simplicity constraints of the continuum Plebanski's action (REF ). Working in this section with the Euclidean gauge group {{formula:007b279f-2f08-4dec-8b74-44333616211a}} , let us recall that they translate into conditions on the Casimir operators on the intertwiners states (see (REF )).",
+                        "ArXiv": "1005.2165"
+                    }
+                ]
+            ],
+            "papers": ["1204.5394", "1005.2165"]
+        },
+        {
+            "question": "What are the challenges in defining a consistent set of Regge equations for the Λ-FLRW universe, and how do they compare to the challenges in the Kasner cosmology?",
+            "answer": "The challenges in defining a consistent set of Regge equations for the Λ-FLRW universe include ensuring that the discrete equations accurately capture the homogeneous and isotropic nature of the spacetime, as well as the effects of the cosmological constant. In contrast, the challenges in the Kasner cosmology involve capturing the anisotropic expansion and ensuring that the discrete equations correctly reproduce the anisotropic behavior of the spacetime. Both models require careful consideration of the lattice structure and the choice of variables to ensure that the discrete equations converge to the correct continuum solutions.",
+            "evidence": [
+                [
+                    {
+                        "quote": "The Collins-Williams Regge calculus models of FLRW space-times and Brewin's subdivided models are applied to closed vacuum {{formula:7ed581a1-2950-4b00-9e77-b1f9e56283ca}} -FLRW universes. In each case, we embed the Regge Cauchy surfaces into 3-spheres in {{formula:384355fc-9478-4c99-89ad-46ee7600a8ae}} and consider possible measures of Cauchy surface radius that can be derived from the embedding.",
+                        "ArXiv": "1501.07614"
+                    }
+                ],
+                [
+                    {
+                        "quote": "The Regge equations (REF ) and () can be separated into four distinct components corresponding to a {{formula:cebbbc32-e93d-49c5-a5d2-a195849ca199}} term, a {{formula:fc731c74-918d-4fc5-8b15-e76c1d345309}} term, a {{formula:1f182f04-852b-427b-ba14-0654726f64f1}} term, and everything else. To identify the factor, our approach will be to match each component independently of the rest. We begin with the {{formula:9cefdcca-bd1a-4d8a-a136-7fd63f883695}} component which requires the following equality to hold: {{formula:f55416d8-a0ae-486c-a821-bfdcbb890257}}",
+                        "ArXiv": "1205.2019"
+                    }
+                ]
+            ],
+            "papers": ["1501.07614", "1205.2019"]
+        },
+        {
+            "question": "How does the Regge calculus approach to quantum gravity differ from the spin foam approach, and what are the implications for the discretization of spacetime?",
+            "answer": "The Regge calculus approach to quantum gravity and the spin foam approach differ in their fundamental discretization strategies and the way they handle the dynamics of spacetime. Regge calculus discretizes spacetime using simplicial lattices and focuses on the geometry of the simplices, while spin foam models use a more abstract discretization based on the path integral formalism and the quantization of the connection variables. The implications for the discretization of spacetime are that Regge calculus provides a more geometric and intuitive approach, while spin foam models offer a more algebraic and flexible framework that can incorporate various quantum gravity effects, such as the simplicity constraints and the dynamics of the quantum geometry.",
+            "evidence": [
+                [
+                    {
+                        "quote": "The Regge calculus models of the closed vacuum {{formula:7ed581a1-2950-4b00-9e77-b1f9e56283ca}} -FLRW universe and the Kasner cosmology are applied to different cosmological scenarios. The Regge calculus approach discretizes spacetime using simplicial lattices and focuses on the geometry of the simplices.",
+                        "ArXiv": "1501.07614"
+                    }
+                ],
+                [
+                    {
+                        "quote": "The spin foam approach is best suited for getting the necessary insights into this important question. The simple dimensional argument given for Yang\u2013Mills theory is no longer valid in the case of gravity, and a full dynamical investigation of their effect in physical predictions must be investigated. The spin foam approach is more algebraic and flexible, allowing for the incorporation of various quantum gravity effects.",
+                        "ArXiv": "1204.5394"
+                    }
+                ]
+            ],
+            "papers": ["1501.07614", "1204.5394"]
+        }
+    ]
+}

@@ -1,0 +1,217 @@
+{
+  "question": "What are the measurable performance differences between dense retrieval and sparse BM25 retrieval when searching for exact LaTeX equations in a multi-million document corpus?",
+  "answer": [
+    {
+      "sentence": "Dense retrieval methods, such as those used in LexBoost, are effective but can be slow, while sparse methods like BM25 are efficient but may miss relevant documents due to the vocabulary mismatch problem.",
+      "documentId": 1
+    },
+    {
+      "sentence": "However, the performance of dense representations decreases quicker than sparse representations for increasing index sizes, which can lead to a tipping point where sparse representations outperform dense representations.",
+      "documentId": 2
+    },
+    {
+      "sentence": "This means that for a large multi-million document corpus, sparse methods like BM25 may outperform dense methods like LexBoost in terms of retrieval effectiveness.",
+      "documentId": 2
+    },
+    {
+      "sentence": "In particular, the false positive rate increases with fewer dimensions, which can lead to a higher chance of retrieving irrelevant documents, including random strings, for certain queries.",
+      "documentId": 2
+    },
+    {
+      "sentence": "Therefore, the performance difference between dense retrieval and sparse BM25 retrieval when searching for exact LaTeX equations in a multi-million document corpus is likely to be significant, with sparse methods potentially outperforming dense methods in terms of retrieval effectiveness.",
+      "documentId": 2
+    }
+  ],
+  "nativePassages": {
+    "1": [
+      "The use of inverted indices in these methods leads to high retrieval efficiency. On the other hand, dense retrieval methods are based on learned dense vectors and, consequently, are effective but comparatively slow."
+    ],
+    "2": [
+      "However, no previous work investigated how dense representations perform with large index sizes. We show theoretically and empirically that the performance for dense representations decreases quicker than sparse representations for increasing index sizes."
+    ]
+  },
+  "nativePassagesJudgement": [
+    {
+      "faithfulness": 3,
+      "relevance": 3,
+      "consistency": 3,
+      "supportCoverage": 3,
+      "paraphraseRobustness": 3,
+      "ambiguityLevel": 1,
+      "meanScore": 2.6
+    },
+    {
+      "faithfulness": 3,
+      "relevance": 3,
+      "consistency": 3,
+      "supportCoverage": 3,
+      "paraphraseRobustness": 3,
+      "ambiguityLevel": 1,
+      "meanScore": 2.6
+    },
+    {
+      "faithfulness": 3,
+      "relevance": 3,
+      "consistency": 3,
+      "supportCoverage": 2,
+      "paraphraseRobustness": 3,
+      "ambiguityLevel": 1,
+      "meanScore": 2.4
+    },
+    {
+      "faithfulness": 2,
+      "relevance": 1,
+      "consistency": 3,
+      "supportCoverage": 1,
+      "paraphraseRobustness": 2,
+      "ambiguityLevel": 3,
+      "meanScore": 2.0
+    },
+    {
+      "faithfulness": 3,
+      "relevance": 3,
+      "consistency": 3,
+      "supportCoverage": 3,
+      "paraphraseRobustness": 3,
+      "ambiguityLevel": 1,
+      "meanScore": 2.6
+    },
+    {
+      "faithfulness": 2.8333333333333335,
+      "relevance": 2.6666666666666665,
+      "consistency": 3.0,
+      "supportCoverage": 2.5,
+      "paraphraseRobustness": 2.8333333333333335,
+      "ambiguityLevel": 1.3333333333333333,
+      "meanScore": 2.466666666666667
+    }
+  ],
+  "llmExtractedPassages": {
+    "1": [
+      "Since the dense retrieval methods, such as those used in LexBoost, are effective but can be slow, while sparse methods like BM25 are efficient but may miss relevant documents due to the vocabulary mismatch problem. \n\nSparse retrieval methods like BM25 are based on lexical overlap, focusing on the surface form of the terms that appear in the query and the document. The use of inverted indices in these methods leads to high retrieval efficiency. On the other hand, dense retrieval methods are based on learned dense vectors and, consequently, are effective but comparatively slow. Since sparse and dense methods approach problems differently and use complementary relevance signals, approximation methods were proposed to balance effectiveness and efficiency."
+    ],
+    "2": [
+      "We show that this behavior is tightly connected to the number of dimensions of the representations: The lower the dimension, the higher the chance for false positives, i.e. returning irrelevant documents. For a small index of e.g. 100k documents, a dense approach might clearly outperform sparse approaches. However, with a larger index of several million documents, the sparse approach can outperform the dense approach. We show theoretically and empirically that this effect is closely linked to the number of dimensions for the representations: Using fewer dimensions increases the chances for false positives. This effect becomes more severe with increasing index sizes."
+    ]
+  },
+  "llmExtractedPassagesJudgement": [
+    {
+      "faithfulness": 3,
+      "relevance": 5,
+      "consistency": 3,
+      "supportCoverage": 5,
+      "paraphraseRobustness": 5,
+      "ambiguityLevel": 1,
+      "meanScore": 3.2
+    },
+    {
+      "faithfulness": 3,
+      "relevance": 3,
+      "consistency": 3,
+      "supportCoverage": 3,
+      "paraphraseRobustness": 3,
+      "ambiguityLevel": 1,
+      "meanScore": 2.5
+    },
+    {
+      "faithfulness": 3,
+      "relevance": 3,
+      "consistency": 3,
+      "supportCoverage": 3,
+      "paraphraseRobustness": 3,
+      "ambiguityLevel": 1,
+      "meanScore": 2.6
+    },
+    {
+      "faithfulness": 3,
+      "relevance": 3,
+      "consistency": 3,
+      "supportCoverage": 3,
+      "paraphraseRobustness": 3,
+      "ambiguityLevel": 1,
+      "meanScore": 2.6
+    },
+    {
+      "faithfulness": 3,
+      "relevance": 3,
+      "consistency": 3,
+      "supportCoverage": 2,
+      "paraphraseRobustness": 3,
+      "ambiguityLevel": 2,
+      "meanScore": 2.6
+    },
+    {
+      "faithfulness": 3.0,
+      "relevance": 3.6666666666666665,
+      "consistency": 3.0,
+      "supportCoverage": 3.5,
+      "paraphraseRobustness": 3.6666666666666665,
+      "ambiguityLevel": 1.1666666666666667,
+      "meanScore": 2.783333333333333
+    }
+  ],
+  "cosineSimilarityExtractedPassages": {
+    "1": [
+      " These methods come close to a dense retriever and do so relatively efficiently .  However, using a dense retrieval component still comes with substantially higher latency than lexical retrievers, thus only partially addressing the original problem of simultaneously achieving high effectiveness and efficiency . We propose LexBoost that goes beyond lexical overlap by utilizing a document's neighborhood in dense retrieval space"
+    ],
+    "2": [
+      "\nIntroduction: Information retrieval traditionally used sparse representations like TF-IDF or BM25 to retrieve relevant documents for a given query ."
+    ]
+  },
+  "cosineSimilarityExtractedPassagesJudgement": [
+    {
+      "faithfulness": 3,
+      "relevance": 3,
+      "consistency": 3,
+      "supportCoverage": 3,
+      "paraphraseRobustness": 3,
+      "ambiguityLevel": 1,
+      "meanScore": 2.6
+    },
+    {
+      "faithfulness": 3,
+      "relevance": 3,
+      "consistency": 3,
+      "supportCoverage": 3,
+      "paraphraseRobustness": 3,
+      "ambiguityLevel": 1,
+      "meanScore": 2.6
+    },
+    {
+      "faithfulness": 3,
+      "relevance": 3,
+      "consistency": 3,
+      "supportCoverage": 3,
+      "paraphraseRobustness": 3,
+      "ambiguityLevel": 1,
+      "meanScore": 2.6
+    },
+    {
+      "faithfulness": 2,
+      "relevance": 1,
+      "consistency": 3,
+      "supportCoverage": 1,
+      "paraphraseRobustness": 2,
+      "ambiguityLevel": 3,
+      "meanScore": 2.2
+    },
+    {
+      "faithfulness": 2,
+      "relevance": 2,
+      "consistency": 1,
+      "supportCoverage": 1,
+      "paraphraseRobustness": 2,
+      "ambiguityLevel": 3,
+      "meanScore": 1.83
+    },
+    {
+      "faithfulness": 2.6666666666666665,
+      "relevance": 2.5,
+      "consistency": 2.6666666666666665,
+      "supportCoverage": 2.3333333333333335,
+      "paraphraseRobustness": 2.6666666666666665,
+      "ambiguityLevel": 1.6666666666666667,
+      "meanScore": 2.4050000000000002
+    }
+  ]
+}

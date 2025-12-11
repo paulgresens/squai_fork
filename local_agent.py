@@ -1,6 +1,7 @@
 import torch
 import os
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from dotenv import load_dotenv
 
 
 class LLMAgent:
@@ -23,7 +24,15 @@ class LLMAgent:
         print(f"Initializing LLMAgent with model: {model_name}")
 
         # Check for HF token if needed
+        load_dotenv()
         token = os.environ.get("HUGGING_FACE_HUB_TOKEN")
+
+        quantization_config = BitsAndBytesConfig(
+            load_in_4bit=True,                      # Switch to 4-bit
+            bnb_4bit_compute_dtype=torch.bfloat16,  # Compute in bf16 (best for Llama-3)
+            bnb_4bit_quant_type="nf4",              # Standard 4-bit datatype
+            bnb_4bit_use_double_quant=True          # Compresses the quantization constants
+        )
 
         # Load tokenizer
         print("Loading tokenizer...")
@@ -33,6 +42,9 @@ class LLMAgent:
             )
         else:
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        
+        #unlock more input length 
+        self.tokenizer.model_max_length = 131072
 
         # Determine torch dtype based on precision
         if precision == "bfloat16" and torch.cuda.is_bf16_supported():
@@ -50,6 +62,7 @@ class LLMAgent:
         if token:
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_name,
+                quantization_config=quantization_config,
                 torch_dtype=torch_dtype,
                 device_map="auto",  # Automatically optimize GPU usage
                 trust_remote_code=True,  # Required for some models
@@ -58,6 +71,7 @@ class LLMAgent:
         else:
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_name,
+                quantization_config=quantization_config,
                 torch_dtype=torch_dtype,
                 device_map="auto",  # Automatically optimize GPU usage
                 trust_remote_code=True,  # Required for some models
@@ -69,7 +83,7 @@ class LLMAgent:
         )
         print(f"Model loaded on {self.device}")
 
-    def generate(self, prompt, max_new_tokens=1024):
+    def generate(self, prompt, max_new_tokens=4096):
         """
         Generate text using the local model with proper chat formatting.
 

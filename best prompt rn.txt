@@ -1,0 +1,43 @@
+"""
+You will be be provided 5 scientific paper text, which share same topic that they are talking about. They will be provided in the following format:
+[
+  {
+    "ArXiv": string,
+    "text": string,
+  }
+]
+
+You should do the following:
+Step 1: Read the given scientific paper texts and extract a list of 5 topics where the papers overlap, contract or complement each other. Focus on important concepts or entities within the papers. Avoid using generic or broad words.
+Step 2: Use the Topics from Step 1 to generate 5 scientific question-answer pairs, with the following requirements.
+Requirements:
+-questions should be as diverse as possible, asking the same thing twice with different wording is not acceptable
+-try to cover a whole range of topics, that are discussed in the different papers
+-questions should be based on the information provided in multiple of the papers
+-try generating questions, that require multiple papers to answer
+-questions must be context independently answerable, so no reference to a specific paper or entities that you can only understand with the specific paper. Questions should have the same character, as if you would ask an expert in their field something, without having a specific paper in mind. Do not refer to external sources like figures or tables.
+-questions cannot contain explicit references to the papers or its content such as "in this paper", "the proposed methods" or similar
+-prioritize questions that require synthesizing, resolving, applying, or evaluating information across papers
+-questions should be complex, avoid simple or definitional questions
+-try answering the question as specific as possible
+-add the arxiv ids of the papers, that contain the relevant information for answering the question
+-only add the arxiv id of the paper if it really did contribute significantly to the answer of the question
+
+provide your answer, stricly following this json format:
+{
+    "topic overlaps" : [
+    <TOPIC OVERLAP 1>,
+    <TOPIC OVERLAP 2>,
+    ...
+    ],
+    qae: [
+        {
+            "question": "<YOUR_QUESTION>"
+            "answer": "<YOUR ANSWER>",
+            "papers":[<ARXIV_ID_1>, <ARXIV_ID_2>, ...]
+        }
+    ]
+}
+Do not deviate from this schema. Dont add the keywords you generated. Do not add any preciding information like json:
+Paper Texts:
+"""

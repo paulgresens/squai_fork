@@ -1,0 +1,50 @@
+[
+  {
+    "paperId": "6caeaa95b1ce3efb77ddb6aa59b732a8bc3de0bf",
+    "externalIds": {
+      "MAG": "1595537880",
+      "ArXiv": "1502.03000",
+      "DOI": "10.1103/PhysRevD.93.023502",
+      "CorpusId": 117952880
+    },
+    "url": "https://www.semanticscholar.org/paper/6caeaa95b1ce3efb77ddb6aa59b732a8bc3de0bf",
+    "title": "Regge calculus models of closed lattice universes",
+    "year": 2015
+  },
+  {
+    "paperId": "0a63f5908f20f16d2522cbe12d515ac619228214",
+    "externalIds": {
+      "MAG": "2059286033",
+      "ArXiv": "gr-qc/9812057",
+      "DOI": "10.1088/0264-9381/16/6/326",
+      "CorpusId": 6974432
+    },
+    "url": "https://www.semanticscholar.org/paper/0a63f5908f20f16d2522cbe12d515ac619228214",
+    "title": "Apparent horizons in simplicial Brill wave initial data",
+    "year": 1998
+  },
+  {
+    "paperId": "b3f69c4ee5e1b988388f35435903559082f3bc06",
+    "externalIds": {
+      "MAG": "2089099311",
+      "ArXiv": "gr-qc/9901071",
+      "DOI": "10.1088/0264-9381/16/6/327",
+      "CorpusId": 10190349
+    },
+    "url": "https://www.semanticscholar.org/paper/b3f69c4ee5e1b988388f35435903559082f3bc06",
+    "title": "Simplicial Brill wave initial data",
+    "year": 1999
+  },
+  {
+    "paperId": "8358482f57c77ea3cd82367e4111a624fea64e40",
+    "externalIds": {
+      "MAG": "2116816794",
+      "ArXiv": "1505.00067",
+      "DOI": "10.1088/0264-9381/32/19/195008",
+      "CorpusId": 55829790
+    },
+    "url": "https://www.semanticscholar.org/paper/8358482f57c77ea3cd82367e4111a624fea64e40",
+    "title": "A numerical study of the Regge calculus and smooth lattice methods on a Kasner cosmology",
+    "year": 2015
+  }
+]

@@ -1,0 +1,37 @@
+"""
+You will be be provided 5 scientific paper text, which share same topic that they are talking about. They will be provided in the following format:
+[
+  {
+    "ArXiv": string,
+    "text": string,
+  }
+]
+
+Task Description:
+Read the scientific papers text. Based on all information provided in those papers you will need to generate 5 Question-Answer-Evidende Triplets. You can always assume that the information in the Papers is correct. Requirements for each part of the triplets you must generate follow below:
+
+Question Requirements:
+-Question should be complex and scientific as if asking an expert, avoid simple definitional questions
+-Questions should be as diverse as possible, targeting a mixture of different topic of the papers
+-Questions should be only answerable combining the information of different papers
+-Questions must be standalone answerable, such that they contain all context needed in order to fully understand and answer the question without having access to the specific underlying papers
+-Questions cannot contain any reference to the papers or their concepts, experiments, proposals or similar, which are not widely known outside of the paper 
+
+Answer Requirements:
+-for each question that you generate, you must also provide an answer to that question
+-answer must be as precise as possible and thoroughly as possible
+
+Evidence Requirements:
+-for each question and connected answer that you generate, provide a list of those papers in form of their ArXiv Id, whose information were used as basis for the question
+
+provide your answer, stricly following this json format:
+[
+{
+"question": "<YOUR_QUESTION>"
+"answer": "<YOUR ANSWER>",
+"papers":[<ARXIV_ID_1>, <ARXIV_ID_2>, ...]
+}
+]
+Do not deviate from this schema. Dont add the keywords you generated. Do not add any preciding information like json:
+Paper Texts:
+"""

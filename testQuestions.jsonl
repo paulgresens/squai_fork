@@ -1,0 +1,5 @@
+{"id": 1, "question": "How does the use of structural section boundaries in LaTeX-derived scholarly datasets improve the precision of evidence extraction for long-form question answering?"}
+{"id": 2, "question": "What are the measurable performance differences between dense retrieval and sparse BM25 retrieval when searching for exact LaTeX equations in a multi-million document corpus?"}
+{"id": 3, "question": "Why is the preservation of citation context during document chunking critical for maintaining the faithfulness of generated answers in scientific RAG systems?"}
+{"id": 4, "question": "Compare the effectiveness of multi-agent RAG architectures versus standard RAG pipelines in resolving multi-hop queries that require evidence from multiple papers."}
+{"id": 5, "question": "In scholarly knowledge graphs, what is the impact of using fine-grained in-line citations on the explainability of generated responses for expert users?"}

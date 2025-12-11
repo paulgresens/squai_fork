@@ -19,6 +19,21 @@ streamlit
 fastapi
 llama-index
 llama-index-retrievers-bm25
+python-dotenv
 
 # language detection
 langdetect
+
+#for other models
+sentencepiece
+protobuf
+
+#for cosine similarity
+sentence_transformers>=3.0.0
+
+#for 8 bit 
+bitsandbytes
+rank_bm25
+
+#dataset generation
+requests

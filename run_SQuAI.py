@@ -18,16 +18,24 @@ import numpy as np
 import random
 import string
 import re
-from typing import List, Tuple, Dict, Any, Optional
+from typing import List, Tuple, Dict, Union
 import sqlite3
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed, ProcessPoolExecutor
 import multiprocessing as mp
 from performance_monitor import monitor, time_block
+from agents.QuestionSplitter import QuestionSplitter 
+from agents.PaperTitleExtractor import PaperTitleExtractor 
+from agents.EnhancedCitationHandler import EnhancedCitationHandler
+from agents.util import initialize_retriever, load_datamorgana_questions, format_enhanced_result_to_schema,write_enhanced_result_to_json, write_enhanced_results_to_jsonl
+from agents.types import GeneratedAnswerFormat
+from entailment_agent import EntailmentChecker
+
+logger = logging.getLogger("Enhanced_4Agent_RAG")
 
 # Import configuration
 from config import E5_INDEX_DIR, BM25_INDEX_DIR, DB_PATH
-
+logger = logging.getLogger("Enhanced_4Agent_RAG")
 
 # Your existing logging setup (unchanged)
 def get_unique_log_filename():
@@ -45,783 +53,21 @@ logging.basicConfig(
 )
 logger = logging.getLogger("Enhanced_4Agent_RAG")
 
-# Import the hybrid retriever components
-from hybrid_retriever import Retriever
-
-
-class QuestionSplitter:
-    """
-    Agent 1: Intelligent Question Splitting Agent
-    Detects complex queries with multiple sub-questions and splits them appropriately
-    """
-
-    def __init__(self, agent_model):
-        self.agent = agent_model
-        logger.info("Agent 1 (Question Splitter) initialized")
-
-    def _create_splitting_prompt(self, query: str) -> str:
-        """Create prompt for question splitting analysis"""
-        return f"""You are an intelligent question analyzer. Your task is to determine if a query contains multiple distinct sub-questions that would benefit from separate retrieval and research.
-
-SPLITTING CRITERIA:
-- Split if query contains multiple distinct topics connected by "and", "also", "what about"
-- Split if query asks for COMPARISONS or DIFFERENCES between concepts (e.g., "difference between X and Y")
-- Split if query asks for comparisons PLUS evaluation/preference (e.g., "which is better")
-- Split if query has multiple question words (what, how, why, when, where, which)
-- Split if query asks about a concept AND its implications/effects/applications
-- DO NOT split simple clarifications or related aspects of the same topic
-
-Examples:
-
-Query: "What is quantum computing and how is it used in cryptography?"
-Split: YES
-Sub-questions: ["What is quantum computing?", "How is quantum computing used in cryptography?"]
-
-Query: "What is the difference between dense and sparse retrieval and which one is better suited for RAG?"
-Split: YES
-Sub-questions: ["What is dense retrieval?", "What is sparse retrieval?", "Which retrieval method is better suited for RAG systems?"]
-
-Query: "Compare transformers and RNNs and explain which is better for sequence modeling"
-Split: YES
-Sub-questions: ["What are transformers?", "What are RNNs?", "Which architecture is better for sequence modeling?"]
-
-Query: "What is page rank algorithm and who invented it?"
-Split: YES
-Sub-questions: ["What is page rank algorithm?", "Who invented page rank algorithm?"]
-
-Query: "How does BERT work and what is GPT-3?"
-Split: YES  
-Sub-questions: ["How does BERT work?", "What is GPT-3?"]
-
-Query: "What are the advantages and disadvantages of federated learning?"
-Split: YES
-Sub-questions: ["What are the advantages of federated learning?", "What are the disadvantages of federated learning?"]
-
-Query: "What is reinforcement learning?"
-Split: NO
-Sub-questions: []
-
-Query: "Explain how attention mechanism works in transformers"
-Split: NO
-Sub-questions: []
-
-Query: "What are neural networks and how do they learn and what are CNNs?"
-Split: YES
-Sub-questions: ["What are neural networks?", "How do neural networks learn?", "What are CNNs?"]
-
-Now analyze this query:
-Query: "{query}"
-
-IMPORTANT: For comparison questions with evaluation (like "difference between X and Y and which is better"), always split into:
-1. Explanation of concept X
-2. Explanation of concept Y  
-3. Comparison/evaluation question
-
-Respond with ONLY this format:
-Split: YES/NO
-Sub-questions: [list of questions] (empty list if Split: NO)"""
-
-    def analyze_and_split(self, query: str) -> Tuple[bool, List[str]]:
-        """
-        Analyze query and split into sub-questions if beneficial
-        Always uses LLM for accurate analysis
-
-        Returns:
-            Tuple of (should_split: bool, sub_questions: List[str])
-        """
-        # Handle time_block if it exists (for compatibility)
-        try:
-            # Check if time_block is available
-            if 'time_block' in globals():
-                with time_block("agent1_question_splitting"):
-                    return self._perform_split_analysis(query)
-            else:
-                return self._perform_split_analysis(query)
-        except:
-            # Fallback if time_block causes any issues
-            return self._perform_split_analysis(query)
-
-    def _perform_split_analysis(self, query: str) -> Tuple[bool, List[str]]:
-        """
-        Internal method to perform the actual split analysis using LLM
-        """
-        logger.info(f"Agent 1: Analyzing query for splitting: {query}")
-        
-        # Basic validation - only skip extremely short queries
-        if len(query.strip()) < 10:  # Less than 10 characters is too short
-            logger.info("Query too short for meaningful splitting")
-            return False, []
-        
-        try:
-            # Always use LLM for analysis (no heuristics)
-            logger.info("Using LLM to analyze if query should be split...")
-            
-            prompt = self._create_splitting_prompt(query)
-            response = self.agent.generate(prompt)
-            
-            # Parse response
-            should_split, sub_questions = self._parse_splitting_response(response, query)
-            
-            if should_split:
-                logger.info(f"Agent 1: LLM decided to split into {len(sub_questions)} sub-questions: {sub_questions}")
-            else:
-                logger.info("Agent 1: LLM decided no splitting needed")
-            
-            return should_split, sub_questions
-            
-        except Exception as e:
-            logger.error(f"Error in LLM splitting analysis: {e}")
-            # On error, don't split
-            return False, []
-
-    def _parse_splitting_response(self, response: str, original_query: str) -> Tuple[bool, List[str]]:
-        """Parse the LLM response for splitting decision"""
-        try:
-            lines = response.strip().split('\n')
-            should_split = False
-            sub_questions = []
-
-            for line in lines:
-                line = line.strip()
-                if line.startswith("Split:"):
-                    should_split = "YES" in line.upper()
-                elif line.startswith("Sub-questions:"):
-                    # Extract list from the line
-                    list_part = line.split(":", 1)[1].strip()
-                    if list_part and list_part != "[]":
-                        # Parse the list - handle both ["q1", "q2"] and simple comma-separated
-                        try:
-                            if list_part.startswith("[") and list_part.endswith("]"):
-                                # JSON-like format
-                                sub_questions = json.loads(list_part)
-                            else:
-                                # Comma-separated format
-                                sub_questions = [
-                                    q.strip().strip('"').strip("'")
-                                    for q in list_part.split(",")
-                                ]
-                        except:
-                            logger.warning(f"Failed to parse sub-questions: {list_part}")
-                            sub_questions = []
-
-            # Validation: ensure sub-questions are meaningful
-            if should_split and sub_questions:
-                valid_questions = []
-                for q in sub_questions:
-                    q = q.strip()
-                    # Clean up and validate
-                    if len(q) > 10:
-                        # Add question mark if missing
-                        if not q.endswith("?"):
-                            q = q + "?"
-                        valid_questions.append(q)
-
-                if len(valid_questions) < 2:
-                    logger.info("Not enough valid sub-questions, keeping original")
-                    return False, []
-
-                return True, valid_questions
-
-            return False, []
-
-        except Exception as e:
-            logger.warning(f"Error parsing splitting response: {e}")
-            return False, []
-
-    def _quick_split_check(self, query: str) -> bool:
-        """
-        DEPRECATED: Keep for backward compatibility but not used
-        This method is kept in case other parts of the code reference it
-        """
-        # Always return False since we're using LLM directly now
-        return False
-
-class PaperTitleExtractor:
-    """
-    Utility class for extracting paper titles from document text
-    IMPROVED: Handles LevelDB storage format where title is on second line
-    """
-
-    @staticmethod
-    def extract_title_from_text(doc_text: str, doc_id: str) -> str:
-        """
-        Extract paper title from document text using multiple patterns
-        IMPROVED: Handles "Content for [paper_id]:\n[Title]" format from LevelDB
-        """
-        try:
-            # Method 1: NEW - Handle LevelDB format: "Content for [paper_id]:\n[Title]"
-            leveldb_pattern = r"Content for [^:]*:\s*\n([^\n]+)"
-            match = re.search(leveldb_pattern, doc_text)
-            if match:
-                title_candidate = match.group(1).strip()
-                # Validate it looks like a title (not abstract or other content)
-                if (
-                    len(title_candidate) > 10
-                    and len(title_candidate) < 300
-                    and not title_candidate.lower().startswith(
-                        ("abstract:", "introduction:", "the abstract", "in this", "we ")
-                    )
-                ):
-
-                    logger.debug(
-                        f"Extracted title from LevelDB format: {title_candidate[:50]}..."
-                    )
-                    return title_candidate
-
-            # Method 2: Look for title in first few lines (for direct title format)
-            lines = doc_text.split("\n")
-            for i, line in enumerate(lines[:5]):
-                line = line.strip()
-
-                # Skip empty lines and common headers
-                if not line or line.lower().startswith(
-                    ("content for", "time taken", "opening")
-                ):
-                    continue
-
-                # Check if this line looks like a title
-                if (
-                    len(line) > 10
-                    and len(line) < 300
-                    and not line.lower().startswith(
-                        (
-                            "abstract:",
-                            "introduction:",
-                            "the abstract",
-                            "in this",
-                            "we ",
-                            "this paper",
-                            "{",
-                        )
-                    )
-                    and not re.match(r"^\d+", line)  # Not starting with numbers
-                    and not line.endswith(":")  # Not a section header
-                    and line.count(" ") >= 2
-                ):  # At least 3 words
-
-                    logger.debug(f"Extracted title from line {i+1}: {line[:50]}...")
-                    return line
-
-            # Method 3: Look for "Content for [paper_id]:" pattern (legacy)
-            content_pattern = r"Content for [^:]*:\s*\n([^\n]+)"
-            match = re.search(content_pattern, doc_text)
-            if match:
-                title_candidate = match.group(1).strip()
-                if len(title_candidate) > 10 and len(title_candidate) < 300:
-                    title_candidate = re.sub(r'^["\']|["\']$', "", title_candidate)
-                    title_candidate = re.sub(r"^\W+|\W+$", "", title_candidate)
-                    if len(title_candidate) > 10:
-                        return title_candidate
-
-            # Method 4: Look for "Title. {" pattern
-            title_brace_pattern = r"^([^.]+)\.\s*\{"
-            match = re.search(title_brace_pattern, doc_text.strip(), re.MULTILINE)
-            if match:
-                title_candidate = match.group(1).strip()
-                if (
-                    len(title_candidate) > 10
-                    and len(title_candidate) < 300
-                    and not title_candidate.lower().startswith(
-                        ("the ", "this ", "in ", "we ", "abstract", "introduction")
-                    )
-                ):
-                    title_candidate = re.sub(r'^["\']|["\']$', "", title_candidate)
-                    if len(title_candidate) > 10:
-                        return title_candidate
-
-            # Method 5: Extract from cleaned first sentence
-            clean_text = re.sub(r"\{[^}]*\}", "", doc_text)
-            clean_text = re.sub(r"Content for [^:]+:\s*", "", clean_text)
-            clean_text = clean_text.strip()
-
-            first_sentence = clean_text.split("\n")[0].strip()
-            if ". {" in first_sentence:
-                first_sentence = first_sentence.split(". {")[0].strip()
-            elif ". " in first_sentence and len(first_sentence.split(". ")[0]) < 200:
-                first_sentence = first_sentence.split(". ")[0].strip()
-
-            if (
-                len(first_sentence) > 15
-                and len(first_sentence) < 300
-                and not first_sentence.lower().startswith(
-                    (
-                        "content for",
-                        "time taken",
-                        "opening",
-                        "the ",
-                        "this ",
-                        "in ",
-                        "we ",
-                        "abstract",
-                        "introduction",
-                    )
-                )
-                and not re.match(r"^\d+", first_sentence)
-            ):
-                return first_sentence
-
-            # Method 6: Try JSON metadata
-            if "{" in doc_text and '"title"' in doc_text:
-                try:
-                    json_match = re.search(r'\{.*?"title".*?\}', doc_text, re.DOTALL)
-                    if json_match:
-                        json_str = json_match.group(0)
-                        metadata = json.loads(json_str)
-                        if "title" in metadata and len(metadata["title"]) > 10:
-                            return metadata["title"]
-                except:
-                    pass
-
-            # Fallback: use first substantial line
-            for line in lines[:5]:
-                line = line.strip()
-                if len(line) > 15 and len(line) < 200:
-                    return line[:150] + "..." if len(line) > 150 else line
-
-            return f"Document {doc_id}"
-
-        except Exception as e:
-            logger.debug(f"Error extracting title for {doc_id}: {e}")
-            return f"Document {doc_id}"
-
-    @staticmethod
-    def format_title_for_log(title: str, max_length: int = 80) -> str:
-        """Format title for logging with length limit"""
-        if len(title) <= max_length:
-            return title
-        return title[: max_length - 3] + "..."
-
-    @staticmethod
-    def extract_paper_sections(
-        full_text: str, max_chars_per_section: int = 10000
-    ) -> Dict[str, str]:
-        """
-        Extract key sections from full paper text for better context utilization
-
-        Args:
-            full_text: The full paper text
-            max_chars_per_section: Limit for introduction and conclusion extraction (abstract is kept full)
-
-        Returns:
-            Dict with 'title', 'abstract', 'introduction', 'conclusion' keys
-            Note: Abstract is returned in full (no artificial limits)
-        """
-        sections = {}
-
-        # Extract title (first line after "Content for")
-        title_match = re.search(r"Content for [^:]*:\s*\n([^\n]+)", full_text)
-        if title_match:
-            sections["title"] = title_match.group(1).strip()
-
-        # Extract abstract (keep full abstract - they're naturally short and important)
-        abstract_match = re.search(
-            r"abstract:\s*(.+?)(?:\n\n|\nintroduction|\nrelated work|\nmethodology)",
-            full_text,
-            re.IGNORECASE | re.DOTALL,
-        )
-        if abstract_match:
-            abstract_text = abstract_match.group(1).strip()
-            # Keep full abstract - no artificial limits since they're naturally concise
-            sections["abstract"] = abstract_text
-
-        # Extract introduction (can be long and informative)
-        intro_match = re.search(
-            r"(?:^|\n)introduction[:\n]\s*(.+?)(?:\n\n[A-Z]|\nrelated work|\nmethodology|\nconclusion)",
-            full_text,
-            re.IGNORECASE | re.DOTALL,
-        )
-        if intro_match:
-            intro_text = intro_match.group(1).strip()
-            sections["introduction"] = intro_text[:max_chars_per_section]
-
-        # Extract conclusion (moderate length, important summary)
-        conclusion_match = re.search(
-            r"(?:^|\n)conclusion[s]?[:\n]\s*(.+?)(?:\n\n[A-Z]|\nreferences|\nacknowledgments|$)",
-            full_text,
-            re.IGNORECASE | re.DOTALL,
-        )
-        if conclusion_match:
-            conclusion_text = conclusion_match.group(1).strip()
-            sections["conclusion"] = conclusion_text[:max_chars_per_section]
-
-        return sections
-
-
-class EnhancedCitationHandler:
-    """Enhanced citation handler with proper metadata extraction and context passages"""
-
-    def __init__(self, index_dir: str = "test_index"):
-        self.doc_to_citation = {}
-        self.citation_to_doc = {}
-        self.next_citation_num = 1
-        self.index_dir = Path(index_dir)
-
-        # Load arXiv papers for better metadata
-        self.arxiv_papers = self._load_arxiv_papers()
-
-        # Connect to metadata database
-        self.metadata_db = self._connect_metadata_db()
-
-    def _connect_metadata_db(self):
-        """Connect to metadata database"""
-        try:
-            import sqlite3
-
-            db_path = self.index_dir / "index_store.db"
-            conn = sqlite3.connect(str(db_path))
-            conn.row_factory = sqlite3.Row
-            return conn
-        except:
-            return None
-
-    def _load_arxiv_papers(self):
-        """Load arXiv papers for metadata extraction"""
-        papers = {}
-        try:
-            jsonl_files = list(self.index_dir.glob("*.jsonl"))
-
-            for jsonl_file in jsonl_files:
-                with open(jsonl_file, "r") as f:
-                    for line in f:
-                        try:
-                            paper = json.loads(line.strip())
-                            paper_id = paper.get("paper_id", "")
-
-                            metadata = paper.get("metadata", {})
-                            title = metadata.get("title", "Unknown Title")
-                            authors = metadata.get("authors", "Unknown")
-
-                            # Extract year from versions
-                            year = "Unknown"
-                            versions = paper.get("versions", [])
-                            if versions:
-                                created = versions[0].get("created", "")
-                                year_match = re.search(r"(\d{4})", created)
-                                if year_match:
-                                    year = year_match.group(1)
-
-                            # Format authors properly
-                            if "authors_parsed" in paper:
-                                authors_list = paper["authors_parsed"]
-                                if authors_list and len(authors_list) > 0:
-                                    first_author = authors_list[0]
-                                    if len(first_author) >= 2:
-                                        formatted_author = (
-                                            f"{first_author[0]}, {first_author[1][0]}."
-                                            if first_author[1]
-                                            else first_author[0]
-                                        )
-                                        if len(authors_list) > 1:
-                                            authors = f"{formatted_author} et al."
-                                        else:
-                                            authors = formatted_author
-
-                            papers[paper_id] = {
-                                "title": title,
-                                "authors": authors,
-                                "year": year,
-                                "paper_id": paper_id,
-                                "abstract": paper.get("abstract", {}).get("text", ""),
-                            }
-                        except:
-                            continue
-
-            return papers
-        except:
-            return {}
-
-    def _extract_document_title_improved(self, doc_text: str, doc_id: str) -> str:
-        """Use the PaperTitleExtractor for consistency"""
-        return PaperTitleExtractor.extract_title_from_text(doc_text, doc_id)
-
-    def _extract_paper_info(
-        self, doc_text: str, doc_id: str, metadata: Dict = None
-    ) -> Dict:
-        """Enhanced paper metadata extraction with improved title extraction"""
-        paper_info = {
-            "title": "Unknown Title",
-            "authors": "Unknown",
-            "venue": "arXiv",
-            "year": "Unknown",
-            "paper_id": doc_id,
-        }
-
-        try:
-            # Use improved title extraction
-            paper_info["title"] = self._extract_document_title_improved(
-                doc_text, doc_id
-            )
-
-            # Extract from JSON in document text
-            if "{" in doc_text and '"metadata"' in doc_text:
-                try:
-                    json_match = re.search(r'\{.*?"metadata".*?\}', doc_text, re.DOTALL)
-                    if json_match:
-                        json_str = json_match.group(0)
-                        paper_data = json.loads(json_str)
-
-                        if "metadata" in paper_data:
-                            meta = paper_data["metadata"]
-                            if "authors" in meta:
-                                paper_info["authors"] = meta["authors"]
-
-                        if "paper_id" in paper_data:
-                            paper_info["paper_id"] = paper_data["paper_id"]
-
-                        # Extract year from versions
-                        if "versions" in paper_data and paper_data["versions"]:
-                            created = paper_data["versions"][0].get("created", "")
-                            year_match = re.search(r"(\d{4})", created)
-                            if year_match:
-                                paper_info["year"] = year_match.group(1)
-
-                        logger.debug(
-                            f"Extracted metadata from JSON in text for {doc_id}"
-                        )
-
-                except Exception as e:
-                    logger.debug(f"JSON parsing failed for {doc_id}: {e}")
-
-            # Match with loaded arXiv papers by paper_id
-            if doc_id in self.arxiv_papers:
-                arxiv_data = self.arxiv_papers[doc_id]
-                # Update info but keep improved title if it's better
-                if (
-                    paper_info["title"] == "Unknown Title"
-                    or paper_info["title"] == f"Document {doc_id}"
-                ):
-                    paper_info["title"] = arxiv_data["title"]
-                if paper_info["authors"] == "Unknown":
-                    paper_info["authors"] = arxiv_data["authors"]
-                if paper_info["year"] == "Unknown":
-                    paper_info["year"] = arxiv_data["year"]
-                logger.debug(
-                    f"Enhanced metadata for {doc_id} from arXiv papers database"
-                )
-
-            # Final cleanup
-            if len(paper_info["title"]) > 150:
-                paper_info["title"] = paper_info["title"][:150] + "..."
-
-            # Ensure we have a paper_id
-            if not paper_info["paper_id"]:
-                paper_info["paper_id"] = doc_id
-
-        except Exception as e:
-            logger.debug(f"Error extracting metadata for {doc_id}: {e}")
-
-        return paper_info
-
-    def _basic_text_cleaning(self, text: str) -> str:
-        """Basic text cleaning for citation context"""
-        # Remove JSON-like section markers
-        text = re.sub(r"'section':\s*'[^']*',\s*'text':\s*'", "", text)
-        text = re.sub(r"^\s*\{.*?'text':\s*'", "", text)
-        text = re.sub(r"\{[^}]*\}", "", text)
-
-        # Remove technical markup
-        text = re.sub(r"\{\{[^}]+\}\}", "[REF]", text)
-        text = re.sub(r"\$[^$]+\$", "[MATH]", text)
-        text = re.sub(r"\\[a-zA-Z]+\{[^}]*\}", "[LATEX]", text)
-
-        # Clean whitespace
-        text = re.sub(r"\s+", " ", text)
-        text = re.sub(r"\n\s*\n", "\n\n", text)
-
-        return text.strip()
-
-    def _extract_context_passage(
-        self, answer_text: str, document_text: str, citation_num: int
-    ) -> str:
-        """Extract specific sentence(s) used in the answer plus context"""
-        try:
-            # Clean the document text first
-            try:
-                from text_cleaner import DocumentTextCleaner
-
-                cleaner = DocumentTextCleaner()
-                clean_doc_text = cleaner.clean_for_citation_matching(document_text)
-            except ImportError:
-                clean_doc_text = self._basic_text_cleaning(document_text)
-            
-            # NEW: Remove the [TOP xxx chars]: and [BOTTOM xxx chars]: prefixes
-            clean_doc_text = re.sub(r'\[TOP \d+ chars\]:\s*', '', clean_doc_text)
-            clean_doc_text = re.sub(r'\[BOTTOM \d+ chars\]:\s*', '', clean_doc_text)
-            
-            # Find all sentences in the clean document
-            sentences = re.split(r"[.!?]+", clean_doc_text)
-            sentences = [s.strip() for s in sentences if len(s.strip()) > 15]
-
-            # Look for content that appears in the answer near this citation
-            citation_pattern = f"\\[{citation_num}\\]"
-            citation_matches = list(re.finditer(citation_pattern, answer_text))
-
-            if not citation_matches:
-                # Fallback: return first few clean sentences
-                return (
-                    ". ".join(sentences[:2]) + "."
-                    if sentences
-                    else clean_doc_text[:200] + "..."
-                )
-
-            # For each citation, find the preceding text that likely came from this document
-            relevant_sentences = set()
-
-            for match in citation_matches:
-                # Get text before this citation (up to 150 chars back)
-                start_pos = max(0, match.start() - 150)
-                context_text = answer_text[start_pos : match.start()].strip()
-
-                # Find the sentence in context_text that likely came from the document
-                context_sentences = re.split(r"[.!?]+", context_text)
-
-                for context_sent in context_sentences[
-                    -2:
-                ]:  # Last 1-2 sentences before citation
-                    if len(context_sent.strip()) < 15:
-                        continue
-
-                    # Find similar sentences in the document
-                    context_words = set(context_sent.lower().split())
-
-                    for i, doc_sent in enumerate(sentences):
-                        doc_words = set(doc_sent.lower().split())
-
-                        # Check word overlap
-                        overlap = len(context_words.intersection(doc_words))
-                        overlap_ratio = overlap / max(len(context_words), 1)
-
-                        if overlap_ratio > 0.25 or overlap > 4:  # Good match
-                            # Add this sentence plus context (±1 sentence)
-                            start_idx = max(0, i - 1)
-                            end_idx = min(len(sentences), i + 2)
-
-                            for j in range(start_idx, end_idx):
-                                relevant_sentences.add(j)
-
-            if relevant_sentences:
-                # Sort and build context passage
-                sorted_indices = sorted(relevant_sentences)
-                context_parts = [sentences[i] for i in sorted_indices]
-                result = ". ".join(context_parts) + "."
-
-                # Limit length
-                if len(result) > 500:
-                    result = result[:500] + "..."
-
-                return result
-
-            # Fallback: return beginning of clean document
-            fallback = ". ".join(sentences[:2]) + "."
-            return fallback if len(fallback) < 300 else fallback[:300] + "..."
-
-        except Exception as e:
-            logger.debug(f"Error extracting context passage: {e}")
-            # Simple fallback with basic cleaning
-            clean_text = self._basic_text_cleaning(document_text)
-            return clean_text[:200] + "..." if len(clean_text) > 200 else clean_text
-
-    def format_references(self, answer_text: str = None) -> str:
-        """Format references with proper metadata and context passages"""
-        if not self.citation_to_doc:
-            return ""
-
-        # Get all available citations
-        citations_to_show = set(self.citation_to_doc.keys())
-
-        # If answer text provided, filter to only used citations
-        if answer_text:
-            citation_matches = re.findall(r"\[(\d+)\]", answer_text)
-            used_citations = set(int(num) for num in citation_matches)
-
-            if used_citations:
-                citations_to_show = used_citations.intersection(
-                    set(self.citation_to_doc.keys())
-                )
-
-        if not citations_to_show:
-            return ""
-
-        references = []
-
-        for citation_num in sorted(citations_to_show):
-            reference=[]
-            doc_info = self.citation_to_doc[citation_num]
-            paper_info = doc_info["paper_info"]
-
-            # Format academic reference
-            reference.append(f"[{citation_num}]")
-
-            # Add title in quotes
-            title = paper_info["title"].replace('Title:', "").replace('"', "").replace("'", "")
-            reference.append(title)
-
-            # Add venue and year with paper ID
-            if paper_info.get("paper_id") and paper_info["paper_id"] != "Unknown":
-                if str(paper_info["paper_id"]).startswith("arXiv:"):
-                    reference.append(paper_info['paper_id'])
-                else:
-                    reference.append(f"arXiv:{paper_info['paper_id']}")
-            else:
-                reference.append(f"{paper_info['venue']}")
-
-            # Add context passage with actual sentences used
-            if answer_text:
-                context_passage = self._extract_context_passage(
-                    answer_text, doc_info["text"], citation_num
-                )
-            else:
-                context_passage = (
-                    doc_info["text"][:300] + "..."
-                    if len(doc_info["text"]) > 300
-                    else doc_info["text"]
-                )
-
-            reference.append(context_passage)
-
-            references.append(reference)
-
-        return references
-
-    def add_document(self, doc_text: str, doc_id: str, metadata: Dict = None) -> int:
-        """Add a document and return its citation number"""
-
-        if doc_id not in self.doc_to_citation:
-            citation_num = self.next_citation_num
-            self.doc_to_citation[doc_id] = citation_num
-
-            paper_info = self._extract_paper_info(doc_text, doc_id, metadata)
-
-            self.citation_to_doc[citation_num] = {
-                "doc_id": doc_id,
-                "paper_info": paper_info,
-                "text": doc_text,
-            }
-
-            self.next_citation_num += 1
-            logger.debug(
-                f"Added document {doc_id} as citation [{citation_num}]: {paper_info['title'][:50]}..."
-            )
-            return citation_num
-        else:
-            return self.doc_to_citation[doc_id]
-
-    def get_citation_map(self) -> Dict[str, int]:
-        """Get mapping from doc_id to citation number"""
-        return self.doc_to_citation.copy()
-
-
 class Enhanced4AgentRAG:
     """
     Enhanced 4-Agent RAG System with Question Splitting, Parallel Processing, and Context Management
     """
-
     def __init__(
         self,
         retriever,
-        agent_model=None,
+        isValidationMode,
+        questionSplitterModel,
+        answerGeneratorModel,
+        documentEvaluatorModel,
+        finalAnswerGeneratorModel,
+        contentExtractorModel,
+        judgeModel,
         n=0.0,
-        falcon_api_key=None,
         index_dir="test_index",
         max_workers=4,
         max_context_chars=35000,
@@ -836,79 +82,76 @@ class Enhanced4AgentRAG:
 
         logger.info(f"Context limit set to {max_context_chars} characters")
 
-        # Initialize agents
-        if isinstance(agent_model, str):
-            if "falcon" in agent_model.lower() and falcon_api_key:
-                from api_agent import FalconAgent
+        # Initialize agents - defaults disabled for now, because judge and answer generator should be different models
+        # if isinstance(agent_model, str):
+        #     if "falcon" in agent_model.lower() and falcon_api_key:
+        #         from api_agent import FalconAgent
+        #         self.agent1 = FalconAgent(falcon_api_key)  # Question Splitter
+        #     else:
+        #         from local_agent import LLMAgent
+        #         self.agent1 = LLMAgent(agent_model)  # Question Splitter
+        #         logger.info(f"Using local LLM agents with model {agent_model}")
+        # else:
+        #     self.agent1 = agent_model  # Question Splitter
+        #     logger.info("Using pre-initialized agent for all four agent roles")
+        
+        # Question Splitter, Answer Generator, Document Evaluator, Final Answer Generator, Content Extractor, Judge
+        from local_agent import LLMAgent
+        ##werte
+        agentsSet = {
+            questionSplitterModel, answerGeneratorModel ,documentEvaluatorModel ,finalAnswerGeneratorModel ,contentExtractorModel, judgeModel  
+        }
 
-                self.agent1 = FalconAgent(falcon_api_key)  # Question Splitter
-                self.agent2 = FalconAgent(falcon_api_key)  # Answer Generator
-                self.agent3 = FalconAgent(falcon_api_key)  # Document Evaluator
-                self.agent4 = FalconAgent(falcon_api_key)  # Final Answer Generator
-                logger.info("Using Falcon agents with API for all four agent roles")
-            else:
-                from local_agent import LLMAgent
+        # model als key, generierter Agent als Wert 
+        agents = {agent: LLMAgent(agent) for agent in agentsSet}
 
-                self.agent1 = LLMAgent(agent_model)  # Question Splitter
-                self.agent2 = LLMAgent(agent_model)  # Answer Generator
-                self.agent3 = LLMAgent(agent_model)  # Document Evaluator
-                self.agent4 = LLMAgent(agent_model)  # Final Answer Generator
-                logger.info(f"Using local LLM agents with model {agent_model}")
-        else:
-            self.agent1 = agent_model  # Question Splitter
-            self.agent2 = agent_model  # Answer Generator
-            self.agent3 = agent_model  # Document Evaluator
-            self.agent4 = agent_model  # Final Answer Generator
-            logger.info("Using pre-initialized agent for all four agent roles")
+        self.agentMapping = {
+            'questionSplitterModel': agents[questionSplitterModel],
+            'answerGeneratorModel': agents[answerGeneratorModel],
+            'documentEvaluatorModel': agents[documentEvaluatorModel],
+            'finalAnswerGeneratorModel': agents[finalAnswerGeneratorModel],
+            'contentExtractorModel': agents[contentExtractorModel],
+            'judgeModel': agents[judgeModel],
+        }
 
-        # Initialize question splitter
-        self.question_splitter = QuestionSplitter(self.agent1)
-
-        # Thread pool for parallel processing
+        self.question_splitter = QuestionSplitter(self.agentMapping["questionSplitterModel"], logger)
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
-
-        # Enhanced pre-warming
+        self.entailmentChecker = EntailmentChecker()
+        
         logger.info("Enhanced 4-agent pre-warming...")
-        try:
-            # Warm up retriever
-            dummy_abstracts = self.retriever.retrieve_abstracts("test", top_k=1)
-            logger.info("Retriever pre-warmed")
+        # try:
+        #     # Warm up retriever
+        #     dummy_abstracts = self.retriever.retrieve_abstracts("test", top_k=1)
+        #     logger.info("Retriever pre-warmed")
 
-            # Warm up agents
-            if hasattr(self.agent1, "generate"):
-                self.agent1.generate("test")
-                logger.info("All agents pre-warmed")
+        #     # Warm up agents
+        #     if hasattr(self.agent1, "generate"):
+        #         self.agent1.generate("test")
+        #         logger.info("All agents pre-warmed")
 
-        except Exception as e:
-            logger.warning(f"Pre-warming had issues: {e}")
+        # except Exception as e:
+        #     logger.warning(f"Pre-warming had issues: {e}")
 
     def _estimate_tokens(self, text: str) -> int:
         """Rough token estimation: ~4 chars per token"""
         return len(text) // 4
 
-    def _create_agent2_prompt(self, query, document):
+    def createAnswerGeneratorPrompt(self, query, document):
         """Agent-2 prompt: Answer generation from abstracts"""
         return f"""You are an accurate and reliable AI assistant that can answer questions with the help of external documents. You should only provide the correct answer without repeating the question and instruction.
+            Document: {document}
+            Question: {query}
+            Answer:"""
 
-Document: {document}
-
-Question: {query}
-
-Answer:"""
-
-    def _create_agent3_prompt(self, query, document, answer):
+    def createDocumentEvaluatorPrompt(self, query, document, answer):
         """Agent-3 prompt: Document evaluation"""
         return f"""You are a noisy document evaluator that can judge if the external document is noisy for the query with unrelated or misleading information. Given a retrieved Document, a Question, and an Answer generated by an LLM (LLM Answer), you should judge whether both the following two conditions are reached: (1) the Document provides specific information for answering the Question; (2) the LLM Answer directly answers the question based on the retrieved Document. Please note that external documents may contain noisy or factually incorrect information. If the information in the document does not contain the answer, you should point it out with evidence. You should answer with "Yes" or "No" with evidence of your judgment, where "No" means one of the conditions (1) and (2) are unreached and indicates it is a noisy document.
+            Document: {document}        
+            Question: {query}       
+            LLM Answer: {answer}
+            Is this document relevant and supportive for answering the question?"""
 
-Document: {document}
-
-Question: {query}
-
-LLM Answer: {answer}
-
-Is this document relevant and supportive for answering the question?"""
-
-    def _prepare_documents_for_agent4(
+    def prepareDocumentsForFinalAnswerGenerator(
         self,
         full_texts: List[Tuple[str, str]],
         citation_handler,
@@ -1046,13 +289,13 @@ Is this document relevant and supportive for answering the question?"""
 
         return docs_with_citations
 
-    def _create_agent4_prompt_with_citations(
+    def createFinalAnswerGeneratorPrompt(
         self, original_query, full_texts, citation_handler, was_split: bool = False
     ):
         """Agent-4 prompt with context-aware document preparation"""
 
         # Prepare documents with dynamic context management based on question splitting
-        docs_with_citations = self._prepare_documents_for_agent4(
+        docs_with_citations = self.prepareDocumentsForFinalAnswerGenerator(
             full_texts, citation_handler, was_split
         )
 
@@ -1062,31 +305,76 @@ Is this document relevant and supportive for answering the question?"""
         available_citations = [str(i) for i in range(1, len(docs_with_citations) + 1)]
         citation_examples = ", ".join(available_citations)
 
-        return f"""You are an accurate and reliable AI assistant. Answer questions based ONLY on the provided documents with proper academic citations.
+        return f"""
+        You are an accurate and reliable AI assistant.
+        You will be given will be given chunks from a variety of scientific papers, representing their topmost and bottom most sections, as well as a question. The papers are preselected to provide as much information as possible for you to be able to answer the question on the basis of the information provided there. You can always assume that the information from the paper is trustworthy and logically correct. Use the information that is provided in the paper as ground truth to answer the question.
 
-STRICT CITATION REQUIREMENTS - YOU MUST FOLLOW THESE:
-1. You MUST add [{citation_examples}] after EVERY claim you make
-2. Every sentence that contains factual information MUST end with a citation
-3. If you mention ANY concept, method, or fact, cite the document immediately
-4. Use ONLY the document numbers shown: [{citation_examples}]
-5. Do NOT write ANY sentence without a citation number
-6. Use MULTIPLE different documents - don't just cite [1] repeatedly
-7. Do NOT add a references section - it will be added automatically
-8. EXAMPLE: "Machine learning involves pattern recognition [1]. Neural networks are a popular approach [2]. Deep learning has shown success in many domains [3]."
+        For your generated answer and for it to be easily verifiable it is also important to add context. Each claim that you make when answering the question must reference one or multiple documents, on whose information you justify making that claim.
 
-WRONG (no citations): "Machine learning is a powerful technique."
-CORRECT (with citations): "Machine learning is a powerful technique for pattern recognition [1]."
+        Input Format:
+        Your input will have the following structure, repeated for each individual document, that you should use for answering:
 
-WRONG (only one citation): "ML works by finding patterns [1]. It uses algorithms [1]. It requires data [1]."
-CORRECT (multiple citations): "ML works by finding patterns [1]. It uses algorithms [2]. It requires data [3]."
+        "Document [DOCUMENT_NUMBER]" - "TITLE OF THE PAPER"
+        [TOP K chars]: "THE TEXT THAT MAKES UP THE TOP K CHARACTERS OF THE PAPER"
+        [BOTTOM L chars]: "THE TEXT THAT MAKES UP THE BOTTOM L CHARACTERS OF THE PAPER"
 
-Documents:
-{docs_text}
+        The document number provided here is the one that you must use for referencing the paper and justifying your answer. References are only allowed to be provided in the json. The Answer Sentences itself should not contain any kind of hint towards the documentId which their claim is based upon.
 
-Question: {original_query}
+        Referencing instructions
+        References must be added for every sentence, linking the document where the underlying information for justifying the claim in the sentence lies.  
+        Try referencing multiple papers, so that the best fitting context for each sentence is chosen.
 
-Remember: Use information from MULTIPLE documents and cite each one appropriately with [{citation_examples}]. Answer:"""
+        You are only allowed to use The DOCUMENT_NUMBER for that reference, which is provided to you. 
+        You are only allowed to add one document as a reference for every sentence you produce.
 
+
+        Output Format:
+        After generating your answer text, split the text into sentences. You are only allowed to answer in the following json schema, which is an array of all the sentences in your answer with their respective DOCUMENT_NUMBER as second key of the object.
+        
+        [
+          {{
+            "sentence": <The first generated answer sentence>,
+            "documentId": <The DOCUMENT_NUMBER for justifying the first sentence> 
+          }},
+          {{
+            "sentence": <The second generated answer sentence>,
+            "documentId": <The DOCUMENT_NUMBER for justifying the second sentence> 
+          }},
+          ...
+        ]
+        
+        correct:
+        [
+          {{
+            "sentence": "We propose LexBoost that first builds a network of dense neighbors (a corpus graph) using a dense retrieval approach while indexing.",
+            "documentId": 2 
+          }},
+          {{
+            "sentence": "We show theoretically and empirically that the performance for dense representations decreases quicker than sparse representations for increasing index sizes.",
+            "documentId": 1 
+          }},
+          {{
+            "sentence": ""However, these approaches suffer from the lexical gap problem. To overcome this issue, dense representations have been proposed : Queries and documents are mapped to a dense vector space and relevant documents are retrieved.",
+            "documentId": 2 
+          }}
+        ]
+        wrong:
+        [
+          {{
+            "sentence": "We propose LexBoost that first builds a network of dense neighbors (a corpus graph) using a dense retrieval approach while indexing [3].",
+            "documentId": 2 
+          }},
+          {{
+            "sentence": "We show theoretically and empirically that the performance for dense representations decreases quicker than sparse representations for increasing index sizes as dicussed in document 1.",
+            "documentId": 1 
+          }}
+        ]
+        Do not add anything else to your response, stricly follow the json schema. Do not add a reference section, comments or further explanations. Also do not add "Answer: " or similar before providing your answer. Your only answer should be the json.
+        
+        Documents: {docs_text}
+        Question: {original_query}
+        """
+    
     def _log_retrieved_papers(
         self, query: str, retrieved_abstracts: List[Tuple], phase: str = "RETRIEVAL"
     ):
@@ -1173,13 +461,237 @@ Remember: Use information from MULTIPLE documents and cite each one appropriatel
             )
             logger.info(f"Using condensed sections to fit within limits")
 
+    def createJudgePrompt(self, claim, context):
+        return  f""" 
+        You are an accurate and reliable LLM-as-a-judge worker. Your tasks is to evaluate how well a claim from a generated answer is supported by the context in form of a couple of extracted sentences from a scientific paper. You can always assume that the information in the paper and thus in the context is factually correct.
+        Input Format:
+        You will recieve the following input:
+        - Claim: A single sentence generated by an arbitrary LLM.
+        - Context: A couple of sentences extracted from a scientific paper that may or may not justify the claim.
+        Evaluation Instructions:
+        Evaluate how well the claim is grounded in the context. For each of the provided criteria provided below, you should rate on a scale of 1-5 how well it is fullfilled. The scores have the following meaning:
+        - 1: Not Fullfilled - the criteria is not fullfilled
+        - 2: Partly Fullfilled - the criteria is partly fullfilled, but there are gaps, ambiguity or weaknesses
+        - 3: Fully Fullfilled - the criteria is fully satisfied
+        Use the following criterias for your rating:
+        1. Faithfulness:
+           Faithfulness measures how well the claim made is based on the factual content of the context. This includes but not ends with:
+           - Is the claim the logical consequence of the facts in the context?
+           - Does the claim overgeneralize and thus produce unfounded conclusions, not based on the facts in the context?
+           - Does the claim include interpretations of the information on the context, which lack further data to be correctly and justifiedly drawn?
+           A good rating here means, that the claim made is based on the factual content, a bad rating means it is not.
+        2. Relevance:
+           Relevance measures how well the topic in the context overlaps thematically with that in the generated claim and how precisely they address the same topics This includes:
+           - Is the topic of the claim also part of the topic of the context?
+           - Is each topic that is present in the claim also discussed in the context?
+           - Does the context include extra information not needed for justifying the claim?
+           A good rating here means, that the context is relevenant for the topic, a bad rating means it is not.
+        3. Consistency:
+           Consistency measures if the claim is logically consistent in respect to the information in the claim. This includes:
+           - Does the claim contradict the information in the context?
+           - Does the claim contain conclusions or generalizations that are contradicted by the context?
+           - Does the information in the context allow a conclusion that directly contradicts the information in the claim?
+           A good rating here means, that the claim is logically consistent, a bad rating means it is not.
+        4. Support Coverage:
+           Support Coverage measures wether the the context includes sufficient information to justify the claim. This includes:
+           - Is each part of the claim justified by information in the context?
+           A good rating here means, that the context includes sufficient information, a bad rating means it does not.
+        5. Paraphrase Robustness:
+           Paraphrase Robustness measures wether the semantic meaning of the claim and the context are the same, even if they are worded differently. This includes:
+           - Does the claim convey the same meaning as the context?
+           - Does the claim include the same semantic entities as the context?
+           - Can the claim be interpreted differently or does it meaning differ from that of the context due to different wording?
+           A good rating here means, that the semantic meaning of the claim and the context are the same, a bad rating means they are not.
+        6. Ambiguity Level:
+           Ambiguity Level measures wether the information in the context could be interpreted differently as done in the claim. This includes:
+           - Is the information in the context ambiguous with respect to the claim?
+           - Are there parts of the context that could be interpreted differently than done in the claim?
+           A good rating here means, that the information in the context is unambiguous, a bad rating means it is not.
+        Output Format:
+        You will answer ONLY in form of the JSON Schema provided below.
+        {{
+          "faithfulness" : <1-5>,
+          "relevance" : <1-5>,
+          "consistency" :<1-5>,
+          "supportCoverage" : <1-5>,
+          "paraphraseRobustness" : <1-5>,
+          "ambiguityLevel": <1-5>,
+        }}
+        Dont add any extra information, explanation or thoughts. Strictly follow the JSON format. Your only answer should be the json.
+        Each "<1-5>" bracket should be replaced with the score of the corresponding metric, also following valid JSON structure. 
+        Claim: "{claim}"
+        Context: "{context}"
+        """
+
+    def judgeClaim (self, sentence: str, context: str)->str:
+        prompt = self.createJudgePrompt(sentence, context)
+        return self.agentMapping["judgeModel"].generate(prompt)
+    
+    def checkEntailment(self, sentence:str, context:str):
+        return self.entailmentChecker.check_entailment(context, sentence)
+
+
+    ANSWER_KEYS = [
+        "faithfulness",
+        "relevance",
+        "consistency",
+        "supportCoverage",
+        "paraphraseRobustness",
+        "ambiguityLevel",
+    ]
+
+    OneContextForOneSource = Dict[str, str]
+    
+    # MultipleContextsForOneSource = Dict[str, Dict[str, List[str]]]
+    # def judgeContextWithReferences (self, answerObject: GeneratedAnswerFormat, context: MultipleContextsForOneSource, multiple: bool = True ) -> str:
+    #     result = []
+    #     totalResult = {}
+
+    #     for answerEntry in answerObject:
+    #         citationNumber = answerEntry["documentId"]
+    #         #todo add this entailment checker in again
+    #         # entailment = self.checkEntailment(answerEntry["sentence"], context[citationNumber][0])
+
+    #         judgement = json.loads(self.judgeClaim(answerEntry["sentence"], context[citationNumber][0]["context"]))
+
+    #         #if multiple delete, so the next occurance gets judged by its respective context
+    #         if (multiple):
+    #             del context[citationNumber][0]
+    #         result.append(judgement)
+    #         for answerKey in self.ANSWER_KEYS:
+    #             totalResult.setdefault(answerKey, [judgement[answerKey]]).append(judgement[answerKey])
+    #     for answerKey, values in totalResult.items():
+    #         totalResult[answerKey] = sum(values) / len(values)    
+    #     result.append(totalResult)
+    #     return result
+
+
+    '''
+    answerObject
+     [
+          {{
+            "sentence": string
+            "documentId": number 
+          }}, 
+          ...
+    ]
+    contexts:
+    {
+  "referencesNative": {
+    "2": {
+      "title": "Unknown Title",
+      "paperId": "arXiv:cond-mat/0211218",
+      "contextPassage": "We generate packings by both pouring and sedimentation and examine how the final state depends on the method of construction. The vertical stress becomes depth-independent for deep piles and we compare these stress depth-profiles to the classical Janssen theory."
+    }
+  },
+  "referencesWithCosineSimilarity": {
+    "4": [
+      {"context": "Title: Particle Shape Effects on the Stress Response of Granular Packings\n\n[TOP 4794 chars]: Particle Shape Effects on the Stress Response of Granular Packings\nabstract: We present measurements of the stress response of packings formed from a wide range of particle shapes. Besides spheres these include convex shapes such as the Platonic solids, truncated tetrahedra, and triangular bipyramids, as well as more complex, non-convex geometries such as hexapods with various arm lengths, dolos, and tetrahedral frames."}
+    ],
+  },
+  "referencesWithCosineSimilarityAndKeywordMatching": {
+    "4": [
+      {"context": "Title: Particle Shape Effects on the Stress Response of Granular Packings\n\n[TOP 4794 chars]: Particle Shape Effects on the Stress Response of Granular Packings\nabstract: We present measurements of the stress response of packings formed from a wide range of particle shapes. Besides spheres these include convex shapes such as the Platonic solids, truncated tetrahedra, and triangular bipyramids, as well as more complex, non-convex geometries such as hexapods with various arm lengths, dolos, and tetrahedral frames."}
+    ]
+  },
+  "referencesWithCosineSimilarityAndCrossEncoder": {
+    "4": [
+      { "context": "Title: Particle Shape Effects on the Stress Response of Granular Packings\n\n[TOP 4794 chars]: Particle Shape Effects on the Stress Response of Granular Packings\nabstract: We present measurements of the stress response of packings formed from a wide range of particle shapes. Besides spheres these include convex shapes such as the Platonic solids, truncated tetrahedra, and triangular bipyramids, as well as more complex, non-convex geometries such as hexapods with various arm lengths, dolos, and tetrahedral frames. All particles were 3D-printed in hard resin. Well-defined initial packing states were established through preconditioning by cyclic loading under given confinement pressure. Starting from such initial states, stress-strain relationships for axial compression were obtained at four different confining pressures for each particle type."},
+    ],
+  },
+  "referencesWithBiencoderAndBm25": {
+    "4": [
+      {"context": "Title: Particle Shape Effects on the Stress Response of Granular Packings\n\n[TOP 4794 chars]: Particle Shape Effects on the Stress Response of Granular Packings\nabstract: We present measurements of the stress response of packings formed from a wide range of particle shapes. Besides spheres these include convex shapes such as the Platonic solids, truncated tetrahedra, and triangular bipyramids, as well as more complex, non-convex geometries such as hexapods with various arm lengths, dolos, and tetrahedral frames."}
+    ],  
+  },
+  "referencesWithBiencoderAndBm25AndCrossEncoder": {
+    "4": [
+      {"context": "Title: Particle Shape Effects on the Stress Response of Granular Packings\n\n[TOP 4794 chars]: Particle Shape Effects on the Stress Response of Granular Packings\nabstract: We present measurements of the stress response of packings formed from a wide range of particle shapes. Besides spheres these include convex shapes such as the Platonic solids, truncated tetrahedra, and triangular bipyramids, as well as more complex, non-convex geometries such as hexapods with various arm lengths, dolos, and tetrahedral frames. All particles were 3D-printed in hard resin. Well-defined initial packing states were established through preconditioning by cyclic loading under given confinement pressure. Starting from such initial states, stress-strain relationships for axial compression were obtained at four different confining pressures for each particle type."},
+    ],
+  },
+  "referencesWithLLM": {
+    "4": [
+      {"context": "Besides spheres these include convex shapes such as the Platonic solids, truncated tetrahedra, and triangular bipyramids, as well as more complex, non-convex geometries such as hexapods with various arm lengths, dolos, and tetrahedral frames."},
+    ]
+  }
+}
+
+    
+    '''
+    method_keys = [
+            "referencesWithCosineSimilarity",
+            "referencesWithCosineSimilarityAndKeywordMatching",
+            "referencesWithCosineSimilarityAndCrossEncoder",
+            "referencesWithBiencoderAndBm25",
+            "referencesWithBiencoderAndBm25AndCrossEncoder",
+            "referencesWithLLM"
+        ]
+    def judgeContextsWithReferences(self, answerObject: GeneratedAnswerFormat, contexts ):
+        for answerEntry in answerObject:
+            # TODO native entries judgement missing
+            for method in self.method_keys: 
+                context_list_at_that_document_key = contexts[method][answerEntry["documentId"]]
+                unjudged = next((item for item in context_list_at_that_document_key if "judgement" not in item), None)
+                unjudged["sentence"] = answerEntry["sentence"]
+                unjudged["judgement"] = json.loads(self.judgeClaim(answerEntry["sentence"], unjudged["context"]))
+                unjudged["entailment"] = self.entailmentChecker.check_entailment(unjudged["context"], answerEntry["sentence"])
+        return contexts
+    
+    def addMeanJudgements(self, contexts):
+        judgementKeys = [
+            "faithfulness", 
+            "relevance",
+            "consistency",
+            "supportCoverage",
+            "paraphraseRobustness",
+            "ambiguityLevel"
+        ]
+
+        for method in self.method_keys:
+            if method not in contexts: continue
+
+            all_judgements = [
+                entry["judgement"] 
+                for doc_entries in contexts[method].values() 
+                if isinstance(doc_entries, list)
+                for entry in doc_entries 
+                if "judgement" in entry
+            ]
+            
+            if not all_judgements:
+                contexts[method]["meanJudgements"] = {k: 0 for k in judgementKeys}
+                continue
+
+            totals = {k: 0.0 for k in judgementKeys}
+            
+            for judgement_obj in all_judgements:
+                for key in judgementKeys:
+                    val = judgement_obj.get(key, 0)
+                    totals[key] += float(val)
+
+            count = len(all_judgements)
+            contexts[method]["meanJudgements"] = {
+                key: round(totals[key] / count, 2) 
+                for key in judgementKeys
+            }
+
+
+        totals = {k: 0.0 for k in judgementKeys}
+        for method in self.method_keys:
+            for judgementKey in judgementKeys:
+                totals[judgementKey] += contexts[method]["meanJudgements"][judgementKey]
+        for key in totals:
+            totals[key] /= len(self.method_keys)
+        contexts["meanJudgement"] = totals
+        return contexts
+
     def _process_single_question(self, query: str, db=None) -> Tuple[List[Tuple], List]:
         """Process a single question and return (abstracts, filtered_documents)"""
 
         # PHASE 1: Retrieve ABSTRACTS for Agent2 & Agent3 filtering
         with time_block(f"retrieve_abstracts_{query[:20]}"):
             logger.info(f"Retrieving abstracts for: {query[:50]}...")
-            retrieved_abstracts = self.retriever.retrieve_abstracts(query, top_k=5)
+            retrieved_abstracts = self.retriever.retrieve_abstracts(query, top_k=10) # increase to 10 for precision @10
 
             # ✨ NEW: Log retrieved papers with titles
             self._log_retrieved_papers(query, retrieved_abstracts, "RETRIEVAL")
@@ -1191,17 +703,28 @@ Remember: Use information from MULTIPLE documents and cite each one appropriatel
             )
             doc_answers = []
             for abstract_text, doc_id in tqdm(retrieved_abstracts):
-                prompt = self._create_agent2_prompt(query, abstract_text)
-                answer = self.agent2.generate(prompt)
+                prompt = self.createAnswerGeneratorPrompt(query, abstract_text)
+                answer = self.agentMapping["answerGeneratorModel"].generate(prompt)
+                # answer = self.agent1.generate(prompt)
                 doc_answers.append((abstract_text, doc_id, answer))
 
+            print("agent2 generation result-----------------------------------")
+            a = {
+                "retrieved abstracts:": retrieved_abstracts,
+                "query" : query,
+                "doc_answers": doc_answers,
+            }
+            print(json.dumps(a, indent=2, ensure_ascii=False)) 
+            print("-----------------------------------")
+
         # Step 3: Agent-3 evaluates documents using ABSTRACTS
-        with time_block(f"agent3_evaluation_{query[:20]}"):
+        with time_block(f"documentEvaluation{query[:20]}"):
             logger.info(f"Agent-3 evaluating abstracts for: {query[:50]}...")
             scores = []
             for abstract_text, doc_id, answer in tqdm(doc_answers):
-                prompt = self._create_agent3_prompt(query, abstract_text, answer)
-                log_probs = self.agent3.get_log_probs(prompt, ["Yes", "No"])
+                prompt = self.createDocumentEvaluatorPrompt(query, abstract_text, answer)
+                log_probs = self.agentMapping["documentEvaluatorModel"].get_log_probs(prompt, ["Yes", "No"])
+                # log_probs = self.agent1.get_log_probs(prompt, ["Yes", "No"])
                 score = log_probs["Yes"] - log_probs["No"]
                 scores.append(score)
 
@@ -1222,6 +745,18 @@ Remember: Use information from MULTIPLE documents and cite each one appropriatel
                 filtered_abstracts.append((abstract_text, doc_id, scores[i]))
 
         filtered_abstracts.sort(key=lambda x: x[2], reverse=True)
+        
+        print("agent3 result-----------------------------------")
+        a = {
+            "tau_q": tau_q,
+            "sigma": sigma,
+            "adjusted_tau_q": adjusted_tau_q,
+            "doc_answers": doc_answers,
+            "scores": scores,
+        }
+        print(json.dumps(a, indent=2, ensure_ascii=False)) 
+        print("-----------------------------------")
+            
 
         # ✨ NEW: Log filtered papers with titles and scores
         self._log_filtered_papers(
@@ -1230,15 +765,21 @@ Remember: Use information from MULTIPLE documents and cite each one appropriatel
 
         return retrieved_abstracts, filtered_doc_ids
 
-    def answer_query(self, query, db=None, choices=None, should_split=None, sub_questions=None):
+    def answer_query(self, item, db=None, choices=None, should_split=None, sub_questions=None):
         """
         ENHANCED: Process query with 4-agent approach, question splitting, and parallel processing
         """
+        query = item["question"]
+        answer = item["answer"]
+        topicOverlapsInThePapers = item["topic overlaps"]
+        papersUsedInTheQuestion = item["papers"]
+        papersUsedForQuestionGeneration = item["paperUsedForGeneration"]
+
         with time_block("total_4agent_processing"):
             logger.info(f"Processing query with enhanced 4-agent approach: {query}")
 
             # Initialize enhanced citation handler
-            citation_handler = EnhancedCitationHandler(self.index_dir)
+            citation_handler = EnhancedCitationHandler(self.agentMapping["contentExtractorModel"], logger, self.index_dir)
             
             # If should_split and sub_questions are not provided, analyze the query
             if should_split is None or sub_questions is None:
@@ -1305,6 +846,7 @@ Remember: Use information from MULTIPLE documents and cite each one appropriatel
             # PHASE 3: Get FULL TEXTS for Agent4
             with time_block("get_full_texts"):
                 logger.info("Retrieving FULL texts for final answer generation...")
+                # HERE all unique filtered doc ids used for answering
                 if unique_filtered_doc_ids:
                     full_texts = self.retriever.get_full_texts(
                         unique_filtered_doc_ids, db=db
@@ -1364,7 +906,7 @@ Remember: Use information from MULTIPLE documents and cite each one appropriatel
                         logger.info(f"[{i:2d}] {formatted_title}")
 
             # PHASE 4: Agent-4 generates final answer with context management
-            with time_block("agent4_generation"):
+            with time_block("finalAnswerGeneration"):
                 strategy_info = (
                     "CONSERVATIVE (split questions)"
                     if should_split
@@ -1373,18 +915,92 @@ Remember: Use information from MULTIPLE documents and cite each one appropriatel
                 logger.info(
                     f"Agent-4 generating final answer with context-aware citations... [{strategy_info}]"
                 )
-                prompt = self._create_agent4_prompt_with_citations(
+                prompt = self.createFinalAnswerGeneratorPrompt(
                     query, full_texts, citation_handler, should_split
                 )
-                raw_answer = self.agent4.generate(prompt)
+                raw_answer = json.loads(self.agentMapping["finalAnswerGeneratorModel"].generate(prompt))
 
-            # Generate references with enhanced context passages
+            # metrics
+
+            # recallAt1 = float(arxivId in unique_filtered_doc_ids[:1])
+            # recallAtMaxK = 1 if (arxivId in unique_filtered_doc_ids[:10]) else 0.0
+            # reciprocalRank = 1/ ((unique_filtered_doc_ids.index(arxivId) + 1)) if arxivId in unique_filtered_doc_ids else 0
+            
+            '''
+                context extraction variants:
+                1: native squai
+                2: Biencoder (top 1), floating window up to 5 sentences
+                3: Biencoder selecting top 10, floating window up to 5 sentences --> get top 1 with keyword/BM25 matching
+                4: Biencoder selecting top 10, floating window up to 5 sentences --> get top 1 using cross encoder
+                5: Biencoder + keyword/BM25  on floating windows (combine score using RRF) to get top 1
+                6: Biencoder + keyword/BM25  on floating windows (combine score using RRF) to get top 10 --> select top 1 with cross encoder
+                7: llama LLM gets whole paper and extract context (top 1)
+            '''
+            
+            #variant 1 - native squai context extraction
             references = citation_handler.format_references(raw_answer)
 
+            #variant 2 - Biencoder (top 1), floating window up to 5 sentences
+            referencesWithCosineSimilarity = citation_handler.extract_context_using_cosine_similarity(raw_answer)
+            
+            #variant 3 - Biencoder top 10, then BM25 for top 1
+            referencesWithCosineSimilarityAndKeywordMatching = citation_handler.extract_context_using_cosine_similarity_top_10_and_keyword_matching(raw_answer)
+
+            #variant 4 - Biencoder top 10 + cross encoder
+            referencesWithCosineSimilarityAndCrossEncoder = citation_handler.extract_context_using_cosine_similarity_top_10_and_cross_encoder(raw_answer)
+
+            #variant 5 - Biencoder and keyword bm25 directly
+            referencesWithBiencoderAndBm25 = citation_handler.extract_context_using_cosine_similarity_and_bm25(raw_answer)
+
+            #variant 6 - BiEncoder and keyword bm25 top 10 + cross encoder
+            referencesWithBiencoderAndBm25AndCrossEncoder = citation_handler.extract_context_using_biencoder_and_bm25_and_cross_encoder(raw_answer)
+
+            # variant 7 - extract the context using LLM
+            referencesWithLLM = citation_handler._extract_context_passages_using_llm(raw_answer)
+            
+            #variant 8 - inverse qa
+            #maybe add pure bm25 
+            #maybe add bm25 + cross encoder
+
+            contexts = {
+                "qualityMeasures": {
+                    "question": query,
+                    "groundTruthAnswer" : answer,
+                    "groundTruthDocumens": papersUsedInTheQuestion,
+                    "modelAnswer" : raw_answer,
+                    "documentsUsed": unique_filtered_doc_ids,
+                    # "recallAt1": recallAt1,
+                    # "recallAtMaxK": recallAtMaxK,
+                    # "reciprocalRank": reciprocalRank
+                },
+                "referencesNative": references,
+                "referencesWithCosineSimilarity": referencesWithCosineSimilarity,
+                "referencesWithCosineSimilarityAndKeywordMatching": referencesWithCosineSimilarityAndKeywordMatching,
+                "referencesWithCosineSimilarityAndCrossEncoder": referencesWithCosineSimilarityAndCrossEncoder,
+                "referencesWithBiencoderAndBm25": referencesWithBiencoderAndBm25,
+                "referencesWithBiencoderAndBm25AndCrossEncoder": referencesWithBiencoderAndBm25AndCrossEncoder,
+                "referencesWithLLM": referencesWithLLM,
+                "meta": {
+                    "papersUsedForQuestionGeneration" : papersUsedForQuestionGeneration,
+                    "topicOverlapsInThePapers" : topicOverlapsInThePapers
+                }
+            }
+
+            contextsWithJudgement = self.judgeContextsWithReferences(raw_answer,contexts)
+
+            contextsWithMeanJudgements = self.addMeanJudgements(contextsWithJudgement)
+
+            with open("contextExtractionResult.txt", "w", encoding="utf-8") as f:
+                json.dump(contextsWithMeanJudgements,f, indent=2, ensure_ascii=False)
+
+            #remove for now as this could delete parts of the Answer that include this word
             # Remove any references Agent-4 might have added
+            '''
             if "Reference" in raw_answer:
                 raw_answer = re.split(r"References", raw_answer)[0]
-
+            '''
+            
+        
             citation_map = citation_handler.get_citation_map()
 
             # Enhanced debug info
@@ -1425,16 +1041,17 @@ Remember: Use information from MULTIPLE documents and cite each one appropriatel
                 ),
             }
 
-        return raw_answer, references, debug_info
+        return raw_answer, references, referencesWithLLM, referencesWithCosineSimilarity, debug_info
 
     def _extract_passages_used(
-        self, answer_text: str, citation_handler: EnhancedCitationHandler
+        self, answerObject: GeneratedAnswerFormat, citation_handler: EnhancedCitationHandler
     ):
         """Extract the specific passages used in the answer"""
         # Find all citations in the answer
-        citation_matches = re.findall(r"\[(\d+)\]", answer_text)
-        used_citations = set(int(num) for num in citation_matches)
-
+        #pfusch
+        answer_text = " ".join(dataEntry["sentence"][:-1] + " [" + str(dataEntry["documentId"]) + "]" + dataEntry["sentence"][-1]  for dataEntry in answerObject if "sentence" in dataEntry)
+        used_citations = {dataEntry["documentId"] for dataEntry in answerObject if "documentId" in dataEntry}
+        
         passages_used = []
         for citation_num in used_citations:
             if citation_num in citation_handler.citation_to_doc:
@@ -1479,128 +1096,61 @@ Remember: Use information from MULTIPLE documents and cite each one appropriatel
         if hasattr(self, "executor"):
             self.executor.shutdown(wait=True)
         logger.info("Enhanced 4-Agent RAG system closed")
-
-
-def initialize_retriever(
-    retriever_type: str,
-    e5_index_dir: str,
-    bm25_index_dir: str,
-    db_path: str,
-    top_k: int,
-    alpha: float = 0.65,
-    db=None,
-):
-    """Initialize the retriever with strategy and alpha support"""
-    logger.info(f"Initializing {retriever_type} retriever with alpha={alpha}...")
-    return Retriever(
-        e5_index_dir, bm25_index_dir, top_k=top_k, strategy=retriever_type, alpha=alpha
-    )
-
-
-# Your existing utility functions (unchanged)
-def load_datamorgana_questions(file_path):
-    """Load questions from file"""
-    is_jsonl = file_path.lower().endswith(".jsonl")
-
-    try:
-        questions = []
-
-        if is_jsonl:
-            logger.info(f"Loading questions from JSONL file: {file_path}")
-            with open(file_path, "r", encoding="utf-8") as f:
-                line_num = 0
-                for line in f:
-                    line_num += 1
-                    line = line.strip()
-                    if not line:
-                        continue
-
-                    try:
-                        question = json.loads(line)
-                        if "id" not in question:
-                            question["id"] = line_num
-                        questions.append(question)
-                    except json.JSONDecodeError as e:
-                        logger.error(f"Error parsing JSON at line {line_num}: {e}")
-        else:
-            logger.info(f"Loading questions from JSON file: {file_path}")
-            with open(file_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-
-                if isinstance(data, list):
-                    questions = data
-                    for i, question in enumerate(questions):
-                        if "id" not in question:
-                            question["id"] = i + 1
-                elif isinstance(data, dict):
-                    if "questions" in data:
-                        questions = data["questions"]
-                    elif "question" in data:
-                        questions = [data]
-                    else:
-                        questions = [data]
-
-        logger.info(f"Loaded {len(questions)} questions")
-        return questions
-
-    except FileNotFoundError:
-        logger.error(f"File not found: {file_path}")
-        return []
-    except Exception as e:
-        logger.error(f"Unexpected error loading questions: {e}")
-        return []
-
-
-def format_enhanced_result_to_schema(result):
-    """Format result with enhanced 4-agent information"""
-    formatted_result = {
-        "id": result.get("id", 0),
-        "question": result.get("question", ""),
-        "answer": result.get("model_answer", ""),
-        "was_split": result.get("was_split", False),
-        "sub_questions": result.get("sub_questions", []),
-        "questions_processed": result.get("questions_processed", 1),
-        "citation_count": result.get("total_citations", 0),
-        "total_filtered_docs": result.get("total_filtered_docs", 0),
-        "full_texts_used": result.get("full_texts_retrieved", 0),
-        "processing_time": result.get("process_time", 0),
-        "retriever_type": result.get("retriever_type", "hybrid"),
-        "passages_used": result.get("passages_used", []),
-        "document_metadata": result.get("document_metadata", {}),
-    }
-
-    return formatted_result
-
-
-def write_enhanced_results_to_jsonl(results, output_file):
-    """Write enhanced results to JSONL file"""
-    with open(output_file, "w", encoding="utf-8") as f:
-        for result in results:
-            formatted_result = format_enhanced_result_to_schema(result)
-            f.write(json.dumps(formatted_result, ensure_ascii=False) + "\n")
-    logger.info(f"Enhanced results written to {output_file}")
-
-
-def write_enhanced_result_to_json(result, output_file):
-    """Write single enhanced result to JSON file"""
-    formatted_result = format_enhanced_result_to_schema(result)
-    with open(output_file, "w", encoding="utf-8") as f:
-        json.dump(formatted_result, f, indent=2, ensure_ascii=False)
-    logger.info(f"Enhanced result written to {output_file}")
-
+   
 
 def main():
     """Main function with enhanced 4-agent support"""
+    # DEFAULT_GENERATOR_MODEL = "meta-llama/Llama-3.1-8B-Instruct"
+    DEFAULT_GENERATOR_MODEL = "meta-llama/Llama-3.3-70B-Instruct"
+    DEFAULT_JUDGE_MODEL = "mistralai/Mistral-7B-Instruct-v0.3"
 
     parser = argparse.ArgumentParser(
         description="Enhanced 4-Agent RAG with Question Splitting and Parallel Processing"
     )
     parser.add_argument(
-        "--model",
-        type=str,
-        default="tiiuae/Falcon3-10B-Instruct",
-        help="Model for LLM agents",
+        "--isvValidationMode",
+        type=bool,
+        default=True,
+        help="True if SQuAi is used to gather context extraction test data"
     )
+    
+    parser.add_argument(
+        "--questionSplitterModel",
+        type=str,
+        default=DEFAULT_GENERATOR_MODEL,
+        help="Model used for the question splitter",
+    )
+    parser.add_argument(
+        "--answerGeneratorModel",
+        type=str,
+        default=DEFAULT_GENERATOR_MODEL,
+        help="Model used for the answer generator",
+    )
+    parser.add_argument(
+        "--documentEvaluatorModel",
+        type=str,
+        default=DEFAULT_GENERATOR_MODEL,
+        help="Model used for the document evaluator",
+    )
+    parser.add_argument(
+        "--finalAnswerGeneratorModel",
+        type=str,
+        default=DEFAULT_GENERATOR_MODEL,
+        help="Model used for the final answer generator",
+    )
+    parser.add_argument(
+        "--contentExtractorModel",
+        type=str,
+        default=DEFAULT_GENERATOR_MODEL,
+        help="Model used for the context extractor",
+    )
+    parser.add_argument(
+        "--judgeModel",
+        type=str,
+        default=DEFAULT_JUDGE_MODEL,
+        help="Model used for the judge",
+    )
+
     parser.add_argument(
         "--n", type=float, default=0.5, help="Adjustment factor for adaptive judge bar"
     )
@@ -1683,7 +1233,13 @@ def main():
     )
     ragent = Enhanced4AgentRAG(
         retriever,
-        agent_model=args.model,
+        isvValidationMode=args.isvValidationMode,
+        questionSplitterModel=args.questionSplitterModel,
+        answerGeneratorModel=args.answerGeneratorModel,
+        documentEvaluatorModel=args.documentEvaluatorModel,
+        finalAnswerGeneratorModel=args.finalAnswerGeneratorModel,
+        contentExtractorModel=args.contentExtractorModel,
+        judgeModel=args.judgeModel,
         n=args.n,
         index_dir=args.index_dir,
         max_workers=args.max_workers,
@@ -1704,9 +1260,9 @@ def main():
 
         try:
             should_split, sub_questions = ragent.question_splitter.analyze_and_split(
-                query
+                args.single_question
             )
-            cited_answer, references, debug_info = ragent.answer_query(args.single_question, db, should_split, sub_questions)
+            cited_answer, references, referencesWithLLM, referencesWithCosineSimilarity, debug_info = ragent.answer_query(args.single_question, db, should_split, sub_questions)
             process_time = time.time() - start_time
 
             result = {
@@ -1720,6 +1276,7 @@ def main():
                 "total_filtered_docs": debug_info["total_filtered_docs"],
                 "full_texts_retrieved": debug_info["full_texts_retrieved"],
                 "passages_used": debug_info["passages_used"],
+                "llmExtractedPassages" : referencesWithLLM,
                 "document_metadata": debug_info["document_metadata"],
                 "process_time": process_time,
                 "retriever_type": args.retriever_type,
@@ -1727,11 +1284,22 @@ def main():
 
             logger.info(f"Cited Answer: {cited_answer}")
             logger.info(f"References: {references}")
+            logger.info(f"References with LLM: {referencesWithLLM}")
             logger.info(f"Was Split: {debug_info['was_split']}")
             if debug_info["was_split"]:
                 logger.info(f"Sub-questions: {debug_info['sub_questions']}")
             logger.info(f"Processing time: {process_time:.2f} seconds")
             logger.info(f"Citations used: {debug_info['total_citations']}")
+
+
+            # save comparison of the context extraction
+            passages = {citation_num: [data["contextPassage"]] for citation_num, data in references.items()}
+
+            # judge the passages (only the native squai solution)            
+            
+            # nativePassagesJudgement = ragent.judgeContextWithReferences(cited_answer,passages, False)
+            # llmExtractedPassagesJudgement = ragent.judgeContextWithReferences(cited_answer, referencesWithLLM)
+            # cosineSimilarityExtractedPassagesJudgement = ragent.judgeContextWithReferences(cited_answer,referencesWithCosineSimilarity)
 
             # Save result
             if args.output_format == "debug":
@@ -1773,11 +1341,12 @@ def main():
         )
         start_time = time.time()
 
+        
         try:
             should_split, sub_questions = ragent.question_splitter.analyze_and_split(
-                query
+                item["question"]
             )
-            cited_answer, references, debug_info = ragent.answer_query(item["question"], db, should_split, sub_questions)
+            cited_answer, references, referencesWithLLM, referencesWithCosineSimilarity, debug_info = ragent.answer_query(item, db, should_split, sub_questions)
             process_time = time.time() - start_time
 
             result = {
@@ -1791,6 +1360,7 @@ def main():
                 "total_filtered_docs": debug_info["total_filtered_docs"],
                 "full_texts_retrieved": debug_info["full_texts_retrieved"],
                 "passages_used": debug_info["passages_used"],
+                "llmExtractedPassages" : referencesWithLLM,
                 "document_metadata": debug_info["document_metadata"],
                 "process_time": process_time,
                 "retriever_type": args.retriever_type,
@@ -1799,11 +1369,22 @@ def main():
 
             logger.info(f"Cited Answer: {cited_answer[:200]}...")
             logger.info(f"References: {references}")
+            logger.info(f"References with LLM: {referencesWithLLM}")
             logger.info(f"Was Split: {debug_info['was_split']}")
             if debug_info["was_split"]:
                 logger.info(f"Sub-questions: {debug_info['sub_questions']}")
             logger.info(f"Processing time: {process_time:.2f} seconds")
             logger.info(f"Citations used: {debug_info['total_citations']}")
+
+
+            passages = {citation_num: [data["contextPassage"]] for citation_num, data in references.items()}
+
+            # judge the passages (only the native squai solution)            
+            
+            #this is the multiple questions thing
+            # nativePassagesJudgement = ragent.judgeContextWithReferences(cited_answer,passages, False)
+            # llmExtractedPassagesJudgement = ragent.judgeContextWithReferences(cited_answer, referencesWithLLM)
+            # cosineSimilarityExtractedPassagesJudgement = ragent.judgeContextWithReferences(cited_answer,referencesWithCosineSimilarity)
 
             # Save debug info
             debug_output_file = os.path.join(

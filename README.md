@@ -1,13 +1,16 @@
+scp -r togr096h@dataport1.hpc.tu-dresden.de:/data/horse/ws/togr096h-faiss1/SQuAI/alreadyUsedArxivIds.txt currentQuestionData/ && scp -r togr096h@dataport1.hpc.tu-dresden.de:/data/horse/ws/togr096h-faiss1/SQuAI/generatedQuestions.jsonl currentQuestionData/
+
 ## SQuAI: Scientific Question-Answering with Multi-Agent Retrieval-Augmented Generation
 
-SQuAI is a scalable and trustworthy **multi-agent Retrieval-Augmented Generation (RAG)** system for scientific question answering (QA). It is designed to address the challenges of answering complex, open-domain scientific queries with high relevance, verifiability, and transparency. This project is introduced in our CIKM 2025 demo paper:  
+SQuAI is a scalable and trustworthy **multi-agent Retrieval-Augmented Generation (RAG)** system for scientific question answering (QA). It is designed to address the challenges of answering complex, open-domain scientific queries with high relevance, verifiability, and transparency. This project is introduced in our CIKM 2025 demo paper:
 
 Link to: [Demo Video](https://www.youtube.com/watch?v=aGDrtsiZDQA&feature=youtu.be)
 
 ### Requirements
+
 - Python 3.8+
 - PyTorch 2.0.0+
-- CUDA-compatible GPU 
+- CUDA-compatible GPU
 
 ### Installation
 
@@ -24,33 +27,51 @@ sudo apt-get install libleveldb-dev
 ```
 
 2. Clone the repository:
+
 ```bash
 git clone git@github.com:faerber-lab/SQuAI.git
 cd SQuAI
 ```
 
 3. Create and activate a virtual environment:
+
 ```python
 python -m venv env
 source env/bin/activate  # On Windows, use: env\Scripts\activate
 ```
 
 4. Install dependencies:
+
 ```python
 pip install -r requirements.txt
 ```
 
 ### Running SQuAI
+
 SQuAI can be run on a single question or a batch of questions from a JSON/JSONL file.
+
 #### Process a Single Question
+
 ```bash
-python run_SQuAI.py --model tiiuae/Falcon3-10B-Instruct --n 0.5 --alpha 0.65 --top_k 20 --single_question "Your question here?"
+python run_SQuAI.py --model tiiuae/Falcon3-10B-Instruct --n 0.5 --alpha 0.65 --top_k 20 --single_question "What is machine learning?"
 ```
+
+```bash
+python run_SQuAI.py --model meta-llama/Llama-3.1-8B-Instruct --n 0.5 --alpha 0.65 --top_k 20 --single_question "What ist machine learning?"
+```
+
 #### Process Questions from a Dataset
+
 ```bash
 python run_SQuAI.py --model tiiuae/Falcon3-10B-Instruct --n 0.5 --alpha 0.65 --top_k 20 --data_file your_questions.jsonl --output_format jsonl
 ```
+
+```bash
+python run_SQuAI.py --model meta-llama/Llama-3.1-8B-Instruct --n 0.5 --alpha 0.65 --top_k 20 --data_file testQuestions.jsonl --output_format jsonl
+```
+
 #### Parameters
+
 - `--model`: Model name or path (default: "tiiuae/falcon-3-10b-instruct")
 - `--n`: Adjustment factor for adaptive judge bar (default: 0.5)
 - `--alpha`: Weight for semantic search vs. keyword search (0-1, default: 0.65)
@@ -76,9 +97,10 @@ SQuAI consists of four key agents working collaboratively to deliver accurate, f
 4. **Agent 4: Answer Generator**  
    Synthesizes a final, coherent answer from filtered Q-A-E triplets. Critically, it includes **fine-grained in-line citations** and citation context to enhance trust and verifiability. Every factual statement is explicitly linked to one or more supporting documents.
 
-###  Retrieval Engine
+### Retrieval Engine
 
 The agents are supported by a **hybrid retrieval system** that combines:
+
 - **Sparse retrieval** (BM25) for keyword overlap and exact matching.
 - **Dense retrieval** (E5 embeddings) for semantic similarity.
 
@@ -87,6 +109,7 @@ The system interpolates scores from both methods to maximize both lexical precis
 ```math
 S_{hybrid}(d) = \alpha \cdot S_{sparse}(d) + (1 - \alpha) \cdot S_{dense}(d)
 ```
+
 \(\alpha = 0.65\), based on empirical tuning. This slightly favors dense retrieval while retaining complementary signals from sparse methods, ensuring both semantic relevance and precision.
 
 ### User Interface
@@ -99,7 +122,6 @@ SQuAI includes an interactive web-based UI built with **Streamlit** and backed b
 - Adjustable settings for document filtering thresholds and top-k retrieval.
 - Display of generated answers with **fine-grained in-line citations**.
 - Clickable references linking to original arXiv papers.
-
 
 ### Benchmarks & Evaluation
 
@@ -121,7 +143,6 @@ SQuAI improves combined scores by up to **12%** in faithfulness compared to a st
 
 - **unarXive 2024**: Full-text arXiv papers with structured metadata, section segmentation, and citation annotations. [Hugging Face Dataset](https://huggingface.co/datasets/ines-besrour/unarxive_2024)
 - **QA Triplet Benchmark**: 1,000 synthetic question–answer–evidence triplets for reproducible evaluation.
-
 
 ### `$HOME/data_dir`
 

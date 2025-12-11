@@ -1,0 +1,57 @@
+single question with evidence
+
+{
+    "topic overlaps": [
+        "Regge calculus",
+        "Discretization of spacetime",
+        "Convergence to Einstein equations",
+        "Cosmological models",
+        "Homogeneity and isotropy",
+        "Simplicial complexes",
+        "Curvature and deficit angles",
+        "Numerical simulations",
+        "Averaging and coarse-graining",
+        "Backreaction effects"
+    ],
+    {
+        "question": "How does the convergence of Regge calculus to the Einstein equations in cosmological models depend on the discretization method and the choice of simplicial complexes?",
+        "answer": "The convergence of Regge calculus to the Einstein equations in cosmological models is influenced by both the discretization method and the choice of simplicial complexes. In the context of Regge calculus, the spacetime is discretized into a lattice of simplices, and the curvature is concentrated on the hinges (lower-dimensional faces) of these simplices. The convergence to the Einstein equations is generally second-order accurate, meaning the error decreases as the square of the lattice spacing. However, the specific choice of simplicial complexes and the method of discretization can affect this convergence.
+
+        For example, in the work by Brewin and Miller, it was observed that the residual of the Regge equations evaluated on an exact solution of the Einstein equations does not converge to zero, even though the solutions of the Regge equations do converge to the Einstein solutions. This discrepancy is attributed to high-frequency, low-amplitude waves in the simplicial solutions, which do not affect the overall convergence but prevent the residual from converging to zero. Brewin proposed a mechanism where the functional form of the error terms depends on the discretization scale, explaining this behavior.
+
+        In the Collins-Williams (CW) models, the convergence is also second-order, but the specific choice of the number of tetrahedra in the Cauchy surfaces affects the accuracy. Increasing the number of tetrahedra improves the resolution and reduces the rate of divergence from the FLRW model as the universe expands. However, subdividing the tetrahedra in the children models can sometimes worsen the initial accuracy, although it provides better performance at later stages due to higher resolution.
+
+        The choice of simplicial complexes, such as the 5, 16, and 600 tetrahedra models, also influences the convergence. The 600-tetrahedron model, for instance, provides a more robust approximation that can 'keep up' longer with the FLRW model as the universe expands. The embedding of these Cauchy surfaces into 3-spheres and the definition of the 3-sphere radius further refine the approximation, ensuring that the Regge models better capture the dynamics of the continuum FLRW model.
+
+        In summary, the convergence of Regge calculus to the Einstein equations in cosmological models is a complex interplay between the discretization method, the choice of simplicial complexes, and the specific dynamics of the model. While the general convergence is second-order, the specific details of the discretization and the choice of simplicial complexes can significantly affect the accuracy and the rate of convergence.",
+        "papers": ["gr-qc/0006017", "1501.07614", "1204.5394"],
+        "evidence": [
+            { "quote": "Brewin observed that the residual of the Regge equations evaluated on an exact solution of the Einstein equations does not converge to zero, even though the solutions of the Regge equations do converge to the Einstein solutions.", "ArXiv": "gr-qc/0006017" },
+            { "quote": "Increasing the number of tetrahedra in the Cauchy surfaces improves the resolution and reduces the rate of divergence from the FLRW model as the universe expands.", "ArXiv": "1501.07614" },
+            { "quote": "The 600-tetrahedron model provides a more robust approximation that can 'keep up' longer with the FLRW model as the universe expands.", "ArXiv": "1204.5394" }
+        ]
+    }
+}
+
+
+single question without citations:
+{
+    "topic overlaps": [
+        "Discretization of spacetime",
+        "Regge calculus",
+        "Simplicity constraints",
+        "Spin foam models",
+        "Twisted geometries",
+        "Quantum gravity",
+        "Lattice models",
+        "Cosmological models",
+        "Non-perturbative methods",
+        "Discrete actions"
+    ],
+    {
+        "question": "How do the simplicity constraints in the EPRL model ensure the recovery of Regge geometries in the large spin limit, and what are the implications for the continuum limit of the theory?",
+        "answer": "In the EPRL model, the simplicity constraints are implemented in a way that ensures the recovery of Regge geometries in the large spin limit. Specifically, the primary simplicity constraints and the closure constraints, when satisfied on each tetrahedron in the boundary of a flat 4-simplex, automatically satisfy the secondary simplicity constraints. This is crucial because the secondary constraints ensure that the simplicity of the B-field holds under time evolution. In the large spin limit, the shape-matching conditions, which are part of the saddle point equations, emerge, leading to the dominance of configurations that correspond to Regge geometries, correctly weighted by exponentials of the Regge action. This provides evidence of the correct semiclassical behavior of the theory. However, the existence of the continuum limit still requires a systematic study of higher-order and graph-changing corrections to fully test the formalism.",
+        "papers": ["1204.5394", "0711.4264", "1501.07614"]
+    }
+}
+
