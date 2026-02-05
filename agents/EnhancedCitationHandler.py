@@ -8,6 +8,7 @@ from agents.types import GeneratedAnswerFormat
 from text_cleaner import DocumentTextCleaner
 from sentence_transformers import SentenceTransformer, CrossEncoder
 from rank_bm25 import BM25Okapi
+import time
 
 class EnhancedCitationHandler:
     """Enhanced citation handler with proper metadata extraction and context passages"""
@@ -350,10 +351,12 @@ class EnhancedCitationHandler:
             sentence, document_text
         )
         return self.llmAgent.generate(prompt)
+        
     # extract context passages for an answer text from the according paper
     def _extract_context_passages_using_llm(self, answerObject: GeneratedAnswerFormat) -> str:
         # answerTextSentences =  re.split(r"[.!?]+", answerObject)
         # sentences_with_citations = [s.strip() for s in answerTextSentences if re.search(r"\[\d+\]", s)]            
+        start = time.time()
         result = {}
         for answerEntry in answerObject:
             doc_id = answerEntry["documentId"]
@@ -363,7 +366,8 @@ class EnhancedCitationHandler:
             contextForSentence = self._extract_context_for_sentence_using_llm(answerEntry["sentence"], documentText)
 
             result.setdefault(doc_id, []).append({"context":contextForSentence})
-        return result    
+        end = time.time()
+        return result, end-start    
 
     def extract_top_k_contexts(self, documentId: int, answerSentence: str, top_k:int = 1, useBM25HybridRetrieval: bool = False):
         bitransformer = self.bitransformer
@@ -442,15 +446,17 @@ class EnhancedCitationHandler:
 
 
     def extract_context_using_cosine_similarity(self, answerObject:GeneratedAnswerFormat):
+        start = time.time()
         result = {}
         for answerObjectEntry in answerObject:
             bestContext = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], 1, False)
             result.setdefault(answerObjectEntry["documentId"], []).append({"context": bestContext[0]})
-
-        return result 
+        end = time.time()
+        return result, end-start 
     
 
     def extract_context_using_cosine_similarity_top_10_and_keyword_matching(self,answerObject:GeneratedAnswerFormat):
+        start = time.time()
         result = {}
         for answerObjectEntry in answerObject:
             best10Contexts = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], 10, False)
@@ -463,9 +469,11 @@ class EnhancedCitationHandler:
             best_idx = list(bm25_scores).index(max(bm25_scores))
             best_context = best10Contexts[best_idx]
             result.setdefault(answerObjectEntry["documentId"], []).append({"context":best_context})
-        return result
+        end = time.time()
+        return result, end-start
     
     def extract_context_using_cosine_similarity_top_10_and_cross_encoder(self, answerObject:GeneratedAnswerFormat):
+        start = time.time()
         result = {}
         for answerObjectEntry in answerObject:
             best10Contexts = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], 10, False)
@@ -478,16 +486,20 @@ class EnhancedCitationHandler:
             
             best_context = best10Contexts[best_idx]
             result.setdefault(answerObjectEntry["documentId"], []).append({"context":best_context})
-        return result
+        end = time.time()
+        return result, end-start
     
     def extract_context_using_cosine_similarity_and_bm25(self, answerObject: GeneratedAnswerFormat):
+        start = time.time()
         result = {}
         for answerObjectEntry in answerObject:
             bestContext = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], 1, True)
             result.setdefault(answerObjectEntry["documentId"], []).append({"context":bestContext[0]})
-        return result
+        end = time.time()
+        return result, end-start
     
     def extract_context_using_biencoder_and_bm25_and_cross_encoder(self, answerObject: GeneratedAnswerFormat):
+        start = time.time()
         result = {}
         for answerObjectEntry in answerObject:
             best10Contexts = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], 10, True)
@@ -500,10 +512,11 @@ class EnhancedCitationHandler:
             
             best_context = best10Contexts[best_idx]
             result.setdefault(answerObjectEntry["documentId"], []).append({"context":best_context})
-        return result
+        end = time.time()
+        return result, end-start
     
-
     def format_references(self, answerObject: GeneratedAnswerFormat = None) -> str:
+        start = time.time()
         """Format references with proper metadata and context passages"""
         if not self.citation_to_doc:
             return ""
@@ -555,7 +568,8 @@ class EnhancedCitationHandler:
                 )
 
             references[citation_num] = {"title":title, "paperId": paper_id, "contextPassage":context_passage}
-        return references
+        end = time.time()    
+        return references, end-start
 
     def add_document(self, doc_text: str, doc_id: str, metadata: Dict = None) -> int:
         """Add a document and return its citation number"""

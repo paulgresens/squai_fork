@@ -30,6 +30,8 @@ from agents.EnhancedCitationHandler import EnhancedCitationHandler
 from agents.util import initialize_retriever, load_datamorgana_questions, format_enhanced_result_to_schema,write_enhanced_result_to_json, write_enhanced_results_to_jsonl
 from agents.types import GeneratedAnswerFormat
 from entailment_agent import EntailmentChecker
+import time
+
 
 logger = logging.getLogger("Enhanced_4Agent_RAG")
 
@@ -60,7 +62,6 @@ class Enhanced4AgentRAG:
     def __init__(
         self,
         retriever,
-        isValidationMode,
         questionSplitterModel,
         answerGeneratorModel,
         documentEvaluatorModel,
@@ -918,8 +919,9 @@ class Enhanced4AgentRAG:
                 prompt = self.createFinalAnswerGeneratorPrompt(
                     query, full_texts, citation_handler, should_split
                 )
+                answerGenerationStart = time.time()
                 raw_answer = json.loads(self.agentMapping["finalAnswerGeneratorModel"].generate(prompt))
-
+                answerGenerationEnd = time.time()
             # metrics
 
             # recallAt1 = float(arxivId in unique_filtered_doc_ids[:1])
@@ -938,25 +940,25 @@ class Enhanced4AgentRAG:
             '''
             
             #variant 1 - native squai context extraction
-            references = citation_handler.format_references(raw_answer)
+            references, referencesDuration = citation_handler.format_references(raw_answer)
 
             #variant 2 - Biencoder (top 1), floating window up to 5 sentences
-            referencesWithCosineSimilarity = citation_handler.extract_context_using_cosine_similarity(raw_answer)
+            referencesWithCosineSimilarity, referencesWithCosineSimilarityDuration = citation_handler.extract_context_using_cosine_similarity(raw_answer)
             
             #variant 3 - Biencoder top 10, then BM25 for top 1
-            referencesWithCosineSimilarityAndKeywordMatching = citation_handler.extract_context_using_cosine_similarity_top_10_and_keyword_matching(raw_answer)
+            referencesWithCosineSimilarityAndKeywordMatching, referencesWithCosineSimilarityAndKeywordMatchingDuration = citation_handler.extract_context_using_cosine_similarity_top_10_and_keyword_matching(raw_answer)
 
             #variant 4 - Biencoder top 10 + cross encoder
-            referencesWithCosineSimilarityAndCrossEncoder = citation_handler.extract_context_using_cosine_similarity_top_10_and_cross_encoder(raw_answer)
+            referencesWithCosineSimilarityAndCrossEncoder, referencesWithCosineSimilarityAndCrossEncoderDuration = citation_handler.extract_context_using_cosine_similarity_top_10_and_cross_encoder(raw_answer)
 
             #variant 5 - Biencoder and keyword bm25 directly
-            referencesWithBiencoderAndBm25 = citation_handler.extract_context_using_cosine_similarity_and_bm25(raw_answer)
+            referencesWithBiencoderAndBm25, referencesWithBiencoderAndBm25Duration = citation_handler.extract_context_using_cosine_similarity_and_bm25(raw_answer)
 
             #variant 6 - BiEncoder and keyword bm25 top 10 + cross encoder
-            referencesWithBiencoderAndBm25AndCrossEncoder = citation_handler.extract_context_using_biencoder_and_bm25_and_cross_encoder(raw_answer)
+            referencesWithBiencoderAndBm25AndCrossEncoder, referencesWithBiencoderAndBm25AndCrossEncoderDuration = citation_handler.extract_context_using_biencoder_and_bm25_and_cross_encoder(raw_answer)
 
             # variant 7 - extract the context using LLM
-            referencesWithLLM = citation_handler._extract_context_passages_using_llm(raw_answer)
+            referencesWithLLM, referencesWithLLMDuration = citation_handler._extract_context_passages_using_llm(raw_answer)
             
             #variant 8 - inverse qa
             #maybe add pure bm25 
@@ -969,6 +971,7 @@ class Enhanced4AgentRAG:
                     "groundTruthDocumens": papersUsedInTheQuestion,
                     "modelAnswer" : raw_answer,
                     "documentsUsed": unique_filtered_doc_ids,
+                    # remove them for now, can be calculated with the meta information afterwards
                     # "recallAt1": recallAt1,
                     # "recallAtMaxK": recallAtMaxK,
                     # "reciprocalRank": reciprocalRank
@@ -982,7 +985,18 @@ class Enhanced4AgentRAG:
                 "referencesWithLLM": referencesWithLLM,
                 "meta": {
                     "papersUsedForQuestionGeneration" : papersUsedForQuestionGeneration,
-                    "topicOverlapsInThePapers" : topicOverlapsInThePapers
+                    "topicOverlapsInThePapers" : topicOverlapsInThePapers,
+                    "papersRetrievedBySQuAI": unique_filtered_doc_ids,
+                    "duration": {
+                        "answerGeneration": answerGenerationEnd - answerGenerationStart,
+                        "referencesNativeDuration": referencesDuration,
+                        "referencesWithCosineSimilarityDuration": referencesWithCosineSimilarityDuration,
+                        "referencesWithCosineSimilarityAndKeywordMatchingDuration": referencesWithCosineSimilarityAndKeywordMatchingDuration,
+                        "referencesWithCosineSimilarityAndCrossEncoderDuration": referencesWithCosineSimilarityAndCrossEncoderDuration,
+                        "referencesWithBiencoderAndBm25Duration": referencesWithBiencoderAndBm25Duration,
+                        "referencesWithBiencoderAndBm25AndCrossEncoderDuration": referencesWithBiencoderAndBm25AndCrossEncoderDuration,
+                        "referencesWithLLMDuration": referencesWithLLMDuration,
+                    }
                 }
             }
 
@@ -1108,13 +1122,6 @@ def main():
         description="Enhanced 4-Agent RAG with Question Splitting and Parallel Processing"
     )
     parser.add_argument(
-        "--isvValidationMode",
-        type=bool,
-        default=True,
-        help="True if SQuAi is used to gather context extraction test data"
-    )
-    
-    parser.add_argument(
         "--questionSplitterModel",
         type=str,
         default=DEFAULT_GENERATOR_MODEL,
@@ -1233,7 +1240,6 @@ def main():
     )
     ragent = Enhanced4AgentRAG(
         retriever,
-        isvValidationMode=args.isvValidationMode,
         questionSplitterModel=args.questionSplitterModel,
         answerGeneratorModel=args.answerGeneratorModel,
         documentEvaluatorModel=args.documentEvaluatorModel,
