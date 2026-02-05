@@ -1,0 +1,449 @@
+{
+  "qualityMeasures": {
+    "question": "What mechanisms are proposed to explain the bullet-like ejections observed in SS 433, and how do these mechanisms relate to the observed short time-scale variabilities in multi-wavelength observations?",
+    "groundTruthAnswer": "Several mechanisms have been proposed to explain the bullet-like ejections observed in SS 433. One mechanism involves non-steady shocks in the sub-Keplerian accretion flow, which can provide the basic timescale of the ejection interval. Another mechanism is the magnetic rubber-band effect of the toroidal flux tubes in the disk, which can yield flaring events. Additionally, large-scale oscillations of an accretion shock can act like a piston, periodically ejecting matter. These mechanisms are consistent with the observed short time-scale variabilities in multi-wavelength observations, such as the sharp rises in intensity in X-rays, IR, and radio wavelengths, which are indicative of the ejection of bullet-like features from the accretion disk.",
+    "groundTruthDocumens": [
+      "astro-ph/0501285",
+      "astro-ph/0402560",
+      "astro-ph/0208148",
+      "astro-ph/9710374",
+      "astro-ph/0409662"
+    ],
+    "modelAnswer": [
+      {
+        "planning": "To answer this question, we need to consider the various mechanisms proposed to explain the bullet-like ejections in SS 433 and how they relate to the observed short time-scale variabilities in multi-wavelength observations. Document [3] discusses plausible mechanisms to produce bullet-like ejecta from the precessing disk in the SS 433 system, including non-steady shocks in the sub-Keplerian accretion flow and the magnetic rubber-band effect of the toroidal flux tubes in this disk. Document [4] presents possible photometric evidence of ejection of bullet-like features in the relativistic jet source SS 433, with observations indicating sharp rises in intensity in time-scales of few minutes in X-rays, IR, and radio waves.",
+        "sentence": "The mechanisms proposed to explain the bullet-like ejections in SS 433 include non-steady shocks in the sub-Keplerian accretion flow and the magnetic rubber-band effect of the toroidal flux tubes in the disk, as discussed in Document [3].",
+        "documentId": 3
+      },
+      {
+        "planning": "Next, we need to consider how these mechanisms relate to the observed short time-scale variabilities in multi-wavelength observations. Document [4] reports on a multi-wavelength campaign on SS 433, observing variabilities on a time-scale of few minutes in all wavelengths, which are interpreted as due to bullet-like features from the accretion disk.",
+        "sentence": "The observed short time-scale variabilities in multi-wavelength observations of SS 433, as reported in Document [4], can be related to the ejection of bullet-like features from the accretion disk, which may be caused by the proposed mechanisms discussed in Document [3].",
+        "documentId": 4
+      },
+      {
+        "planning": "Finally, we need to consider the implications of these findings for our understanding of the SS 433 system. Document [1] provides context on the SS 433 system, including its precessing jets and the challenges of observing the system.",
+        "sentence": "The study of bullet-like ejections in SS 433, as discussed in Documents [3] and [4], contributes to our understanding of the complex phenomena observed in this system, which is characterized by its precessing jets and variable emission, as described in Document [1].",
+        "documentId": 1
+      }
+    ],
+    "documentsUsed": [
+      "astro-ph/0509411",
+      "1811.12564",
+      "astro-ph/0208148",
+      "astro-ph/0402560",
+      "astro-ph/0501297",
+      "1811.09277",
+      "1809.01386"
+    ]
+  },
+  "referencesNative": {
+    "1": {
+      "title": "Unknown Title",
+      "paperId": "arXiv:astro-ph/0509411",
+      "contextPassage": "Because those massive jet ejections are rare and short events, they have hardly been observed in X-ray so far. In this paper, the first X-ray observation of a massive jet ejection from the microquasar SS 433 with the Rossi X-ray Timing Explorer (RXTE) is reported. SS 433 undergoing a massive ejection event shows a variety of new phenomena including a QPO-like feature near 0."
+    },
+    "3": {
+      "title": "Unknown Title",
+      "paperId": "arXiv:astro-ph/0208148",
+      "contextPassage": "Title: On the Ejection Mechanism of Bullets in SS 433 On the Ejection Mechanism of Bullets in SS 433 abstract: We discuss plausible mechanisms to produce bullet-like ejecta from the precessing disk in the SS 433 system. We show that non-steady shocks in the sub-Keplerian accretion flow can provide the basic timescale of the ejection interval while the magnetic rubber-band effect of the toroidal flux tubes in this disk can yield flaring events. Introduction: SS 433 remains one of the most enigmat..."
+    },
+    "4": {
+      "title": "Unknown Title",
+      "paperId": "arXiv:astro-ph/0402560",
+      "contextPassage": "2001) suggest that kinematic model can explain the general variation of the red and blue-shifts very well. A very exciting observation, made within years of the discovery of SS433, suggests that the passage of the jets is not continuous, but as if through successive and discrete bullet-like entities, at least in the optical region (Grandi, 1981; Brown et al. The [FORMULA] lines were seen to brighten up and fade away without changing their red/blue-shifts, indicating the brightened bullets are ra..."
+    }
+  },
+  "referencesWithCosineSimilarity": {
+    "3": [
+      {
+        "context": "Title: On the Ejection Mechanism of Bullets in SS 433\n\n[TOP 4451 chars]: On the Ejection Mechanism of Bullets in SS 433\nabstract: We discuss plausible mechanisms to produce bullet-like ejecta from the precessing disk in the SS 433 system. We show that non-steady shocks in the sub-Keplerian accretion flow can provide the basic timescale of the ejection interval while the magnetic rubber-band effect of the toroidal flux tubes in this disk can yield flaring events. Introduction: SS 433 remains one of the most enigmatic objects in the sky.",
+        "sentence": "The mechanisms proposed to explain the bullet-like ejections in SS 433 include non-steady shocks in the sub-Keplerian accretion flow and the magnetic rubber-band effect of the toroidal flux tubes in the disk, as discussed in Document [3].",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      }
+    ],
+    "4": [
+      {
+        "context": "(2002) described processes which may be operating in accretion disk of SS433 to produce these bullets. In a recent multi-wavelength campaign, we find sharp rise in intensity in time-scales of few minutes in X-rays, IR and radio waves through {\\it photometric} studies. We interpret them to be possible evidence of ejection of bullet-like features from accretion disks.",
+        "sentence": "The observed short time-scale variabilities in multi-wavelength observations of SS 433, as reported in Document [4], can be related to the ejection of bullet-like features from the accretion disk, which may be caused by the proposed mechanisms discussed in Document [3].",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 1
+      }
+    ],
+    "1": [
+      {
+        "context": "SS 433 undergoing a massive ejection event shows a variety of new phenomena including a QPO-like feature near 0. 1 Hz, rapid time variability, and shot-like activities. The shot-like activity may be caused by the formation of a small plasma bullet. A massive jet may be consist of thousands of those plasma bullets ejected from the binary system. The size, mass, internal energy, and kinetic energy of the bullets and the massive jet are estimated.",
+        "sentence": "The study of bullet-like ejections in SS 433, as discussed in Documents [3] and [4], contributes to our understanding of the complex phenomena observed in this system, which is characterized by its precessing jets and variable emission, as described in Document [1].",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 2
+        },
+        "entailment": 0
+      }
+    ],
+    "meanJudgements": {
+      "faithfulness": 3.0,
+      "relevance": 3.0,
+      "consistency": 3.0,
+      "supportCoverage": 3.0,
+      "paraphraseRobustness": 3.0,
+      "ambiguityLevel": 1.33
+    }
+  },
+  "referencesWithCosineSimilarityAndKeywordMatching": {
+    "3": [
+      {
+        "context": "Title: On the Ejection Mechanism of Bullets in SS 433\n\n[TOP 4451 chars]: On the Ejection Mechanism of Bullets in SS 433\nabstract: We discuss plausible mechanisms to produce bullet-like ejecta from the precessing disk in the SS 433 system. We show that non-steady shocks in the sub-Keplerian accretion flow can provide the basic timescale of the ejection interval while the magnetic rubber-band effect of the toroidal flux tubes in this disk can yield flaring events.",
+        "sentence": "The mechanisms proposed to explain the bullet-like ejections in SS 433 include non-steady shocks in the sub-Keplerian accretion flow and the magnetic rubber-band effect of the toroidal flux tubes in the disk, as discussed in Document [3].",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 1
+      }
+    ],
+    "4": [
+      {
+        "context": "Title: Possible Photometric Evidence of Ejection of Bullet Like Features in the Relativistic Jet source SS433\n\n[TOP 4840 chars]: Possible Photometric Evidence of Ejection of Bullet Like Features in the Relativistic Jet source SS433\nabstract: SS433 is well-known for its precessing twin jets having optical bullets inferred through {\\it spectroscopic} observation of $H_\\alpha$ lines. Recently, Chakrabarti et al. (2002) described processes which may be operating in accretion disk of SS433 to produce these bullets. In a recent multi-wavelength campaign, we find sharp rise in intensity in time-scales of few minutes in X-rays, IR and radio waves through {\\it photometric} studies.",
+        "sentence": "The observed short time-scale variabilities in multi-wavelength observations of SS 433, as reported in Document [4], can be related to the ejection of bullet-like features from the accretion disk, which may be caused by the proposed mechanisms discussed in Document [3].",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      }
+    ],
+    "1": [
+      {
+        "context": "3 GHz exceeds 1 Jy, and massive jet blobs, which are recognized as bright extended spots in radio images, are ejected from the core of SS 433 at a quarter of the speed of light. The ejection of massive jet blobs from GRS 1915+105 with a radio flux exceeding 100 mJy, by which the source has been recognized as a microquasar in the first place , , have been hardly observed in X rays , in contrast to a number of reports on the X-ray observation of the quasi-continuous or weak jet ejections , ,.",
+        "sentence": "The study of bullet-like ejections in SS 433, as discussed in Documents [3] and [4], contributes to our understanding of the complex phenomena observed in this system, which is characterized by its precessing jets and variable emission, as described in Document [1].",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 2,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 2
+        },
+        "entailment": 0
+      }
+    ],
+    "meanJudgements": {
+      "faithfulness": 3.0,
+      "relevance": 3.0,
+      "consistency": 3.0,
+      "supportCoverage": 2.67,
+      "paraphraseRobustness": 3.0,
+      "ambiguityLevel": 1.33
+    }
+  },
+  "referencesWithCosineSimilarityAndCrossEncoder": {
+    "3": [
+      {
+        "context": "Title: On the Ejection Mechanism of Bullets in SS 433\n\n[TOP 4451 chars]: On the Ejection Mechanism of Bullets in SS 433\nabstract: We discuss plausible mechanisms to produce bullet-like ejecta from the precessing disk in the SS 433 system. We show that non-steady shocks in the sub-Keplerian accretion flow can provide the basic timescale of the ejection interval while the magnetic rubber-band effect of the toroidal flux tubes in this disk can yield flaring events. Introduction: SS 433 remains one of the most enigmatic objects in the sky. Even twenty-five years after its first appearance in the catalogue of Stephanson & Sanduleak (1977), it is not clear whether the compact object is a black hole or a neutron star.",
+        "sentence": "The mechanisms proposed to explain the bullet-like ejections in SS 433 include non-steady shocks in the sub-Keplerian accretion flow and the magnetic rubber-band effect of the toroidal flux tubes in the disk, as discussed in Document [3].",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 1
+      }
+    ],
+    "4": [
+      {
+        "context": "(2002) described processes which may be operating in accretion disk of SS433 to produce these bullets. In a recent multi-wavelength campaign, we find sharp rise in intensity in time-scales of few minutes in X-rays, IR and radio waves through {\\it photometric} studies. We interpret them to be possible evidence of ejection of bullet-like features from accretion disks. Introduction: SS433 is a well studied bright emission line compact system which is ejecting matter in symmetrically opposite directions at a speed of {{formula:b223a56e-4fef-4946-8f03-33757553b592}} c.",
+        "sentence": "The observed short time-scale variabilities in multi-wavelength observations of SS 433, as reported in Document [4], can be related to the ejection of bullet-like features from the accretion disk, which may be caused by the proposed mechanisms discussed in Document [3].",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 1
+      }
+    ],
+    "1": [
+      {
+        "context": "In this paper, the first X-ray observation of a massive jet ejection from the microquasar SS 433 with the Rossi X-ray Timing Explorer (RXTE) is reported. SS 433 undergoing a massive ejection event shows a variety of new phenomena including a QPO-like feature near 0. 1 Hz, rapid time variability, and shot-like activities. The shot-like activity may be caused by the formation of a small plasma bullet. A massive jet may be consist of thousands of those plasma bullets ejected from the binary system.",
+        "sentence": "The study of bullet-like ejections in SS 433, as discussed in Documents [3] and [4], contributes to our understanding of the complex phenomena observed in this system, which is characterized by its precessing jets and variable emission, as described in Document [1].",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 5,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 4,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      }
+    ],
+    "meanJudgements": {
+      "faithfulness": 3.0,
+      "relevance": 3.67,
+      "consistency": 3.0,
+      "supportCoverage": 3.0,
+      "paraphraseRobustness": 3.33,
+      "ambiguityLevel": 1.0
+    }
+  },
+  "referencesWithBiencoderAndBm25": {
+    "3": [
+      {
+        "context": "Title: On the Ejection Mechanism of Bullets in SS 433\n\n[TOP 4451 chars]: On the Ejection Mechanism of Bullets in SS 433\nabstract: We discuss plausible mechanisms to produce bullet-like ejecta from the precessing disk in the SS 433 system. We show that non-steady shocks in the sub-Keplerian accretion flow can provide the basic timescale of the ejection interval while the magnetic rubber-band effect of the toroidal flux tubes in this disk can yield flaring events.",
+        "sentence": "The mechanisms proposed to explain the bullet-like ejections in SS 433 include non-steady shocks in the sub-Keplerian accretion flow and the magnetic rubber-band effect of the toroidal flux tubes in the disk, as discussed in Document [3].",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 1
+      }
+    ],
+    "4": [
+      {
+        "context": "(2002) described processes which may be operating in accretion disk of SS433 to produce these bullets. In a recent multi-wavelength campaign, we find sharp rise in intensity in time-scales of few minutes in X-rays, IR and radio waves through {\\it photometric} studies. We interpret them to be possible evidence of ejection of bullet-like features from accretion disks.",
+        "sentence": "The observed short time-scale variabilities in multi-wavelength observations of SS 433, as reported in Document [4], can be related to the ejection of bullet-like features from the accretion disk, which may be caused by the proposed mechanisms discussed in Document [3].",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 1
+      }
+    ],
+    "1": [
+      {
+        "context": "It should be stressed that the massive jets are distinct from the stable continuous jets of SS 433 and the quasi-continuous or weak jet of GRS 1915+105. The radio activity of SS 433 monitored with the Green Bank Interferometer over years may be characterized as a clustering of flare events separated by periods of quiescent emission. In those sporadic radio flare events, the radio flux density at 2. 3 GHz exceeds 1 Jy, and massive jet blobs, which are recognized as bright extended spots in radio images, are ejected from the core of SS 433 at a quarter of the speed of light. The ejection of massive jet blobs from GRS 1915+105 with a radio flux exceeding 100 mJy, by which the source has been recognized as a microquasar in the first place , , have been hardly observed in X rays , in contrast to a number of reports on the X-ray observation of the quasi-continuous or weak jet ejections , ,.",
+        "sentence": "The study of bullet-like ejections in SS 433, as discussed in Documents [3] and [4], contributes to our understanding of the complex phenomena observed in this system, which is characterized by its precessing jets and variable emission, as described in Document [1].",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      }
+    ],
+    "meanJudgements": {
+      "faithfulness": 3.0,
+      "relevance": 3.0,
+      "consistency": 3.0,
+      "supportCoverage": 3.0,
+      "paraphraseRobustness": 3.0,
+      "ambiguityLevel": 1.0
+    }
+  },
+  "referencesWithBiencoderAndBm25AndCrossEncoder": {
+    "3": [
+      {
+        "context": "Title: On the Ejection Mechanism of Bullets in SS 433\n\n[TOP 4451 chars]: On the Ejection Mechanism of Bullets in SS 433\nabstract: We discuss plausible mechanisms to produce bullet-like ejecta from the precessing disk in the SS 433 system. We show that non-steady shocks in the sub-Keplerian accretion flow can provide the basic timescale of the ejection interval while the magnetic rubber-band effect of the toroidal flux tubes in this disk can yield flaring events. Introduction: SS 433 remains one of the most enigmatic objects in the sky. Even twenty-five years after its first appearance in the catalogue of Stephanson & Sanduleak (1977), it is not clear whether the compact object is a black hole or a neutron star.",
+        "sentence": "The mechanisms proposed to explain the bullet-like ejections in SS 433 include non-steady shocks in the sub-Keplerian accretion flow and the magnetic rubber-band effect of the toroidal flux tubes in the disk, as discussed in Document [3].",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 1
+      }
+    ],
+    "4": [
+      {
+        "context": "[BOTTOM 2976 chars]: From the analysis of the observations of radio, IR and X-ray in the quiescence state we conclude that we may be observing ejection events of bullet-like features from the accretion disk in time scales of {{formula:ec4a3a8b-7fbc-499f-ac81-047c9a472c3f}} minutes. Identification of small micro-flare events with those those of bullet ejection is derived from the time scales of variabilities, which are roughly the same in all these wavelengths. We find their presence in X-ray ({{formula:c2c5b45b-c6cb-4cd6-9100-2d29cb17f910}} < {{formula:5e0d0ae9-5ad2-43e4-93d5-e147f6b80710}} 1011-12{{formula:9def47ee-9c85-439c-a22a-2f07b5152fdf}}{{formula:ac904480-a111-4a85-8233-c16081119f7b}} 1013-14{{formula:4ee0b5a4-c70b-44a2-b6d5-0998a68dd6b7}}{{formula:17b75472-4556-4bdc-9c92-09443125f52b}} 1015{{formula:97fb28f2-86f2-45c2-bc1d-33928faeb198}} 1-2{{formula:0b33cd51-8475-49ac-9435-25fb820cf583}} 15-20{{formula:a730dcf1-ea35-488b-902d-cec1d9be61f3}} SKC thanks Dr.",
+        "sentence": "The observed short time-scale variabilities in multi-wavelength observations of SS 433, as reported in Document [4], can be related to the ejection of bullet-like features from the accretion disk, which may be caused by the proposed mechanisms discussed in Document [3].",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      }
+    ],
+    "1": [
+      {
+        "context": "Because those massive jet ejections are rare and short events, they have hardly been observed in X-ray so far. In this paper, the first X-ray observation of a massive jet ejection from the microquasar SS 433 with the Rossi X-ray Timing Explorer (RXTE) is reported. SS 433 undergoing a massive ejection event shows a variety of new phenomena including a QPO-like feature near 0. 1 Hz, rapid time variability, and shot-like activities. The shot-like activity may be caused by the formation of a small plasma bullet.",
+        "sentence": "The study of bullet-like ejections in SS 433, as discussed in Documents [3] and [4], contributes to our understanding of the complex phenomena observed in this system, which is characterized by its precessing jets and variable emission, as described in Document [1].",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 5,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 4,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      }
+    ],
+    "meanJudgements": {
+      "faithfulness": 3.0,
+      "relevance": 3.67,
+      "consistency": 3.0,
+      "supportCoverage": 3.0,
+      "paraphraseRobustness": 3.33,
+      "ambiguityLevel": 1.0
+    }
+  },
+  "referencesWithLLM": {
+    "3": [
+      {
+        "context": "We discuss plausible mechanisms to produce bullet-like ejecta from the precessing disk in the SS 433 system. We show that non-steady shocks in the sub-Keplerian accretion flow can provide the basic timescale of the ejection interval while the magnetic rubber-band effect of the toroidal flux tubes in this disk can yield flaring events.",
+        "sentence": "The mechanisms proposed to explain the bullet-like ejections in SS 433 include non-steady shocks in the sub-Keplerian accretion flow and the magnetic rubber-band effect of the toroidal flux tubes in the disk, as discussed in Document [3].",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 1
+      }
+    ],
+    "4": [
+      {
+        "context": "From the analysis of the observations of radio, IR and X-ray in the quiescence state we conclude that we may be observing ejection events of bullet-like features from the accretion disk in time scales of minutes. Identification of small micro-flare events with those those of bullet ejection is derived from the time scales of variabilities, which are roughly the same in all these wavelengths. Our main results indicate that there are considerable variations in the timescale of minutes in all the wavelengths. These may be called micro-flares. When Fourier transform is made, some excess power is observed in minutes time scale. The X-ray count rate was found to increase by  % within a minute.",
+        "sentence": "The observed short time-scale variabilities in multi-wavelength observations of SS 433, as reported in Document [4], can be related to the ejection of bullet-like features from the accretion disk, which may be caused by the proposed mechanisms discussed in Document [3].",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 2
+        },
+        "entailment": 0
+      }
+    ],
+    "1": [
+      {
+        "context": "A massive jet may be consist of thousands of those plasma bullets ejected from the binary system. The size, mass, internal energy, and kinetic energy of the bullets and the massive jet are estimated. The shot-like activity may be caused by the formation of a small plasma bullet. SS 433 undergoing a massive ejection event shows a variety of new phenomena including a QPO-like feature near 0.1 Hz, rapid time variability, and shot-like activities.",
+        "sentence": "The study of bullet-like ejections in SS 433, as discussed in Documents [3] and [4], contributes to our understanding of the complex phenomena observed in this system, which is characterized by its precessing jets and variable emission, as described in Document [1].",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 2
+        },
+        "entailment": 0
+      }
+    ],
+    "meanJudgements": {
+      "faithfulness": 3.0,
+      "relevance": 3.0,
+      "consistency": 3.0,
+      "supportCoverage": 3.0,
+      "paraphraseRobustness": 3.0,
+      "ambiguityLevel": 1.67
+    }
+  },
+  "meta": {
+    "papersUsedForQuestionGeneration": [
+      {
+        "ArXiv": "astro-ph/0501285",
+        "category": "astro-ph"
+      },
+      {
+        "ArXiv": "astro-ph/0402560",
+        "category": "astro-ph"
+      },
+      {
+        "ArXiv": "astro-ph/0208148",
+        "category": "astro-ph"
+      },
+      {
+        "ArXiv": "astro-ph/9710374",
+        "category": "astro-ph"
+      },
+      {
+        "ArXiv": "astro-ph/0409662",
+        "category": "astro-ph"
+      }
+    ],
+    "topicOverlapsInThePapers": [
+      "Multi-wavelength observations of SS 433",
+      "Short time-scale variabilities in SS 433",
+      "Bullet-like ejections in SS 433",
+      "Doppler shifts and kinematic model in SS 433",
+      "X-ray and radio flares in SS 433",
+      "Accretion disk and jet interactions in SS 433",
+      "Precession and orbital phases of SS 433",
+      "Spectral fitting of X-ray observations in SS 433",
+      "Flaring activity and variability in SS 433",
+      "Comparison of SS 433 with other microquasars"
+    ],
+    "papersRetrievedBySQuAI": [
+      "astro-ph/0509411",
+      "1811.12564",
+      "astro-ph/0208148",
+      "astro-ph/0402560",
+      "astro-ph/0501297",
+      "1811.09277",
+      "1809.01386"
+    ],
+    "duration": {
+      "answerGeneration": 38.18516302108765,
+      "referencesNativeDuration": 0.0030815601348876953,
+      "referencesWithCosineSimilarityDuration": 4.414348363876343,
+      "referencesWithCosineSimilarityAndKeywordMatchingDuration": 3.326854944229126,
+      "referencesWithCosineSimilarityAndCrossEncoderDuration": 10.908047437667847,
+      "referencesWithBiencoderAndBm25Duration": 3.354266405105591,
+      "referencesWithBiencoderAndBm25AndCrossEncoderDuration": 3.505012035369873,
+      "referencesWithLLMDuration": 23.56314516067505
+    }
+  },
+  "meanJudgement": {
+    "faithfulness": 3.0,
+    "relevance": 3.223333333333333,
+    "consistency": 3.0,
+    "supportCoverage": 2.9450000000000003,
+    "paraphraseRobustness": 3.11,
+    "ambiguityLevel": 1.2216666666666667
+  }
+}

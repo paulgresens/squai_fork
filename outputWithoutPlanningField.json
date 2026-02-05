@@ -1,0 +1,593 @@
+{
+  "qualityMeasures": {
+    "question": "What mechanisms are proposed to explain the bullet-like ejections observed in SS 433, and how do these mechanisms relate to the observed short time-scale variabilities in multi-wavelength observations?",
+    "groundTruthAnswer": "Several mechanisms have been proposed to explain the bullet-like ejections observed in SS 433. One mechanism involves non-steady shocks in the sub-Keplerian accretion flow, which can provide the basic timescale of the ejection interval. Another mechanism is the magnetic rubber-band effect of the toroidal flux tubes in the disk, which can yield flaring events. Additionally, large-scale oscillations of an accretion shock can act like a piston, periodically ejecting matter. These mechanisms are consistent with the observed short time-scale variabilities in multi-wavelength observations, such as the sharp rises in intensity in X-rays, IR, and radio wavelengths, which are indicative of the ejection of bullet-like features from the accretion disk.",
+    "groundTruthDocumens": [
+      "astro-ph/0501285",
+      "astro-ph/0402560",
+      "astro-ph/0208148",
+      "astro-ph/9710374",
+      "astro-ph/0409662"
+    ],
+    "modelAnswer": [
+      {
+        "sentence": "The mechanisms proposed to explain the bullet-like ejections observed in SS 433 include non-steady shocks in the sub-Keplerian accretion flow, magnetic rubber-band effects of toroidal flux tubes, and Comptonization, which could provide the basic timescale of the ejection interval.",
+        "documentId": 3
+      },
+      {
+        "sentence": "These mechanisms are related to the observed short time-scale variabilities in multi-wavelength observations, which show sharp rises in intensity in time-scales of few minutes in X-rays, IR, and radio waves, interpreted as possible evidence of ejection of bullet-like features from the accretion disk.",
+        "documentId": 4
+      },
+      {
+        "sentence": "The observed variabilities in X-ray, IR, and radio waves are consistent with the expected timescales of bullet ejection, which are roughly the same in all these wavelengths, suggesting that the bullets are ejected from the accretion disk and propagate through the optical, IR, and radio emitting regions.",
+        "documentId": 4
+      },
+      {
+        "sentence": "The magnetic rubber-band effect of toroidal flux tubes in the accretion disk can yield flaring events, which may be related to the observed micro-flares in the multi-wavelength observations.",
+        "documentId": 3
+      },
+      {
+        "sentence": "The observations of radio, IR, and X-ray in the quiescence state suggest that the object may be observing ejection events of bullet-like features from the accretion disk in time scales of minutes, which is consistent with the proposed mechanisms.",
+        "documentId": 4
+      }
+    ],
+    "documentsUsed": [
+      "astro-ph/0509411",
+      "1811.12564",
+      "astro-ph/0208148",
+      "astro-ph/0402560",
+      "astro-ph/0501297",
+      "1811.09277",
+      "1809.01386"
+    ]
+  },
+  "referencesNative": {
+    "3": {
+      "title": "Unknown Title",
+      "paperId": "arXiv:astro-ph/0208148",
+      "contextPassage": "Title: On the Ejection Mechanism of Bullets in SS 433 On the Ejection Mechanism of Bullets in SS 433 abstract: We discuss plausible mechanisms to produce bullet-like ejecta from the precessing disk in the SS 433 system. We show that non-steady shocks in the sub-Keplerian accretion flow can provide the basic timescale of the ejection interval while the magnetic rubber-band effect of the toroidal flux tubes in this disk can yield flaring events."
+    },
+    "4": {
+      "title": "Unknown Title",
+      "paperId": "arXiv:astro-ph/0402560",
+      "contextPassage": "(2002) described processes which may be operating in accretion disk of SS433 to produce these bullets. In a recent multi-wavelength campaign, we find sharp rise in intensity in time-scales of few minutes in X-rays, IR and radio waves through {\\it photometric} studies."
+    }
+  },
+  "referencesWithCosineSimilarity": {
+    "3": [
+      {
+        "context": "Title: On the Ejection Mechanism of Bullets in SS 433\n\n[TOP 4451 chars]: On the Ejection Mechanism of Bullets in SS 433\nabstract: We discuss plausible mechanisms to produce bullet-like ejecta from the precessing disk in the SS 433 system. We show that non-steady shocks in the sub-Keplerian accretion flow can provide the basic timescale of the ejection interval while the magnetic rubber-band effect of the toroidal flux tubes in this disk can yield flaring events. Introduction: SS 433 remains one of the most enigmatic objects in the sky.",
+        "sentence": "The mechanisms proposed to explain the bullet-like ejections observed in SS 433 include non-steady shocks in the sub-Keplerian accretion flow, magnetic rubber-band effects of toroidal flux tubes, and Comptonization, which could provide the basic timescale of the ejection interval.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      },
+      {
+        "context": "We show that non-steady shocks in the sub-Keplerian accretion flow can provide the basic timescale of the ejection interval while the magnetic rubber-band effect of the toroidal flux tubes in this disk can yield flaring events.",
+        "sentence": "The magnetic rubber-band effect of toroidal flux tubes in the accretion disk can yield flaring events, which may be related to the observed micro-flares in the multi-wavelength observations.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      }
+    ],
+    "4": [
+      {
+        "context": "In a recent multi-wavelength campaign, we find sharp rise in intensity in time-scales of few minutes in X-rays, IR and radio waves through {\\it photometric} studies. We interpret them to be possible evidence of ejection of bullet-like features from accretion disks.",
+        "sentence": "These mechanisms are related to the observed short time-scale variabilities in multi-wavelength observations, which show sharp rises in intensity in time-scales of few minutes in X-rays, IR, and radio waves, interpreted as possible evidence of ejection of bullet-like features from the accretion disk.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 1
+      },
+      {
+        "context": "In a recent multi-wavelength campaign, we find sharp rise in intensity in time-scales of few minutes in X-rays, IR and radio waves through {\\it photometric} studies. We interpret them to be possible evidence of ejection of bullet-like features from accretion disks.",
+        "sentence": "The observed variabilities in X-ray, IR, and radio waves are consistent with the expected timescales of bullet ejection, which are roughly the same in all these wavelengths, suggesting that the bullets are ejected from the accretion disk and propagate through the optical, IR, and radio emitting regions.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      },
+      {
+        "context": "[BOTTOM 2976 chars]: From the analysis of the observations of radio, IR and X-ray in the quiescence state we conclude that we may be observing ejection events of bullet-like features from the accretion disk in time scales of {{formula:ec4a3a8b-7fbc-499f-ac81-047c9a472c3f}} minutes.",
+        "sentence": "The observations of radio, IR, and X-ray in the quiescence state suggest that the object may be observing ejection events of bullet-like features from the accretion disk in time scales of minutes, which is consistent with the proposed mechanisms.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      }
+    ],
+    "meanJudgements": {
+      "faithfulness": 3.0,
+      "relevance": 3.0,
+      "consistency": 3.0,
+      "supportCoverage": 3.0,
+      "paraphraseRobustness": 3.0,
+      "ambiguityLevel": 1.0
+    }
+  },
+  "referencesWithCosineSimilarityAndKeywordMatching": {
+    "3": [
+      {
+        "context": "We are unable to distinguish at this stage which type of shock oscillation is more capable of producing bullet formation in SS 433, but we prefer the third possibility due to its impulsive and generic nature and smaller involved region. We believe that the fourth possibility of the inner disk evacuation should produce flaring events, but will occur rather rarely, perhaps only once in a single precession period, when the magnetic field of the companion is preferentially tilted towards the accretion disk during precessional motion. This fourth mechanism gives rise to an anti-correlation between radio and X-rays, perhaps already observed in SS 433 (Safi-Harb & Kotani 2002).",
+        "sentence": "The mechanisms proposed to explain the bullet-like ejections observed in SS 433 include non-steady shocks in the sub-Keplerian accretion flow, magnetic rubber-band effects of toroidal flux tubes, and Comptonization, which could provide the basic timescale of the ejection interval.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 4,
+          "consistency": 3,
+          "supportCoverage": 2,
+          "paraphraseRobustness": 4,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      },
+      {
+        "context": "We showed that blobs may be separated by: (1) Comptonization; (2) shock oscillations due to resonance; (3) oscillations due to inherent unsteady accretion solutions; (4) intense magnetic tension of the toroidal flux tubes. We reject the first possibility because it requires a large Keplerian disk, which is unlikely.",
+        "sentence": "The magnetic rubber-band effect of toroidal flux tubes in the accretion disk can yield flaring events, which may be related to the observed micro-flares in the multi-wavelength observations.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      }
+    ],
+    "4": [
+      {
+        "context": "In a recent multi-wavelength campaign, we find sharp rise in intensity in time-scales of few minutes in X-rays, IR and radio waves through {\\it photometric} studies. We interpret them to be possible evidence of ejection of bullet-like features from accretion disks.",
+        "sentence": "These mechanisms are related to the observed short time-scale variabilities in multi-wavelength observations, which show sharp rises in intensity in time-scales of few minutes in X-rays, IR, and radio waves, interpreted as possible evidence of ejection of bullet-like features from the accretion disk.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 1
+      },
+      {
+        "context": "Since the emitting regions of X-ray, IR and radio are not well known with absolute certainly, while duration of the flares last less than a few minutes, we could not prove beyond doubt that there are indeed correlations among the micro-flares observed in these wavelengths. [BOTTOM 2976 chars]: From the analysis of the observations of radio, IR and X-ray in the quiescence state we conclude that we may be observing ejection events of bullet-like features from the accretion disk in time scales of {{formula:ec4a3a8b-7fbc-499f-ac81-047c9a472c3f}} minutes. Identification of small micro-flare events with those those of bullet ejection is derived from the time scales of variabilities, which are roughly the same in all these wavelengths. We find their presence in X-ray ({{formula:c2c5b45b-c6cb-4cd6-9100-2d29cb17f910}} < {{formula:5e0d0ae9-5ad2-43e4-93d5-e147f6b80710}} 1011-12{{formula:9def47ee-9c85-439c-a22a-2f07b5152fdf}}{{formula:ac904480-a111-4a85-8233-c16081119f7b}} 1013-14{{formula:4ee0b5a4-c70b-44a2-b6d5-0998a68dd6b7}}{{formula:17b75472-4556-4bdc-9c92-09443125f52b}} 1015{{formula:97fb28f2-86f2-45c2-bc1d-33928faeb198}} 1-2{{formula:0b33cd51-8475-49ac-9435-25fb820cf583}} 15-20{{formula:a730dcf1-ea35-488b-902d-cec1d9be61f3}} SKC thanks Dr.",
+        "sentence": "The observed variabilities in X-ray, IR, and radio waves are consistent with the expected timescales of bullet ejection, which are roughly the same in all these wavelengths, suggesting that the bullets are ejected from the accretion disk and propagate through the optical, IR, and radio emitting regions.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 2
+        },
+        "entailment": 0
+      },
+      {
+        "context": "The X-ray count rate was found to increase by {{formula:27c41466-a7ab-4c04-b7c1-ab39ef43112d}} % within a minute. Since the emitting regions of X-ray, IR and radio are not well known with absolute certainly, while duration of the flares last less than a few minutes, we could not prove beyond doubt that there are indeed correlations among the micro-flares observed in these wavelengths. [BOTTOM 2976 chars]: From the analysis of the observations of radio, IR and X-ray in the quiescence state we conclude that we may be observing ejection events of bullet-like features from the accretion disk in time scales of {{formula:ec4a3a8b-7fbc-499f-ac81-047c9a472c3f}} minutes.",
+        "sentence": "The observations of radio, IR, and X-ray in the quiescence state suggest that the object may be observing ejection events of bullet-like features from the accretion disk in time scales of minutes, which is consistent with the proposed mechanisms.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 5,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 4,
+          "ambiguityLevel": 2
+        },
+        "entailment": 0
+      }
+    ],
+    "meanJudgements": {
+      "faithfulness": 3.0,
+      "relevance": 3.6,
+      "consistency": 3.0,
+      "supportCoverage": 2.8,
+      "paraphraseRobustness": 3.4,
+      "ambiguityLevel": 1.4
+    }
+  },
+  "referencesWithCosineSimilarityAndCrossEncoder": {
+    "3": [
+      {
+        "context": "Title: On the Ejection Mechanism of Bullets in SS 433\n\n[TOP 4451 chars]: On the Ejection Mechanism of Bullets in SS 433\nabstract: We discuss plausible mechanisms to produce bullet-like ejecta from the precessing disk in the SS 433 system. We show that non-steady shocks in the sub-Keplerian accretion flow can provide the basic timescale of the ejection interval while the magnetic rubber-band effect of the toroidal flux tubes in this disk can yield flaring events. Introduction: SS 433 remains one of the most enigmatic objects in the sky. Even twenty-five years after its first appearance in the catalogue of Stephanson & Sanduleak (1977), it is not clear whether the compact object is a black hole or a neutron star.",
+        "sentence": "The mechanisms proposed to explain the bullet-like ejections observed in SS 433 include non-steady shocks in the sub-Keplerian accretion flow, magnetic rubber-band effects of toroidal flux tubes, and Comptonization, which could provide the basic timescale of the ejection interval.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      },
+      {
+        "context": "We show that non-steady shocks in the sub-Keplerian accretion flow can provide the basic timescale of the ejection interval while the magnetic rubber-band effect of the toroidal flux tubes in this disk can yield flaring events.",
+        "sentence": "The magnetic rubber-band effect of toroidal flux tubes in the accretion disk can yield flaring events, which may be related to the observed micro-flares in the multi-wavelength observations.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      }
+    ],
+    "4": [
+      {
+        "context": "In a recent multi-wavelength campaign, we find sharp rise in intensity in time-scales of few minutes in X-rays, IR and radio waves through {\\it photometric} studies. We interpret them to be possible evidence of ejection of bullet-like features from accretion disks. Introduction: SS433 is a well studied bright emission line compact system which is ejecting matter in symmetrically opposite directions at a speed of {{formula:b223a56e-4fef-4946-8f03-33757553b592}} c.",
+        "sentence": "These mechanisms are related to the observed short time-scale variabilities in multi-wavelength observations, which show sharp rises in intensity in time-scales of few minutes in X-rays, IR, and radio waves, interpreted as possible evidence of ejection of bullet-like features from the accretion disk.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      },
+      {
+        "context": "Since the emitting regions of X-ray, IR and radio are not well known with absolute certainly, while duration of the flares last less than a few minutes, we could not prove beyond doubt that there are indeed correlations among the micro-flares observed in these wavelengths. [BOTTOM 2976 chars]: From the analysis of the observations of radio, IR and X-ray in the quiescence state we conclude that we may be observing ejection events of bullet-like features from the accretion disk in time scales of {{formula:ec4a3a8b-7fbc-499f-ac81-047c9a472c3f}} minutes. Identification of small micro-flare events with those those of bullet ejection is derived from the time scales of variabilities, which are roughly the same in all these wavelengths. We find their presence in X-ray ({{formula:c2c5b45b-c6cb-4cd6-9100-2d29cb17f910}} < {{formula:5e0d0ae9-5ad2-43e4-93d5-e147f6b80710}} 1011-12{{formula:9def47ee-9c85-439c-a22a-2f07b5152fdf}}{{formula:ac904480-a111-4a85-8233-c16081119f7b}} 1013-14{{formula:4ee0b5a4-c70b-44a2-b6d5-0998a68dd6b7}}{{formula:17b75472-4556-4bdc-9c92-09443125f52b}} 1015{{formula:97fb28f2-86f2-45c2-bc1d-33928faeb198}} 1-2{{formula:0b33cd51-8475-49ac-9435-25fb820cf583}} 15-20{{formula:a730dcf1-ea35-488b-902d-cec1d9be61f3}} SKC thanks Dr.",
+        "sentence": "The observed variabilities in X-ray, IR, and radio waves are consistent with the expected timescales of bullet ejection, which are roughly the same in all these wavelengths, suggesting that the bullets are ejected from the accretion disk and propagate through the optical, IR, and radio emitting regions.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 2
+        },
+        "entailment": 0
+      },
+      {
+        "context": "[BOTTOM 2976 chars]: From the analysis of the observations of radio, IR and X-ray in the quiescence state we conclude that we may be observing ejection events of bullet-like features from the accretion disk in time scales of {{formula:ec4a3a8b-7fbc-499f-ac81-047c9a472c3f}} minutes. Identification of small micro-flare events with those those of bullet ejection is derived from the time scales of variabilities, which are roughly the same in all these wavelengths.",
+        "sentence": "The observations of radio, IR, and X-ray in the quiescence state suggest that the object may be observing ejection events of bullet-like features from the accretion disk in time scales of minutes, which is consistent with the proposed mechanisms.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      }
+    ],
+    "meanJudgements": {
+      "faithfulness": 3.0,
+      "relevance": 3.0,
+      "consistency": 3.0,
+      "supportCoverage": 3.0,
+      "paraphraseRobustness": 3.0,
+      "ambiguityLevel": 1.2
+    }
+  },
+  "referencesWithBiencoderAndBm25": {
+    "3": [
+      {
+        "context": "Title: On the Ejection Mechanism of Bullets in SS 433\n\n[TOP 4451 chars]: On the Ejection Mechanism of Bullets in SS 433\nabstract: We discuss plausible mechanisms to produce bullet-like ejecta from the precessing disk in the SS 433 system. We show that non-steady shocks in the sub-Keplerian accretion flow can provide the basic timescale of the ejection interval while the magnetic rubber-band effect of the toroidal flux tubes in this disk can yield flaring events.",
+        "sentence": "The mechanisms proposed to explain the bullet-like ejections observed in SS 433 include non-steady shocks in the sub-Keplerian accretion flow, magnetic rubber-band effects of toroidal flux tubes, and Comptonization, which could provide the basic timescale of the ejection interval.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      },
+      {
+        "context": "We show that non-steady shocks in the sub-Keplerian accretion flow can provide the basic timescale of the ejection interval while the magnetic rubber-band effect of the toroidal flux tubes in this disk can yield flaring events.",
+        "sentence": "The magnetic rubber-band effect of toroidal flux tubes in the accretion disk can yield flaring events, which may be related to the observed micro-flares in the multi-wavelength observations.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      }
+    ],
+    "4": [
+      {
+        "context": "In a recent multi-wavelength campaign, we find sharp rise in intensity in time-scales of few minutes in X-rays, IR and radio waves through {\\it photometric} studies. We interpret them to be possible evidence of ejection of bullet-like features from accretion disks.",
+        "sentence": "These mechanisms are related to the observed short time-scale variabilities in multi-wavelength observations, which show sharp rises in intensity in time-scales of few minutes in X-rays, IR, and radio waves, interpreted as possible evidence of ejection of bullet-like features from the accretion disk.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 1
+      },
+      {
+        "context": "Using results of numerical simulations involving oscillation of shocks in accretion disks, they concluded that in the normal circumstances, {{formula:c8bcdbe0-bcea-48b2-ba69-665acf300578}} s interval is expected in between the bullet ejection. These bullets would be ejected from X-ray emitting region and propagate through optical, infra-red ({{formula:9bf53b7d-2425-4e10-9784-71160451bc4c}} cm) and finally to radio emitting region at {{formula:4f2ff8cf-684c-46fc-af05-c43fd4239477}} > {{formula:dace0107-587e-45d4-ba7a-d76c514f4404}} 1015{{formula:e9b63246-8108-47c3-96ba-34a703c8355a}} vvjet{{formula:e1da4fbb-f6b1-4c0b-a4fe-9c71eac7000e}} In this Letter, we present some results of our multi-wavelength studies.",
+        "sentence": "The observed variabilities in X-ray, IR, and radio waves are consistent with the expected timescales of bullet ejection, which are roughly the same in all these wavelengths, suggesting that the bullets are ejected from the accretion disk and propagate through the optical, IR, and radio emitting regions.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      },
+      {
+        "context": "[BOTTOM 2976 chars]: From the analysis of the observations of radio, IR and X-ray in the quiescence state we conclude that we may be observing ejection events of bullet-like features from the accretion disk in time scales of {{formula:ec4a3a8b-7fbc-499f-ac81-047c9a472c3f}} minutes.",
+        "sentence": "The observations of radio, IR, and X-ray in the quiescence state suggest that the object may be observing ejection events of bullet-like features from the accretion disk in time scales of minutes, which is consistent with the proposed mechanisms.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      }
+    ],
+    "meanJudgements": {
+      "faithfulness": 3.0,
+      "relevance": 3.0,
+      "consistency": 3.0,
+      "supportCoverage": 3.0,
+      "paraphraseRobustness": 3.0,
+      "ambiguityLevel": 1.0
+    }
+  },
+  "referencesWithBiencoderAndBm25AndCrossEncoder": {
+    "3": [
+      {
+        "context": "Title: On the Ejection Mechanism of Bullets in SS 433\n\n[TOP 4451 chars]: On the Ejection Mechanism of Bullets in SS 433\nabstract: We discuss plausible mechanisms to produce bullet-like ejecta from the precessing disk in the SS 433 system. We show that non-steady shocks in the sub-Keplerian accretion flow can provide the basic timescale of the ejection interval while the magnetic rubber-band effect of the toroidal flux tubes in this disk can yield flaring events. Introduction: SS 433 remains one of the most enigmatic objects in the sky. Even twenty-five years after its first appearance in the catalogue of Stephanson & Sanduleak (1977), it is not clear whether the compact object is a black hole or a neutron star.",
+        "sentence": "The mechanisms proposed to explain the bullet-like ejections observed in SS 433 include non-steady shocks in the sub-Keplerian accretion flow, magnetic rubber-band effects of toroidal flux tubes, and Comptonization, which could provide the basic timescale of the ejection interval.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      },
+      {
+        "context": "We show that non-steady shocks in the sub-Keplerian accretion flow can provide the basic timescale of the ejection interval while the magnetic rubber-band effect of the toroidal flux tubes in this disk can yield flaring events.",
+        "sentence": "The magnetic rubber-band effect of toroidal flux tubes in the accretion disk can yield flaring events, which may be related to the observed micro-flares in the multi-wavelength observations.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      }
+    ],
+    "4": [
+      {
+        "context": "In a recent multi-wavelength campaign, we find sharp rise in intensity in time-scales of few minutes in X-rays, IR and radio waves through {\\it photometric} studies. We interpret them to be possible evidence of ejection of bullet-like features from accretion disks. Introduction: SS433 is a well studied bright emission line compact system which is ejecting matter in symmetrically opposite directions at a speed of {{formula:b223a56e-4fef-4946-8f03-33757553b592}} c.",
+        "sentence": "These mechanisms are related to the observed short time-scale variabilities in multi-wavelength observations, which show sharp rises in intensity in time-scales of few minutes in X-rays, IR, and radio waves, interpreted as possible evidence of ejection of bullet-like features from the accretion disk.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      },
+      {
+        "context": "[BOTTOM 2976 chars]: From the analysis of the observations of radio, IR and X-ray in the quiescence state we conclude that we may be observing ejection events of bullet-like features from the accretion disk in time scales of {{formula:ec4a3a8b-7fbc-499f-ac81-047c9a472c3f}} minutes. Identification of small micro-flare events with those those of bullet ejection is derived from the time scales of variabilities, which are roughly the same in all these wavelengths.",
+        "sentence": "The observed variabilities in X-ray, IR, and radio waves are consistent with the expected timescales of bullet ejection, which are roughly the same in all these wavelengths, suggesting that the bullets are ejected from the accretion disk and propagate through the optical, IR, and radio emitting regions.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 2
+        },
+        "entailment": 1
+      },
+      {
+        "context": "[BOTTOM 2976 chars]: From the analysis of the observations of radio, IR and X-ray in the quiescence state we conclude that we may be observing ejection events of bullet-like features from the accretion disk in time scales of {{formula:ec4a3a8b-7fbc-499f-ac81-047c9a472c3f}} minutes. Identification of small micro-flare events with those those of bullet ejection is derived from the time scales of variabilities, which are roughly the same in all these wavelengths.",
+        "sentence": "The observations of radio, IR, and X-ray in the quiescence state suggest that the object may be observing ejection events of bullet-like features from the accretion disk in time scales of minutes, which is consistent with the proposed mechanisms.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      }
+    ],
+    "meanJudgements": {
+      "faithfulness": 3.0,
+      "relevance": 3.0,
+      "consistency": 3.0,
+      "supportCoverage": 3.0,
+      "paraphraseRobustness": 3.0,
+      "ambiguityLevel": 1.2
+    }
+  },
+  "referencesWithLLM": {
+    "3": [
+      {
+        "context": "We discuss plausible mechanisms to produce bullet-like ejecta from the precessing disk in the SS 433 system. We show that non-steady shocks in the sub-Keplerian accretion flow can provide the basic timescale of the ejection interval while the magnetic rubber-band effect of the toroidal flux tubes in this disk can yield flaring events. In this Letter, we have studied various competing processes for the creation of bullets which move ballistically in the jet of SS 433. We showed that blobs may be separated by: (1) Comptonization; (2) shock oscillations due to resonance; (3) oscillations due to inherent unsteady accretion solutions; (4) intense magnetic tension of the toroidal flux tubes.",
+        "sentence": "The mechanisms proposed to explain the bullet-like ejections observed in SS 433 include non-steady shocks in the sub-Keplerian accretion flow, magnetic rubber-band effects of toroidal flux tubes, and Comptonization, which could provide the basic timescale of the ejection interval.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 1
+      },
+      {
+        "context": "We show that non-steady shocks in the sub-Keplerian accretion flow can provide the basic timescale of the ejection interval while the magnetic rubber-band effect of the toroidal flux tubes in this disk can yield flaring events. We believe that the fourth possibility of the inner disk evacuation should produce flaring events, but will occur rather rarely, perhaps only once in a single precession period, when the magnetic field of the companion is preferentially tilted towards the accretion disk during precessional motion. This fourth mechanism gives rise to an anti-correlation between radio and X-rays, perhaps already observed in SS 433 (Safi-Harb & Kotani 2002).",
+        "sentence": "The magnetic rubber-band effect of toroidal flux tubes in the accretion disk can yield flaring events, which may be related to the observed micro-flares in the multi-wavelength observations.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 2
+        },
+        "entailment": 0
+      }
+    ],
+    "4": [
+      {
+        "context": "In a recent multi-wavelength campaign, we find sharp rise in intensity in time-scales of few minutes in X-rays, IR and radio waves through {\\it photometric} studies. We interpret them to be possible evidence of ejection of bullet-like features from accretion disks. Our main results indicate that there are considerable variations in the timescale of minutes in all the wavelengths. These may be called micro-flares. When Fourier transform is made, some excess power is observed in {{formula:50212c31-d1e7-4db5-927e-e37fbb3fd3be}} minutes time scale (often beyond 3{{formula:2ba4e347-5820-433e-b63d-8a97f8b77bb2}} level). The X-ray count rate was found to increase by {{formula:27c41466-a7ab-4c04-b7c1-ab39ef43112d}} % within a minute. From the analysis of the observations of radio, IR and X-ray in the quiescence state we conclude that we may be observing ejection events of bullet-like features from the accretion disk in time scales of {{formula:ec4a3a8b-7fbc-499f-ac81-047c9a472c3f}} minutes.",
+        "sentence": "These mechanisms are related to the observed short time-scale variabilities in multi-wavelength observations, which show sharp rises in intensity in time-scales of few minutes in X-rays, IR, and radio waves, interpreted as possible evidence of ejection of bullet-like features from the accretion disk.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 1
+      },
+      {
+        "context": "From the analysis of the observations of radio, IR and X-ray in the quiescence state we conclude that we may be observing ejection events of bullet-like features from the accretion disk in time scales of minutes. Identification of small micro-flare events with those those of bullet ejection is derived from the time scales of variabilities, which are roughly the same in all these wavelengths. We find their presence in X-ray, IR and radio waves through photometric studies. These may be called micro-flares. When Fourier transform is made, some excess power is observed in minutes time scale. The X-ray count rate was found to increase by a certain percentage within a minute.",
+        "sentence": "The observed variabilities in X-ray, IR, and radio waves are consistent with the expected timescales of bullet ejection, which are roughly the same in all these wavelengths, suggesting that the bullets are ejected from the accretion disk and propagate through the optical, IR, and radio emitting regions.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      },
+      {
+        "context": "From the analysis of the observations of radio, IR and X-ray in the quiescence state we conclude that we may be observing ejection events of bullet-like features from the accretion disk in time scales of {{formula:ec4a3a8b-7fbc-499f-ac81-047c9a472c3f}} minutes. Identification of small micro-flare events with those those of bullet ejection is derived from the time scales of variabilities, which are roughly the same in all these wavelengths.",
+        "sentence": "The observations of radio, IR, and X-ray in the quiescence state suggest that the object may be observing ejection events of bullet-like features from the accretion disk in time scales of minutes, which is consistent with the proposed mechanisms.",
+        "judgement": {
+          "faithfulness": 3,
+          "relevance": 3,
+          "consistency": 3,
+          "supportCoverage": 3,
+          "paraphraseRobustness": 3,
+          "ambiguityLevel": 1
+        },
+        "entailment": 0
+      }
+    ],
+    "meanJudgements": {
+      "faithfulness": 3.0,
+      "relevance": 3.0,
+      "consistency": 3.0,
+      "supportCoverage": 3.0,
+      "paraphraseRobustness": 3.0,
+      "ambiguityLevel": 1.2
+    }
+  },
+  "meta": {
+    "papersUsedForQuestionGeneration": [
+      {
+        "ArXiv": "astro-ph/0501285",
+        "category": "astro-ph"
+      },
+      {
+        "ArXiv": "astro-ph/0402560",
+        "category": "astro-ph"
+      },
+      {
+        "ArXiv": "astro-ph/0208148",
+        "category": "astro-ph"
+      },
+      {
+        "ArXiv": "astro-ph/9710374",
+        "category": "astro-ph"
+      },
+      {
+        "ArXiv": "astro-ph/0409662",
+        "category": "astro-ph"
+      }
+    ],
+    "topicOverlapsInThePapers": [
+      "Multi-wavelength observations of SS 433",
+      "Short time-scale variabilities in SS 433",
+      "Bullet-like ejections in SS 433",
+      "Doppler shifts and kinematic model in SS 433",
+      "X-ray and radio flares in SS 433",
+      "Accretion disk and jet interactions in SS 433",
+      "Precession and orbital phases of SS 433",
+      "Spectral fitting of X-ray observations in SS 433",
+      "Flaring activity and variability in SS 433",
+      "Comparison of SS 433 with other microquasars"
+    ],
+    "papersRetrievedBySQuAI": [
+      "astro-ph/0509411",
+      "1811.12564",
+      "astro-ph/0208148",
+      "astro-ph/0402560",
+      "astro-ph/0501297",
+      "1811.09277",
+      "1809.01386"
+    ],
+    "duration": {
+      "answerGeneration": 27.041655778884888,
+      "referencesNativeDuration": 0.0024809837341308594,
+      "referencesWithCosineSimilarityDuration": 7.533315896987915,
+      "referencesWithCosineSimilarityAndKeywordMatchingDuration": 5.420158624649048,
+      "referencesWithCosineSimilarityAndCrossEncoderDuration": 7.047417402267456,
+      "referencesWithBiencoderAndBm25Duration": 5.407428741455078,
+      "referencesWithBiencoderAndBm25AndCrossEncoderDuration": 5.492686033248901,
+      "referencesWithLLMDuration": 60.23680591583252
+    }
+  },
+  "meanJudgement": {
+    "faithfulness": 3.0,
+    "relevance": 3.1,
+    "consistency": 3.0,
+    "supportCoverage": 2.966666666666667,
+    "paraphraseRobustness": 3.0666666666666664,
+    "ambiguityLevel": 1.1666666666666667
+  }
+}

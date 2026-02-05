@@ -355,7 +355,7 @@ class Enhanced4AgentRAG:
             "documentId": 1 
           }},
           {{
-            "sentence": ""However, these approaches suffer from the lexical gap problem. To overcome this issue, dense representations have been proposed : Queries and documents are mapped to a dense vector space and relevant documents are retrieved.",
+            "sentence": "However, these approaches suffer from the lexical gap problem. To overcome this issue, dense representations have been proposed : Queries and documents are mapped to a dense vector space and relevant documents are retrieved.",
             "documentId": 2 
           }}
         ]
@@ -960,22 +960,8 @@ class Enhanced4AgentRAG:
             # variant 7 - extract the context using LLM
             referencesWithLLM, referencesWithLLMDuration = citation_handler._extract_context_passages_using_llm(raw_answer)
             
-            #variant 8 - inverse qa
-            #maybe add pure bm25 
-            #maybe add bm25 + cross encoder
 
             contexts = {
-                "qualityMeasures": {
-                    "question": query,
-                    "groundTruthAnswer" : answer,
-                    "groundTruthDocumens": papersUsedInTheQuestion,
-                    "modelAnswer" : raw_answer,
-                    "documentsUsed": unique_filtered_doc_ids,
-                    # remove them for now, can be calculated with the meta information afterwards
-                    # "recallAt1": recallAt1,
-                    # "recallAtMaxK": recallAtMaxK,
-                    # "reciprocalRank": reciprocalRank
-                },
                 "referencesNative": references,
                 "referencesWithCosineSimilarity": referencesWithCosineSimilarity,
                 "referencesWithCosineSimilarityAndKeywordMatching": referencesWithCosineSimilarityAndKeywordMatching,
@@ -987,6 +973,10 @@ class Enhanced4AgentRAG:
                     "papersUsedForQuestionGeneration" : papersUsedForQuestionGeneration,
                     "topicOverlapsInThePapers" : topicOverlapsInThePapers,
                     "papersRetrievedBySQuAI": unique_filtered_doc_ids,
+                    "question": query,
+                    "groundTruthAnswer" : answer,
+                    "groundTruthDocuments": papersUsedInTheQuestion,
+                    "modelAnswer" : raw_answer,
                     "duration": {
                         "answerGeneration": answerGenerationEnd - answerGenerationStart,
                         "referencesNativeDuration": referencesDuration,
@@ -1000,12 +990,13 @@ class Enhanced4AgentRAG:
                 }
             }
 
-            contextsWithJudgement = self.judgeContextsWithReferences(raw_answer,contexts)
+            # contextsWithJudgement = self.judgeContextsWithReferences(raw_answer,contexts)
 
-            contextsWithMeanJudgements = self.addMeanJudgements(contextsWithJudgement)
+            # contextsWithMeanJudgements = self.addMeanJudgements(contextsWithJudgement)
 
-            with open("contextExtractionResult.txt", "w", encoding="utf-8") as f:
-                json.dump(contextsWithMeanJudgements,f, indent=2, ensure_ascii=False)
+            with open("contextExtractionResult.txt", "a", encoding="utf-8") as f:
+                # json.dump(contextsWithMeanJudgements,f, indent=2, ensure_ascii=False)
+                json.dump(contexts,f, indent=2, ensure_ascii=False)
 
             #remove for now as this could delete parts of the Answer that include this word
             # Remove any references Agent-4 might have added
@@ -1013,8 +1004,6 @@ class Enhanced4AgentRAG:
             if "Reference" in raw_answer:
                 raw_answer = re.split(r"References", raw_answer)[0]
             '''
-            
-        
             citation_map = citation_handler.get_citation_map()
 
             # Enhanced debug info

@@ -155,3 +155,7 @@ For the case that you want to change where the FAISS data is stored, create a fi
 ### Data is not being copied
 
 Check if `/etc/dont_copy` exists.
+
+
+
+scp togr096h@dataport1.hpc.tu-dresden.de:/data/horse/ws/togr096h-faiss1/SQuAI/contextExtractionResult.txt  ./

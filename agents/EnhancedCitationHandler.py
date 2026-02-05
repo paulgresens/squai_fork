@@ -9,7 +9,7 @@ from text_cleaner import DocumentTextCleaner
 from sentence_transformers import SentenceTransformer, CrossEncoder
 from rank_bm25 import BM25Okapi
 import time
-
+from rapidfuzz import fuzz
 class EnhancedCitationHandler:
     """Enhanced citation handler with proper metadata extraction and context passages"""
 
@@ -361,13 +361,32 @@ class EnhancedCitationHandler:
         for answerEntry in answerObject:
             doc_id = answerEntry["documentId"]
             documentData = self.citation_to_doc[doc_id]
+            paper_info = documentData["paper_info"]
+            paperId = paper_info.get("paper_id")
             
             documentText = documentData.get("text")
             contextForSentence = self._extract_context_for_sentence_using_llm(answerEntry["sentence"], documentText)
 
-            result.setdefault(doc_id, []).append({"context":contextForSentence})
+            # hallucination check
+            cleanedDocumentText =  self.normalize(documentText)
+            cleanedContextSentence = self.normalize(contextForSentence)
+
+            partialRatio = fuzz.partial_ratio(cleanedContextSentence, cleanedDocumentText)
+
+            result.setdefault(doc_id, []).append({"contextPassage":contextForSentence, "paperId": paperId ,"hallucinationCheck": {
+                # "cleanedDocumentText": cleanedDocumentText,
+                "cleanedContextSentence": cleanedContextSentence,
+                "partialRatio": partialRatio
+            }})
         end = time.time()
         return result, end-start    
+    
+    def normalize(self,text:str):
+         lowercaseText = text.lower()
+         textOnlyAlphanumeric = re.sub(r'[^\w\s]', '', lowercaseText)
+         textCleaned = re.sub(r'\s+', ' ', textOnlyAlphanumeric).strip()
+         return textCleaned
+
 
     def extract_top_k_contexts(self, documentId: int, answerSentence: str, top_k:int = 1, useBM25HybridRetrieval: bool = False):
         bitransformer = self.bitransformer
@@ -445,12 +464,17 @@ class EnhancedCitationHandler:
 
 
 
-    def extract_context_using_cosine_similarity(self, answerObject:GeneratedAnswerFormat):
+    def extract_context_using_cosine_similarity(self, answerObject:GeneratedAnswerFormat):        
         start = time.time()
         result = {}
         for answerObjectEntry in answerObject:
+            doc_id = answerObjectEntry["documentId"]
+            documentData = self.citation_to_doc[doc_id]
+            paper_info = documentData["paper_info"]
+            paperId = paper_info.get("paper_id")
+
             bestContext = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], 1, False)
-            result.setdefault(answerObjectEntry["documentId"], []).append({"context": bestContext[0]})
+            result.setdefault(answerObjectEntry["documentId"], []).append({"contextPassage": bestContext[0], "paperId": paperId})
         end = time.time()
         return result, end-start 
     
@@ -461,6 +485,11 @@ class EnhancedCitationHandler:
         for answerObjectEntry in answerObject:
             best10Contexts = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], 10, False)
 
+            doc_id = answerObjectEntry["documentId"]
+            documentData = self.citation_to_doc[doc_id]
+            paper_info = documentData["paper_info"]
+            paperId = paper_info.get("paper_id")
+
             tokenized_corpus = [context.split(" ") for context in best10Contexts]
             bm25 = BM25Okapi(tokenized_corpus)
             tokenized_answer_sentence = answerObjectEntry["sentence"].split(" ")
@@ -468,7 +497,7 @@ class EnhancedCitationHandler:
 
             best_idx = list(bm25_scores).index(max(bm25_scores))
             best_context = best10Contexts[best_idx]
-            result.setdefault(answerObjectEntry["documentId"], []).append({"context":best_context})
+            result.setdefault(answerObjectEntry["documentId"], []).append({"contextPassage":best_context, "paperId": paperId})
         end = time.time()
         return result, end-start
     
@@ -478,6 +507,11 @@ class EnhancedCitationHandler:
         for answerObjectEntry in answerObject:
             best10Contexts = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], 10, False)
 
+            doc_id = answerObjectEntry["documentId"]
+            documentData = self.citation_to_doc[doc_id]
+            paper_info = documentData["paper_info"]
+            paperId = paper_info.get("paper_id")
+
             model_inputs = [[answerObjectEntry["sentence"], context] for context in best10Contexts]
             scores = self.crossEncoder.predict(model_inputs).tolist()
 
@@ -485,7 +519,7 @@ class EnhancedCitationHandler:
             best_idx = scores.index(max_score)
             
             best_context = best10Contexts[best_idx]
-            result.setdefault(answerObjectEntry["documentId"], []).append({"context":best_context})
+            result.setdefault(answerObjectEntry["documentId"], []).append({"contextPassage":best_context, "paperId": paperId})
         end = time.time()
         return result, end-start
     
@@ -493,8 +527,14 @@ class EnhancedCitationHandler:
         start = time.time()
         result = {}
         for answerObjectEntry in answerObject:
+
+            doc_id = answerObjectEntry["documentId"]
+            documentData = self.citation_to_doc[doc_id]
+            paper_info = documentData["paper_info"]
+            paperId = paper_info.get("paper_id")
+
             bestContext = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], 1, True)
-            result.setdefault(answerObjectEntry["documentId"], []).append({"context":bestContext[0]})
+            result.setdefault(answerObjectEntry["documentId"], []).append({"contextPassage":bestContext[0], "paperId": paperId})
         end = time.time()
         return result, end-start
     
@@ -503,7 +543,12 @@ class EnhancedCitationHandler:
         result = {}
         for answerObjectEntry in answerObject:
             best10Contexts = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], 10, True)
-
+            
+            doc_id = answerObjectEntry["documentId"]
+            documentData = self.citation_to_doc[doc_id]
+            paper_info = documentData["paper_info"]
+            paperId = paper_info.get("paper_id")
+            
             model_inputs = [[answerObjectEntry["sentence"], context] for context in best10Contexts]
             scores = self.crossEncoder.predict(model_inputs).tolist()
 
@@ -511,7 +556,7 @@ class EnhancedCitationHandler:
             best_idx = scores.index(max_score)
             
             best_context = best10Contexts[best_idx]
-            result.setdefault(answerObjectEntry["documentId"], []).append({"context":best_context})
+            result.setdefault(answerObjectEntry["documentId"], []).append({"contextPassage":best_context, "paperId": paperId})
         end = time.time()
         return result, end-start
     
