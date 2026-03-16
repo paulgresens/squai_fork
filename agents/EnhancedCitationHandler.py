@@ -368,24 +368,32 @@ class EnhancedCitationHandler:
             contextForSentence = self._extract_context_for_sentence_using_llm(answerEntry["sentence"], documentText)
 
             # hallucination check
-            cleanedDocumentText =  self.normalize(documentText)
-            cleanedContextSentence = self.normalize(contextForSentence)
+            # cleanedDocumentText =  self.normalize(documentText)
+            # cleanedContextSentence = self.normalize(contextForSentence)
 
-            partialRatio = fuzz.partial_ratio(cleanedContextSentence, cleanedDocumentText)
+            # partialRatio = fuzz.partial_ratio(cleanedContextSentence, cleanedDocumentText)
 
-            result.setdefault(doc_id, []).append({"contextPassage":contextForSentence, "paperId": paperId ,"hallucinationCheck": {
-                # "cleanedDocumentText": cleanedDocumentText,
-                "cleanedContextSentence": cleanedContextSentence,
-                "partialRatio": partialRatio
-            }})
+            result.setdefault(doc_id, []).append({"contextPassage":contextForSentence, "paperId": paperId})
         end = time.time()
         return result, end-start    
     
-    def normalize(self,text:str):
-         lowercaseText = text.lower()
-         textOnlyAlphanumeric = re.sub(r'[^\w\s]', '', lowercaseText)
-         textCleaned = re.sub(r'\s+', ' ', textOnlyAlphanumeric).strip()
-         return textCleaned
+    def _get_papers_used_in_answer(self, answerObject: GeneratedAnswerFormat) -> str:
+        paperInformation = []
+        uniqueDocIds = []
+        for answerEntry in answerObject:
+            doc_id = answerEntry["documentId"]
+            documentData = self.citation_to_doc[doc_id]
+            paper_info = documentData["paper_info"]
+            paperId = paper_info.get("paper_id")
+
+
+            if (doc_id in uniqueDocIds):
+               continue 
+            
+            paperInformation.append({"paperId": paperId, "docId": doc_id, "documentData": documentData })
+            uniqueDocIds.append(doc_id)
+        return paperInformation
+
 
 
     def extract_top_k_contexts(self, documentId: int, answerSentence: str, top_k:int = 1, useBM25HybridRetrieval: bool = False):

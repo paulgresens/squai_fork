@@ -773,8 +773,8 @@ class Enhanced4AgentRAG:
         query = item["question"]
         answer = item["answer"]
         topicOverlapsInThePapers = item["topic overlaps"]
-        papersUsedInTheQuestion = item["papers"]
-        papersUsedForQuestionGeneration = item["paperUsedForGeneration"]
+        papersLLMActuallyUsedForQuestionGeneration = item["papers"]
+        papersInLLMContextWhileGeneratingQuestion = item["paperUsedForGeneration"]
 
         with time_block("total_4agent_processing"):
             logger.info(f"Processing query with enhanced 4-agent approach: {query}")
@@ -920,10 +920,13 @@ class Enhanced4AgentRAG:
                     query, full_texts, citation_handler, should_split
                 )
                 answerGenerationStart = time.time()
-                raw_answer = json.loads(self.agentMapping["finalAnswerGeneratorModel"].generate(prompt))
+                unsafe_answer = self.agentMapping["finalAnswerGeneratorModel"].generate(prompt)       
+                answerWithoutIllegalBackslashes = re.sub(r'\\(?![nrt"\\u])', r'\\\\', unsafe_answer)
+                raw_answer = json.loads(answerWithoutIllegalBackslashes)
                 answerGenerationEnd = time.time()
             # metrics
 
+            paperInformationUsedForAnswering = citation_handler._get_papers_used_in_answer(raw_answer)
             # recallAt1 = float(arxivId in unique_filtered_doc_ids[:1])
             # recallAtMaxK = 1 if (arxivId in unique_filtered_doc_ids[:10]) else 0.0
             # reciprocalRank = 1/ ((unique_filtered_doc_ids.index(arxivId) + 1)) if arxivId in unique_filtered_doc_ids else 0
@@ -959,7 +962,7 @@ class Enhanced4AgentRAG:
 
             # variant 7 - extract the context using LLM
             referencesWithLLM, referencesWithLLMDuration = citation_handler._extract_context_passages_using_llm(raw_answer)
-            
+
 
             contexts = {
                 "referencesNative": references,
@@ -970,12 +973,13 @@ class Enhanced4AgentRAG:
                 "referencesWithBiencoderAndBm25AndCrossEncoder": referencesWithBiencoderAndBm25AndCrossEncoder,
                 "referencesWithLLM": referencesWithLLM,
                 "meta": {
-                    "papersUsedForQuestionGeneration" : papersUsedForQuestionGeneration,
+                    "papersInLLMContextWhileGeneratingQuestion" : papersInLLMContextWhileGeneratingQuestion,
                     "topicOverlapsInThePapers" : topicOverlapsInThePapers,
                     "papersRetrievedBySQuAI": unique_filtered_doc_ids,
                     "question": query,
                     "groundTruthAnswer" : answer,
-                    "groundTruthDocuments": papersUsedInTheQuestion,
+                    "papersLLMActuallyUsedForQuestionGeneration": papersLLMActuallyUsedForQuestionGeneration,
+                    "paperInformationUsedForAnswering": paperInformationUsedForAnswering,
                     "modelAnswer" : raw_answer,
                     "duration": {
                         "answerGeneration": answerGenerationEnd - answerGenerationStart,
