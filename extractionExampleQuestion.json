@@ -1,0 +1,304 @@
+{
+  "referencesNative": {
+    "1": {
+      "title": "Unknown Title",
+      "paperId": "arXiv:1708.09083",
+      "contextPassage": "Whether privileged information originates from a source domain that is adapted to a target domain, or as additional features available at training time only, using such privileged (i. , auxiliary) information is of high importance as it improves the recognition performance and generalization."
+    },
+    "2": {
+      "title": "Unknown Title",
+      "paperId": "arXiv:1703.09911",
+      "contextPassage": "Title: Learning with Privileged Information for Multi-Label Classification Learning with Privileged Information for Multi-Label Classification abstract: In this paper, we propose a novel approach for learning multi-label classifiers with the help of privileged information. Specifically, we use similarity constraints to capture the relationship between available information and privileged information, and use ranking constraints to capture the dependencies among multiple labels."
+    },
+    "3": {
+      "title": "Unknown Title",
+      "paperId": "arXiv:2303.09350",
+      "contextPassage": "The latter is often violated in high-dimensional applications like image classification which, despite this limitation, continues to serve as inspiration and benchmark for algorithm development. In this work, we show that training-time access to side information in the form of auxiliary variables can help relax restrictions on input variables and increase the sample efficiency of learning at the cost of collecting a richer variable set."
+    }
+  },
+  "referencesWithCosineSimilarity": {
+    "1": [
+      {
+        "contextPassage": "Whether privileged information originates from a source domain that is adapted to a target domain, or as additional features available at training time only, using such privileged (i. e. , auxiliary) information is of high importance as it improves the recognition performance and generalization. However, both primary and privileged information are rarely derived from the same distribution, which poses an additional challenge to the recognition task. To address these challenges, we present a novel learning paradigm that leverages privileged information in a domain adaptation setup to perform visual recognition tasks.",
+        "paperId": "1708.09083"
+      },
+      {
+        "contextPassage": "Second, there are applications in which annotated data are rare, difficult or even expensive to obtain (, medical data) and pre-trained deep learning models are still not available. In such cases, privileged information in the form of additional features or in the form of domain adaptation , , is still very relevant.",
+        "paperId": "1708.09083"
+      }
+    ],
+    "2": [
+      {
+        "contextPassage": "When encoded into the structure or parameters of a classifier, the privileged information can be exploited to construct better classifiers during training.",
+        "paperId": "1703.09911"
+      },
+      {
+        "contextPassage": "Ji et al. [BOTTOM 2995 chars]: This demonstrates that the proposed method successfully leverages privileged information to construct better classifiers during training, especially for those objects which are difficult to recognize from available information only.",
+        "paperId": "1703.09911"
+      }
+    ],
+    "3": [
+      {
+        "contextPassage": "We demonstrate across these tasks that using privileged information in learning can reduce errors in domain transfer compared to baselines, be robust to spurious correlations in the source domain, and increase sample efficiency. Introduction: Deployment of machine learning (ML) systems relies on generalization from training samples to new instances in a target domain. When these instances differ in distribution from the source of training data, performance tends to degrade and guarantees are often weak. For example, a supervised ML model trained to identify medical conditions in X-ray images from one hospital may work poorly in another if the two hospitals have different equipment or examination protocols. If no labeled examples are available from the target domain, the so-called unsupervised domain adaptation (UDA) problem , strong assumptions are needed for success.",
+        "paperId": "2303.09350"
+      }
+    ]
+  },
+  "referencesWithCosineSimilarityAndKeywordMatching": {
+    "1": [
+      {
+        "contextPassage": "An illustrative example of our method is depicted in Figure REF. In this work, we aspire to exploit privileged information in a two-fold manner: first as additional information that is available only during training but not at testing time, and second, by learning representations in a source domain and transferring this information to a target domain. We combine the advantages of the LUPI paradigm and domain adaptation as proposed by Yang and introduce Adaptive SVM+; a new learning scheme that incorporates privileged information (SVM+) and knowledge transferred from a source domain to a target domain (Adaptive SVM) in the objective function to improve performance and generalization. {{figure:580d7207-7308-400d-a2a3-caffcbc05001}}\nRelated Work and Prior Knowledge: Privileged Information: The idea of leveraging additional information during the learning phase is not a new concept as it has previously been addressed in the literature in many contexts. The choice of different types of privileged information in the context of object recognition implemented in a max-margin scheme was proposed by Sharmanska.",
+        "paperId": "1708.09083"
+      },
+      {
+        "contextPassage": "The aim of our proposed approach and the rest of the literature, was not to achieve the best results possible on these datasets, but under the same evaluation protocol to investigate to what extent privileged information and domain adaptation can be beneficial.",
+        "paperId": "1708.09083"
+      }
+    ],
+    "2": [
+      {
+        "contextPassage": "[BOTTOM 2995 chars]: This demonstrates that the proposed method successfully leverages privileged information to construct better classifiers during training, especially for those objects which are difficult to recognize from available information only.",
+        "paperId": "1703.09911"
+      },
+      {
+        "contextPassage": "Experimental results demonstrate that the proposed method can effectively take full advantage of privileged information and dependencies among multiple labels for better object recognition and better facial action unit detection. Introduction: Traditional supervised learning utilizes the same information during both training and testing. However, in many learning applications, training data have additional information that may be difficult to collect during testing.",
+        "paperId": "1703.09911"
+      }
+    ],
+    "3": [
+      {
+        "contextPassage": "We demonstrate across these tasks that using privileged information in learning can reduce errors in domain transfer compared to baselines, be robust to spurious correlations in the source domain, and increase sample efficiency. Introduction: Deployment of machine learning (ML) systems relies on generalization from training samples to new instances in a target domain. When these instances differ in distribution from the source of training data, performance tends to degrade and guarantees are often weak. For example, a supervised ML model trained to identify medical conditions in X-ray images from one hospital may work poorly in another if the two hospitals have different equipment or examination protocols. If no labeled examples are available from the target domain, the so-called unsupervised domain adaptation (UDA) problem , strong assumptions are needed for success.",
+        "paperId": "2303.09350"
+      }
+    ]
+  },
+  "referencesWithCosineSimilarityAndCrossEncoder": {
+    "1": [
+      {
+        "contextPassage": "Whether privileged information originates from a source domain that is adapted to a target domain, or as additional features available at training time only, using such privileged (i. e. , auxiliary) information is of high importance as it improves the recognition performance and generalization. However, both primary and privileged information are rarely derived from the same distribution, which poses an additional challenge to the recognition task. To address these challenges, we present a novel learning paradigm that leverages privileged information in a domain adaptation setup to perform visual recognition tasks.",
+        "paperId": "1708.09083"
+      },
+      {
+        "contextPassage": "Second, there are applications in which annotated data are rare, difficult or even expensive to obtain (, medical data) and pre-trained deep learning models are still not available. In such cases, privileged information in the form of additional features or in the form of domain adaptation , , is still very relevant. {{figure:49bcb2c6-b8f0-45b9-9598-250047a13906}}\nConclusion: Can we leverage privileged information in a domain adaptation setup? Is there a need to exploit such information from a source domain in addition to the privileged information in the target domain? Can we do better than state-of-the-art techniques?",
+        "paperId": "1708.09083"
+      }
+    ],
+    "2": [
+      {
+        "contextPassage": "Ji et al. [BOTTOM 2995 chars]: This demonstrates that the proposed method successfully leverages privileged information to construct better classifiers during training, especially for those objects which are difficult to recognize from available information only.",
+        "paperId": "1703.09911"
+      },
+      {
+        "contextPassage": "Experimental results demonstrate that the proposed method can effectively take full advantage of privileged information and dependencies among multiple labels for better object recognition and better facial action unit detection.",
+        "paperId": "1703.09911"
+      }
+    ],
+    "3": [
+      {
+        "contextPassage": "We demonstrate across these tasks that using privileged information in learning can reduce errors in domain transfer compared to baselines, be robust to spurious correlations in the source domain, and increase sample efficiency. Introduction: Deployment of machine learning (ML) systems relies on generalization from training samples to new instances in a target domain. When these instances differ in distribution from the source of training data, performance tends to degrade and guarantees are often weak. For example, a supervised ML model trained to identify medical conditions in X-ray images from one hospital may work poorly in another if the two hospitals have different equipment or examination protocols. If no labeled examples are available from the target domain, the so-called unsupervised domain adaptation (UDA) problem , strong assumptions are needed for success.",
+        "paperId": "2303.09350"
+      }
+    ]
+  },
+  "referencesWithBiencoderAndBm25": {
+    "1": [
+      {
+        "contextPassage": "We tested our method in object recognition and human interaction classification tasks, using as privileged information visual attributes and clip art illustrations respectively, and human annotation scores (easy/hard) to obtain the different domains. An illustrative example of our method is depicted in Figure REF. In this work, we aspire to exploit privileged information in a two-fold manner: first as additional information that is available only during training but not at testing time, and second, by learning representations in a source domain and transferring this information to a target domain. We combine the advantages of the LUPI paradigm and domain adaptation as proposed by Yang and introduce Adaptive SVM+; a new learning scheme that incorporates privileged information (SVM+) and knowledge transferred from a source domain to a target domain (Adaptive SVM) in the objective function to improve performance and generalization. {{figure:580d7207-7308-400d-a2a3-caffcbc05001}}\nRelated Work and Prior Knowledge: Privileged Information: The idea of leveraging additional information during the learning phase is not a new concept as it has previously been addressed in the literature in many contexts.",
+        "paperId": "1708.09083"
+      },
+      {
+        "contextPassage": "Second, there are applications in which annotated data are rare, difficult or even expensive to obtain (, medical data) and pre-trained deep learning models are still not available. In such cases, privileged information in the form of additional features or in the form of domain adaptation , , is still very relevant.",
+        "paperId": "1708.09083"
+      }
+    ],
+    "2": [
+      {
+        "contextPassage": "When encoded into the structure or parameters of a classifier, the privileged information can be exploited to construct better classifiers during training.",
+        "paperId": "1703.09911"
+      },
+      {
+        "contextPassage": "Experimental results demonstrate that the proposed method can effectively take full advantage of privileged information and dependencies among multiple labels for better object recognition and better facial action unit detection. Introduction: Traditional supervised learning utilizes the same information during both training and testing. However, in many learning applications, training data have additional information that may be difficult to collect during testing.",
+        "paperId": "1703.09911"
+      }
+    ],
+    "3": [
+      {
+        "contextPassage": "We demonstrate across these tasks that using privileged information in learning can reduce errors in domain transfer compared to baselines, be robust to spurious correlations in the source domain, and increase sample efficiency. Introduction: Deployment of machine learning (ML) systems relies on generalization from training samples to new instances in a target domain. When these instances differ in distribution from the source of training data, performance tends to degrade and guarantees are often weak. For example, a supervised ML model trained to identify medical conditions in X-ray images from one hospital may work poorly in another if the two hospitals have different equipment or examination protocols. If no labeled examples are available from the target domain, the so-called unsupervised domain adaptation (UDA) problem , strong assumptions are needed for success.",
+        "paperId": "2303.09350"
+      }
+    ]
+  },
+  "referencesWithBiencoderAndBm25AndCrossEncoder": {
+    "1": [
+      {
+        "contextPassage": "Whether privileged information originates from a source domain that is adapted to a target domain, or as additional features available at training time only, using such privileged (i. e. , auxiliary) information is of high importance as it improves the recognition performance and generalization. However, both primary and privileged information are rarely derived from the same distribution, which poses an additional challenge to the recognition task. To address these challenges, we present a novel learning paradigm that leverages privileged information in a domain adaptation setup to perform visual recognition tasks.",
+        "paperId": "1708.09083"
+      },
+      {
+        "contextPassage": "Second, there are applications in which annotated data are rare, difficult or even expensive to obtain (, medical data) and pre-trained deep learning models are still not available. In such cases, privileged information in the form of additional features or in the form of domain adaptation , , is still very relevant. {{figure:49bcb2c6-b8f0-45b9-9598-250047a13906}}\nConclusion: Can we leverage privileged information in a domain adaptation setup? Is there a need to exploit such information from a source domain in addition to the privileged information in the target domain? Can we do better than state-of-the-art techniques?",
+        "paperId": "1708.09083"
+      }
+    ],
+    "2": [
+      {
+        "contextPassage": "Ji et al. [BOTTOM 2995 chars]: This demonstrates that the proposed method successfully leverages privileged information to construct better classifiers during training, especially for those objects which are difficult to recognize from available information only.",
+        "paperId": "1703.09911"
+      },
+      {
+        "contextPassage": "Experimental results demonstrate that the proposed method can effectively take full advantage of privileged information and dependencies among multiple labels for better object recognition and better facial action unit detection.",
+        "paperId": "1703.09911"
+      }
+    ],
+    "3": [
+      {
+        "contextPassage": "If no labeled examples are available from the target domain, the so-called unsupervised domain adaptation (UDA) problem , strong assumptions are needed for success. A common assumption in UDA is that the object of the learning task is identical in source and target domains but that input distributions differ. This “covariate shift” assumption is plausible in our X-ray example above; doctors are likely to give the same diagnosis based on X-rays of the same patient from similar but different equipment. Additionally, however, guarantees for consistent domain transfer require either distributional overlap between inputs from source and target domains or known parametric forms of the labeling function , ,. Without these, adaptation cannot be verified by statistical means.",
+        "paperId": "2303.09350"
+      }
+    ]
+  },
+  "referencesWithLLM": {
+    "1": [
+      {
+        "contextPassage": "Incorporating additional knowledge in the learning process can be beneficial for several computer vision and machine learning tasks. Whether privileged information originates from a source domain that is adapted to a target domain, or as additional features available at training time only, using such privileged (i.e., auxiliary) information is of high importance as it improves the recognition performance and generalization. We combine the advantages of both the learning using privileged information (LUPI) paradigm and the domain adaptation framework, which are naturally embedded in the objective function of a regular SVM. We tested our method in object recognition and human interaction classification tasks, using as privileged information visual attributes and clip art illustrations respectively, and human annotation scores (easy/hard) to obtain the different domains.",
+        "paperId": "1708.09083"
+      },
+      {
+        "contextPassage": "There are plenty of challenging benchmarks (, MS COCO ) in which state-of-the-art deep learning techniques have not yet achieved ImageNet-level results. Even on ImageNet, which has been thoroughly benchmarked, a recent work of Chen demonstrated that by using segmentation annotations as privileged information better performance may be achieved. Second, there are applications in which annotated data are rare, difficult or even expensive to obtain (, medical data) and pre-trained deep learning models are still not available. In such cases, privileged information in the form of additional features or in the form of domain adaptation,, is still very relevant.",
+        "paperId": "1708.09083"
+      }
+    ],
+    "2": [
+      {
+        "contextPassage": "The image shown in Figure REF, has the following tag list: {horse, person, barrier, hoist}. Here, `horse' and `person' occupy the first and second place in the list, and thus have higher absolute rank than `barrier' and `hoist', which appear third and fourth respectively. The implied importance of cues conveyed by the order of manually annotated image tags can be leveraged for object recognition from images during training, but is not available during testing. To address this, Vapnik and Vashist proposed a new learning paradigm, i.e., learning using privileged information (LUPI), where in addition to available information (training examples), some privileged information was available during training but not testing. When encoded into the structure or parameters of a classifier, the privileged information can be exploited to construct better classifiers during training.",
+        "paperId": "1703.09911"
+      },
+      {
+        "contextPassage": "Introduction: Traditional supervised learning utilizes the same information during both training and testing. However, in many learning applications, training data have additional information that may be difficult to collect during testing. To address this, Vapnik and Vashist proposed a new learning paradigm, i.e., learning using privileged information (LUPI), where in addition to available information (training examples), some privileged information was available during training but not testing. When encoded into the structure or parameters of a classifier, the privileged information can be exploited to construct better classifiers during training. This demonstrates that the proposed method successfully leverages privileged information to construct better classifiers during training, especially for those objects which are difficult to recognize from available information only.",
+        "paperId": "1703.09911"
+      }
+    ],
+    "3": [
+      {
+        "contextPassage": "Deployment of machine learning (ML) systems relies on generalization from training samples to new instances in a target domain. When these instances differ in distribution from the source of training data, performance tends to degrade and guarantees are often weak. For example, a supervised ML model trained to identify medical conditions in X-ray images from one hospital may work poorly in another if the two hospitals have different equipment or examination protocols. If no labeled examples are available from the target domain, the so-called unsupervised domain adaptation (UDA) problem, strong assumptions are needed for success.",
+        "paperId": "2303.09350"
+      }
+    ]
+  },
+  "meta": {
+    "papersInLLMContextWhileGeneratingQuestion": [
+      { "ArXiv": "1708.09083", "category": "cs.CV" },
+      { "ArXiv": "1410.0389", "category": "cs.CV" },
+      { "ArXiv": "1412.1353", "category": "stat.ML" },
+      { "ArXiv": "1405.0312", "category": "cs.CV" },
+      { "ArXiv": "1507.00448", "category": "cs.CV" }
+    ],
+    "topicOverlapsInThePapers": [
+      "Learning using Privileged Information (LUPI)",
+      "Domain Adaptation",
+      "Curriculum Learning",
+      "Multi-task Learning",
+      "Object Recognition",
+      "Image Segmentation",
+      "Bounding Box Annotation",
+      "Cross-modal Learning",
+      "Supervision Transfer",
+      "Feature Representation"
+    ],
+    "papersRetrievedBySQuAI": [
+      "1708.09083",
+      "1703.09911",
+      "2303.09350",
+      "1603.09638",
+      "2306.10142",
+      "2311.05861",
+      "2406.07041"
+    ],
+    "question": "How can the integration of privileged information and domain adaptation techniques enhance the performance of object recognition tasks, particularly in scenarios where labeled data is limited?",
+    "groundTruthAnswer": "The integration of privileged information and domain adaptation techniques can significantly enhance the performance of object recognition tasks, especially in scenarios with limited labeled data. Privileged information, such as additional features or annotations available only during training, can provide the model with more context and help it learn more robust representations. Domain adaptation, on the other hand, allows the model to leverage knowledge from a source domain with abundant labeled data to improve performance in a target domain with limited labeled data. By combining these approaches, the model can benefit from both the additional context provided by privileged information and the transfer of knowledge from a well-labeled source domain. This combination can lead to better generalization and improved performance, even when the target domain has limited labeled data. For instance, in the context of object recognition, using privileged information like bounding box annotations or semantic attributes, and adapting the model from a well-labeled RGB image dataset to a less labeled depth image dataset, can result in significant performance gains.",
+    "papersLLMActuallyUsedForQuestionGeneration": [
+      "1708.09083",
+      "1410.0389",
+      "1412.1353",
+      "1507.00448"
+    ],
+    "paperInformationUsedForAnswering": [
+      {
+        "paperId": "1708.09083",
+        "docId": 1,
+        "documentData": {
+          "doc_id": "1708.09083",
+          "paper_info": {
+            "title": "Unknown Title",
+            "authors": "Unknown",
+            "venue": "arXiv",
+            "year": "Unknown",
+            "paper_id": "1708.09083"
+          },
+          "text": "Title: Adaptive SVM+: Learning with Privileged Information for Domain Adaptation\n\n[TOP 4642 chars]: Adaptive SVM+: Learning with Privileged Information for Domain Adaptation\nabstract: Incorporating additional knowledge in the learning process can be beneficial for several computer vision and machine learning tasks. Whether privileged information originates from a source domain that is adapted to a target domain, or as additional features available at training time only, using such privileged (i.e., auxiliary) information is of high importance as it improves the recognition performance and generalization. However, both primary and privileged information are rarely derived from the same distribution, which poses an additional challenge to the recognition task. To address these challenges, we present a novel learning paradigm that leverages privileged information in a domain adaptation setup to perform visual recognition tasks. The proposed framework, named Adaptive SVM+, combines the advantages of both the learning using privileged information (LUPI) paradigm and the domain adaptation framework, which are naturally embedded in the objective function of a regular SVM. We demonstrate the effectiveness of our approach on the publicly available Animals with Attributes and INTERACT datasets and report state-of-the-art results in both of them.\nIntroduction: When Vapnik and Vashist introduced the learning using privileged information (LUPI) framework , they drew inspiration from human learning. They observed how significant the role of an intelligent teacher was in the learning process of a student, and proposed a machine learning paradigm to imitate this process. Distilling knowledge in the learning process can take many forms, which impact the training stage in different ways. Privileged information can appear in the form of additional features available only at training time , in the form of a curriculum learning strategy , (, presenting easier examples before more complicated), or by transferring feature representations to other domains , by incorporating the adaptation to a new domain in the learning process , , . However, what is considered as privileged information, how it can be incorporated in the learning process, and in what form, depends on the task, the available features, and the learning scheme (supervised, or semi-supervised).The scope of this work is to train a better classifier and not to perform an end-to-end learning process to obtain better features. The proposed scheme is general and can be applied to any type of features (, features extracted from the last fully-connected layer of the VGG network ). We tested our method in object recognition and human interaction classification tasks, using as privileged information visual attributes and clip art illustrations respectively, and human annotation scores (easy/hard) to obtain the different domains. An illustrative example of our method is depicted in Figure REF .In this work, we aspire to exploit privileged information in a two-fold manner: first as additional information that is available only during training but not at testing time, and second, by learning representations in a source domain and transferring this information to a target domain. We combine the advantages of the LUPI paradigm and domain adaptation as proposed by Yang and introduce Adaptive SVM+; a new learning scheme that incorporates privileged information (SVM+) and knowledge transferred from a source domain to a target domain (Adaptive SVM) in the objective function to improve performance and generalization. {{figure:580d7207-7308-400d-a2a3-caffcbc05001}}\nRelated Work and Prior Knowledge: Privileged Information: The idea of leveraging additional information during the learning phase is not a new concept as it has previously been addressed in the literature in many contexts. The choice of different types of privileged information in the context of object recognition implemented in a max-margin scheme was proposed by Sharmanska . Furthermore, Wang and Ji proposed two different loss functions that exploit privileged information and can be used with any classifier. The first model encoded privileged information as an additional feature during training, while the second approach considered that privileged information can be represented as secondary labels. An interesting method that discusses the auxiliary view (, auxiliary information) from an information theoretic perspective was introduced by Motiian and was also extended to unsupervised domain transfer . Lapin et al. related the privileged information framework to the importance of sample weighting and showed that prior knowledge can be encoded using weights in a regular SVM.\n\n[BOTTOM 2987 chars]: The average precision for the different models with respect to the ratio of training samples is depicted in Figure REF . We observed that when training samples constitute 75% or more of the whole dataset, privileged information can be beneficial as for both SVM+ and Adaptive SVM+ there is an increase on the average precision. Note that there are approximately 60 samples for each of the positive and negative classes which explains why the performance is not higher. The aim of our proposed approach and the rest of the literature, was not to achieve the best results possible on these datasets, but under the same evaluation protocol to investigate to what extent privileged information and domain adaptation can be beneficial.However, an interesting discussion arises from these results. Since representation learning with ConvNets is a very powerful feature extractor, is privileged information necessary? We believe that the answer to this question is positive for two different reasons. First, there are plenty of challenging benchmarks (, MS COCO ) in which state-of-the-art deep learning techniques have not yet achieved ImageNet-level results. Even on ImageNet, which has been thoroughly benchmarked, a recent work of Chen demonstrated that by using segmentation annotations as privileged information better performance may be achieved. Second, there are applications in which annotated data are rare, difficult or even expensive to obtain (, medical data) and pre-trained deep learning models are still not available. In such cases, privileged information in the form of additional features or in the form of domain adaptation , , is still very relevant. {{figure:49bcb2c6-b8f0-45b9-9598-250047a13906}}\nConclusion: Can we leverage privileged information in a domain adaptation setup? Is there a need to exploit such information from a source domain in addition to the privileged information in the target domain? Can we do better than state-of-the-art techniques? In this work, we sought to give an answer to these questions by proposing Adaptive SVM+; a novel yet simple learning paradigm. It combines the advantages of both SVM+ and Adaptive SVM, and seeks to minimize the distance between a source and a target domain while at the same time, utilizing privileged information on the latter. We tested the proposed learning scheme in object recognition and human interaction classification tasks with visual attributes along with human annotations of easy/hard scores and clip-art illustrations of interactions, respectively. We observed that Adaptive SVM+ achieved state-of-the-art results across the board without adding any complexity or extra parameters compared to the available methods.\nAcknowledgments: This work has been funded by the UH Hugh Roy and Lillie Cranz Cullen Endowment Fund. All statements of fact, opinion or conclusions contained herein are those of the authors and should not be construed as representing the official views or policies of the sponsors."
+        }
+      },
+      {
+        "paperId": "1703.09911",
+        "docId": 2,
+        "documentData": {
+          "doc_id": "1703.09911",
+          "paper_info": {
+            "title": "Unknown Title",
+            "authors": "Unknown",
+            "venue": "arXiv",
+            "year": "Unknown",
+            "paper_id": "1703.09911"
+          },
+          "text": "Title: Learning with Privileged Information for Multi-Label Classification\n\n[TOP 4696 chars]: Learning with Privileged Information for Multi-Label Classification\nabstract: In this paper, we propose a novel approach for learning multi-label classifiers with the help of privileged information. Specifically, we use similarity constraints to capture the relationship between available information and privileged information, and use ranking constraints to capture the dependencies among multiple labels. By integrating similarity constraints and ranking constraints into the learning process of classifiers, the privileged information and the dependencies among multiple labels are exploited to construct better classifiers during training. A maximum margin classifier is adopted, and an efficient learning algorithm of the proposed method is also developed. We evaluate the proposed method on two applications: multiple object recognition from images with the help of implicit information about object importance conveyed by the list of manually annotated image tags; and multiple facial action unit detection from low-resolution images augmented by high-resolution images. Experimental results demonstrate that the proposed method can effectively take full advantage of privileged information and dependencies among multiple labels for better object recognition and better facial action unit detection.\nIntroduction: Traditional supervised learning utilizes the same information during both training and testing. However, in many learning applications, training data have additional information that may be difficult to collect during testing. For example, the order of image tags conveys useful cues about what is most notable to the human viewer. The image shown in Figure REF , has the following tag list: {horse, person, barrier, hoist}. Here, `horse' and `person' occupy the first and second place in the list, and thus have higher absolute rank than `barrier' and `hoist', which appear third and fourth respectively. The implied importance of cues conveyed by the order of manually annotated image tags can be leveraged for object recognition from images during training, but is not available during testing . As another example, most works use high-resolution facial images for facial action unit detection. However, images which are captured with low-resolution surveillance cameras may be used for action unit detection. The high-resolution images are only available during training.To address this, Vapnik and Vashist proposed a new learning paradigm, i.e., learning using privileged information (LUPI), where in addition to available information (training examples), some privileged information was available during training but not testing. When encoded into the structure or parameters of a classifier, the privileged information can be exploited to construct better classifiers during training. To implement the LUPI paradigm, Vapnik and Vashist introduced a discriminative model called Support Vector Machine (SVM)+, which uses privileged information to predict the slack variables in the SVM.Since the training of SVM+ is computationally expensive, several follow-up studies have focused on fast optimization algorithms. For example, instead of using L2-norm as in SVM+, Niu and Wu proposed the extended L1-norm SVM for LUPI with nonlinear feature mapping supported by kernel tricks, and formulated the optimization problem as linear programming with less computational cost than the same scale of L2-norm. In addition to using the privileged data to identify easy- and hard-to-classify examples through slacks, Sharmanska et al. adopted a ranking SVM to identify easy- and hard-to-separate example pairs from privileged information, then transferred the learned ranking prior to the classifier from available information using another ranking SVM. Both ranking SVMs from privileged information and available information are convex optimization problems, and can be solved by standard SVM packages with less computational cost. Li et al. proposed two efficient algorithms for solving the linear and kernel SVM+s. For linear SVM+, they proposed to absorb the bias term into the weight vector, and formulated a new optimization problem with simpler constraints in the dual form. For kernel SVM+, they applied the L2-loss, and thus obtained a simpler optimization problem in the dual form, with only half of the dual variables of the original SVM+ method.SVM+ is formulated for binary classification; therefore, several studies extend SVM+ to the multi-class problem. For example, Liu et al. formulated the v-K-SVCR method , which uses the one-against-rest structure during decomposition, with privileged information to v-K-SCVR+ for multi-class recognition problems. Ji et al.\n\n[BOTTOM 2995 chars]: This demonstrates that the proposed method successfully leverages privileged information to construct better classifiers during training, especially for those objects which are difficult to recognize from available information only.The proposed method achieves the best results on the average F-measure on the two databases. This indicates that both privileged information and label dependencies contribute to better multi-label classification.\nComparison to Related Work: Since current works on LUPI do not consider multi-label classification, a direct comparison cannot be made. We compare our work to a related method, SVM+ . SVM+ is used to recognize objects from images with the help of implicit importance cues from the order of image tags supplied by annotators on the Pascal VOC 2007 database and the LabelMe database, and to detect action units from low-resolution images enhanced by high-resolution images on the CK+ database. {{table:c00d16d9-3f65-41dc-89bc-b4ec57b6fea3}}The experimental results of SVM+ on the three databases are illustrated in Table REF . Table REF and Table REF show that:First, since SVM+ considers the relationship between available information and privileged information, it has better results than SVM, with higher performance metrics on all three databases. It indicates the effectiveness of privileged information.Second, SVM+PI and SVM+ have similar results. Specifically, SVM+PI has higher accuracies and F-measures on the three databases, while SVM+ has higher subset-accuracies on two databases. SVM+ assumes that privileged information and available information share the same slacking variable, and SVM+PI adopts similarity constraints on the classifiers from privileged and available information. The two methods have similar abilities to capture privileged information.Finally, the proposed method outperforms SVM+ in all performance metrics on the three databases. Compared to SVM+, the proposed method not only considers privileged information, but also utilizes the multi-label dependencies to refine the parameters of the classifier. The experimental results demonstrate the usefulness of the dependencies among multiple labels for multi-label classification.\nConclusions: In this paper, we propose a new multi-label classification method from available information with the help of privileged information. Specifically, we adopt the similarity constraints between the available information and privileged information to adjust the performance of the classifier. We also utilize the ranking constraints from the dependencies among multiple labels to improve classification performance. The proposed method is evaluated on different applications. Experimental results on three benchmark databases show that both privileged information and dependencies among multiple labels are beneficial for building a better classifier. This further demonstrates the effectiveness and superiority of the proposed method as compared to state-of-the art methods."
+        }
+      },
+      {
+        "paperId": "2303.09350",
+        "docId": 3,
+        "documentData": {
+          "doc_id": "2303.09350",
+          "paper_info": {
+            "title": "Unknown Title",
+            "authors": "Unknown",
+            "venue": "arXiv",
+            "year": "Unknown",
+            "paper_id": "2303.09350"
+          },
+          "text": "Title: Unsupervised domain adaptation by learning using privileged information\n\n[TOP 4909 chars]: Unsupervised domain adaptation by learning using privileged information\nabstract: Successful unsupervised domain adaptation is guaranteed only under strong assumptions such as covariate shift and overlap between input domains. The latter is often violated in high-dimensional applications like image classification which, despite this limitation, continues to serve as inspiration and benchmark for algorithm development. In this work, we show that training-time access to side information in the form of auxiliary variables can help relax restrictions on input variables and increase the sample efficiency of learning at the cost of collecting a richer variable set. As this information is assumed available only during training, not in deployment, we call this problem unsupervised domain adaptation by learning using privileged information (DALUPI). To solve this problem, we propose a simple two-stage learning algorithm, inspired by our analysis of the expected error in the target domain, and a practical end-to-end variant for image classification. We propose three evaluation tasks based on classification of entities in photos and anomalies in medical images with different types of available privileged information (binary attributes and single or multiple regions of interest). We demonstrate across these tasks that using privileged information in learning can reduce errors in domain transfer compared to baselines, be robust to spurious correlations in the source domain, and increase sample efficiency.\nIntroduction: Deployment of machine learning (ML) systems relies on generalization from training samples to new instances in a target domain. When these instances differ in distribution from the source of training data, performance tends to degrade and guarantees are often weak. For example, a supervised ML model trained to identify medical conditions in X-ray images from one hospital may work poorly in another if the two hospitals have different equipment or examination protocols . If no labeled examples are available from the target domain, the so-called unsupervised domain adaptation (UDA) problem , strong assumptions are needed for success.A common assumption in UDA is that the object of the learning task is identical in source and target domains but that input distributions differ . This “covariate shift” assumption is plausible in our X-ray example above; doctors are likely to give the same diagnosis based on X-rays of the same patient from similar but different equipment. Additionally, however, guarantees for consistent domain transfer require either distributional overlap between inputs from source and target domains or known parametric forms of the labeling function , , . Without these, adaptation cannot be verified by statistical means.Input domain overlap is implausible for our running example and for the high-dimensional tasks that have become standard benchmarks in the community, including image classification , and sentence labeling . If hospitals have different X-ray equipment, the probability of observing identical images from source and target domains is zero . Even when covariate shift and overlap are satisfied, large domain differences can have a dramatic effect on sample complexity . Despite promising developments , realistic guarantees for practical domain transfer remain elusive.Incorporating side information in training has been proposed as a means to improve generalization without domain shift. Through learning using privileged information (LUPI) , , algorithms that are given access to auxiliary variables during training, but not in deployment, have been proven to learn from fewer labeled examples compared to algorithms learning without these variables . In X-ray classification, privileged information (PI) can come from graphical annotations or clinical notes made by radiologists, which are unavailable when the system is used (see Figure REF ). While PI has been used also in domain adaptation, see e.g., , , the literature has yet to characterize its benefits in generalizing across domains.\nContributions.: In this work, we define unsupervised domain adaptation by learning using privileged information (DALUPI), where unlabeled examples with privileged information, are available from the target domain (Section REF ). For this problem, we give conditions under which it is possible to identify a model which predicts optimally in the target domain, without assuming statistical overlap between source and target input domains (Section ). Next, we instantiate this problem setting in multi-class and multi-label image classification and propose practical algorithms for these tasks (Section ). On image classification tasks with boxes indicating regions of interest as PI, including multi-label diagnosis from chest X-rays, we compare our algorithms to baselines for supervised learning and unsupervised domain adaptation.\n\n[BOTTOM 2924 chars]: Further, we assume that the second moment of the density ratios, equal to the Rényi divergence d_2(\\mathcal {T}\\Vert \\mathcal {S})=\\Sigma _{w\\in cG} \\mathcal {T}(w) \\frac{\\mathcal {T}(w)}{\\mathcal {S}(w)} are bounded and that the density ratios are non-zero for all w\\in \\mathcal {G}. Let D_1=\\lbrace w_i,y_i\\rbrace _{i=0}^{n} be a dataset drawn i.i.d from the source domain. Then by application of Theorem 3 from we obtain with probability 1-\\delta over the choice of D_1,(I)=R^{Y,\\rho }_S(g)\\le \\hat{R}^{Y,\\rho }_S(g) + 2^{5/4}\\sqrt{d_2(\\mathcal {T}\\Vert \\mathcal {S})}\\@root 3/8 \\of {\\frac{d\\log \\frac{2ne}{d}+\\log \\frac{4}{\\delta }}{n}}Now for (II) we treat each component of w\\in \\mathcal {W} as a regression problem independent from all the others. So we can therefore write the risk as the sum of the individual component risksR^W_\\mathcal {T}(f)=\\Sigma _{i=1}^{d_\\mathcal {W}} R^W_{\\mathcal {T},i}(f)Let the pseudo-dimension of \\mathcal {F} be denoted d, D_2=\\lbrace x_i,w_i\\rbrace _{i=0}^{n} be a dataset drawn i.i.d from the target domain. Then, using theorem 11.8 from we have that for any \\delta >0, with probability at least 1-\\delta over the choice of D_2, the following inequality holds for all hypotheses f\\in \\mathcal {F} for each component riskR^W_{\\mathcal {T},i}(f)& \\le \\hat{R}^W_{\\mathcal {T},i}(f) + B \\left(\\sqrt{\\frac{2d^{\\prime }\\log \\frac{en}{d^{\\prime }}}{n}}+\\sqrt{\\frac{\\log \\frac{1}{\\delta }}{2n}}\\right) \\\\We then simply make all the bounds hold simultaneously by applying the union bound and having it so that each bound must hold with probability 1-\\frac{\\delta }{d_\\mathcal {W}} which results inR^W_\\mathcal {T}(f)&=\\Sigma _{i=1}^{d_\\mathcal {W}} R^W_{\\mathcal {T},i}(f) \\le \\Sigma _{i=1}^{d_\\mathcal {W}} \\hat{R}^W_{\\mathcal {T},i}(f) + \\Sigma _{i=1}^{d_\\mathcal {W}} B \\left(\\sqrt{\\frac{2d^{\\prime }\\log \\frac{en}{d^{\\prime }}}{n}}+\\sqrt{\\frac{\\log \\frac{d_\\mathcal {W}}{\\delta }}{2n}} \\right) \\\\ &=\\hat{R}^W_{\\mathcal {T}}(f) + d_\\mathcal {W}B \\left(\\sqrt{\\frac{2d^{\\prime }\\log \\frac{en}{d^{\\prime }}}{n}}+\\sqrt{\\frac{\\log \\frac{d_\\mathcal {W}}{\\delta }}{2n}} \\right)Combination of these two results then yield the proposition statement.Consistency follows as Y is a deterministic function of W and W is a deterministic fundtion of X and both \\mathcal {H} and \\mathcal {F} are well-specified. Thus both empirical risks and sample complexity terms will converge to 0 in the limit of infinite samples.\nt-SNE plot for digit classification experiment: We present some t-SNE plots for the SL-S model for the digit classification experiment in Figure REF and REF . We clearly see that when the skew is low the target is well separated. However, with full correlation between the label and the background we see that the separation is lost. The perplexity is set to 100 when producing these plots. {{figure:9b2bb85a-470a-4b77-b28e-ef5182307bf8}}{{figure:83cfa848-5e2c-445b-a4cc-dae2364f8de2}}"
+        }
+      }
+    ],
+    "modelAnswer": [
+      {
+        "sentence": "The integration of privileged information and domain adaptation techniques can enhance the performance of object recognition tasks by leveraging additional information available during training, such as visual attributes or clip-art illustrations, to improve the recognition performance and generalization.",
+        "documentId": 1
+      },
+      {
+        "sentence": "This is because privileged information can provide valuable cues about the importance or characteristics of objects, which can be used to construct better classifiers during training, especially in scenarios where labeled data is limited.",
+        "documentId": 2
+      },
+      {
+        "sentence": "Furthermore, domain adaptation techniques can help to transfer knowledge from a source domain to a target domain, where the distribution of data may differ, thereby improving the performance of object recognition tasks in the target domain.",
+        "documentId": 3
+      },
+      {
+        "sentence": "The use of privileged information and domain adaptation techniques can also help to reduce the need for large amounts of labeled data, which can be difficult or expensive to obtain, particularly in applications such as medical image analysis or autonomous driving.",
+        "documentId": 1
+      },
+      {
+        "sentence": "Overall, the integration of privileged information and domain adaptation techniques has the potential to significantly enhance the performance of object recognition tasks, particularly in scenarios where labeled data is limited, by providing additional information and knowledge that can be used to improve the recognition performance and generalization.",
+        "documentId": 2
+      }
+    ],
+    "duration": {
+      "answerGeneration": 22.726077795028687,
+      "referencesNativeDuration": 0.0020263195037841797,
+      "referencesWithCosineSimilarityDuration": 5.397731781005859,
+      "referencesWithCosineSimilarityAndKeywordMatchingDuration": 4.637731075286865,
+      "referencesWithCosineSimilarityAndCrossEncoderDuration": 4.705114841461182,
+      "referencesWithBiencoderAndBm25Duration": 4.702763795852661,
+      "referencesWithBiencoderAndBm25AndCrossEncoderDuration": 4.942162275314331,
+      "referencesWithLLMDuration": 51.35403513908386
+    }
+  }
+}
