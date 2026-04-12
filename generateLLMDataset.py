@@ -42,7 +42,7 @@ CACHE_FILE="alreadyUsedArxivIds.txt"
 MODEL = "Qwen/Qwen2.5-72B-Instruct"
 JUDGING_MODEL = "mistralai/Mixtral-8x7B-Instruct-v0.1"
 PAPER_CHARACTER_LIMIT=25000
-QUESTIONS_TO_GENERATE = 25
+QUESTIONS_TO_GENERATE = 500
 
 PROMPT_TEMPLATE = """
 You will be be provided 5 scientific paper text, which share same topic that they are talking about. They will be provided in the following format:
@@ -91,7 +91,11 @@ Step 1: Read the question and the synthesized answer. Identify the core scientif
 Step 2: Scan the scientific paper text. 
 Step 3: Determine if the paper provides explicit evidence, data, or mechanisms that directly support the answer. Do not accept mere keyword overlap.
 
-Output your final verdict inside a <verdict> tags. The verdict must be exactly "YES" or "NO".
+Output your final verdict inside a <verdict> tags. The verdict must be exactly "true" or "false".
+
+Output Example:
+    <Your thinking process described in step 1-3 here>
+    <verdict>true</verdict>
 
 question: {question}
 answer: {answer}
@@ -294,7 +298,7 @@ def generateQuestion(arxivId, allSquaiArxivIds, db, agent, judgingAgent):
     llmanswer = agent.generate(prompt)
     print(llmanswer)
     cleanedAndParsedJson = clean_and_parse_json(llmanswer) 
-
+    torch.cuda.empty_cache()
     if not cleanedAndParsedJson:
         return None
     
@@ -314,12 +318,12 @@ def generateQuestion(arxivId, allSquaiArxivIds, db, agent, judgingAgent):
     for paper in finalPapersAdjustedLength:
         prompt = build_judging_prompt(cleanedAndParsedJson["question"], cleanedAndParsedJson["answer"], paper["text"])
         judgementResult = judgingAgent.generate(prompt)
-        match = re.search(r'<verdict>\s*(YES|NO)\s*</verdict>', judgementResult, re.IGNORECASE)
+        match = re.search(r'<verdict>\s*(true|false)\s*</verdict>', judgementResult, re.IGNORECASE)
         judgement = None
         if match:
-             judgement = match.group(1).upper()
+             judgement =  match.group(1).lower() == "true"
         usageJudgeResult.append({"ArXiv": paper["ArXiv"], "wasUsed": judgement})
-    
+        torch.cuda.empty_cache()
     cleanedAndParsedJson["usageJudgeResult"] = usageJudgeResult
     return cleanedAndParsedJson
 
@@ -355,6 +359,7 @@ def main():
         print("-" * 60)
         gc.collect()
         torch.cuda.empty_cache()
+        gc.collect()
 
     with open(OUTPUT_FILE, "a", encoding="utf-8") as f:
         for question in generatedQuestions:
