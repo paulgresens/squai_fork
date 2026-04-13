@@ -39,10 +39,11 @@ SEMANTIC_SCHOLAR_API_KEY = os.getenv("SEMANTIC_SCHOLAR_API_KEY")
 INPUT_FILE = "all_paper_ids.txt"
 OUTPUT_FILE = "generatedQuestions.jsonl"
 CACHE_FILE="alreadyUsedArxivIds.txt"
+ERROR_CACHE_FILE = "errorAtTheseArxivIds.txt"
 MODEL = "Qwen/Qwen2.5-72B-Instruct"
 JUDGING_MODEL = "mistralai/Mixtral-8x7B-Instruct-v0.1"
 PAPER_CHARACTER_LIMIT=25000
-QUESTIONS_TO_GENERATE = 25
+QUESTIONS_TO_GENERATE = 200
 
 PROMPT_TEMPLATE = """
 You will be be provided 5 scientific paper text, which share same topic that they are talking about. They will be provided in the following format:
@@ -120,7 +121,7 @@ def get_all_squai_arxiv_ids():
 # TODO ADD DELAY OR STRIKED BY ARXIV
 
 def getCategoryFromArxiv(arxiv_id):
-    base_url = "http://export.arxiv.org/api/query"
+    base_url = "https://export.arxiv.org/api/query"
     params = {
         "id_list": arxiv_id,
         "max_results": 1
@@ -352,25 +353,50 @@ def main():
         if (randomArxiv in allUsedArxivIds):
             continue
         print("trying: " + randomArxiv)
-        question = generateQuestion(randomArxiv, all_squai_ids, db, agent, judgingAgent)
+        question = None
+        try:
+            question = generateQuestion(randomArxiv, all_squai_ids, db, agent, judgingAgent)
+        except torch.OutOfMemoryError:
+            with open(ERROR_CACHE_FILE, "a", encoding="utf-8") as f:
+                    f.write(randomArxiv + "\n")    
+            gc.collect() 
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            continue
+        except Exception as e:
+            gc.collect() 
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            
+            with open(ERROR_CACHE_FILE, "a", encoding="utf-8") as f:
+                f.write("NOT A CUDA OOM ERROR: " + str(e) +  "\n" + randomArxiv + "\n")
+            continue
         if question:
             generatedQuestions.append(question)
             allSuccessFullyUsedArxivIds.append(randomArxiv)
+            with open(OUTPUT_FILE, "a", encoding="utf-8") as f:
+                f.write(json.dumps(question, ensure_ascii=False) + "\n") 
             print("Successfully generated " + str(len(generatedQuestions)) + " / " + str(QUESTIONS_TO_GENERATE))
         allUsedArxivIds.append(randomArxiv)
+        with open(CACHE_FILE, "a", encoding="utf-8") as f:
+            f.write(randomArxiv + "\n")
+
+
         print("-" * 60)
         gc.collect()
         torch.cuda.empty_cache()
         gc.collect()
 
-    with open(OUTPUT_FILE, "a", encoding="utf-8") as f:
-        for question in generatedQuestions:
-            f.write(json.dumps(question, ensure_ascii=False) + "\n") 
+
     
-    with open(CACHE_FILE, "w", encoding="utf-8") as f:
-        for id in allUsedArxivIds:
-            f.write(id + "\n")
+
 
 if __name__ == "__main__":
     free_gpu_memory()
     main()
+
+
+
+# fix lost arxiv categories
+# curl -L "https://export.arxiv.org/api/query?id_list=2412.15670&max_results=1" \
+#     -H "User-Agent: ResearchScript/1.0"
