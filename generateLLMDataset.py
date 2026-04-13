@@ -42,7 +42,7 @@ CACHE_FILE="alreadyUsedArxivIds.txt"
 MODEL = "Qwen/Qwen2.5-72B-Instruct"
 JUDGING_MODEL = "mistralai/Mixtral-8x7B-Instruct-v0.1"
 PAPER_CHARACTER_LIMIT=25000
-QUESTIONS_TO_GENERATE = 500
+QUESTIONS_TO_GENERATE = 25
 
 PROMPT_TEMPLATE = """
 You will be be provided 5 scientific paper text, which share same topic that they are talking about. They will be provided in the following format:
@@ -139,6 +139,7 @@ def getCategoryFromArxiv(arxiv_id):
         match = re.search(r'<arxiv:primary_category\s+term="([^"]+)"', xml_text)
         category = match.group(1)
         #check if this is really correct, maybe take secondary category
+        time.sleep(2)
         return category
     
     except Exception as e:
@@ -160,6 +161,7 @@ def getPaperReferencesAndEmbeddingFromSemanticScholar(arxiv_id):
     }
     try:
         response = requests.get(url, params={"fields": fields, "limit": 1000}, headers=headers)
+        time.sleep(2)
         return response.json()
     except Exception as e:
         print(f"Semantic Scholar Fetch failed: {e}")
@@ -195,8 +197,6 @@ def generateQuestion(arxivId, allSquaiArxivIds, db, agent, judgingAgent):
     paper_data = getPaperReferencesAndEmbeddingFromSemanticScholar(starting_id)
     if "references" not in paper_data:
         return None
-    
-    time.sleep(2)
 
     if not paper_data.get("embedding") or ("vector" not in paper_data["embedding"]): 
          return None
@@ -296,7 +296,7 @@ def generateQuestion(arxivId, allSquaiArxivIds, db, agent, judgingAgent):
     prompt = build_prompt(clean_papers_for_prompt)
     print("asking llm")
     llmanswer = agent.generate(prompt)
-    print(llmanswer)
+
     cleanedAndParsedJson = clean_and_parse_json(llmanswer) 
     torch.cuda.empty_cache()
     if not cleanedAndParsedJson:
@@ -315,6 +315,7 @@ def generateQuestion(arxivId, allSquaiArxivIds, db, agent, judgingAgent):
 
 
     usageJudgeResult = []
+    paperLengths = []
     for paper in finalPapersAdjustedLength:
         prompt = build_judging_prompt(cleanedAndParsedJson["question"], cleanedAndParsedJson["answer"], paper["text"])
         judgementResult = judgingAgent.generate(prompt)
@@ -323,8 +324,10 @@ def generateQuestion(arxivId, allSquaiArxivIds, db, agent, judgingAgent):
         if match:
              judgement =  match.group(1).lower() == "true"
         usageJudgeResult.append({"ArXiv": paper["ArXiv"], "wasUsed": judgement})
+        paperLengths.append({"ArXiv": paper["ArXiv"], "textLength": len(paper["text"])})
         torch.cuda.empty_cache()
     cleanedAndParsedJson["usageJudgeResult"] = usageJudgeResult
+    cleanedAndParsedJson["paperTextLengths"] = paperLengths
     return cleanedAndParsedJson
 
 def main():
@@ -345,7 +348,6 @@ def main():
     
 
     while (len(generatedQuestions) < QUESTIONS_TO_GENERATE):
-        print("-" * 60)
         randomArxiv = random.sample(all_squai_ids, 1)[0]
         if (randomArxiv in allUsedArxivIds):
             continue

@@ -83,6 +83,7 @@ class LLMAgent:
         )
         print(f"Model loaded on {self.device}")
 
+    @torch.inference_mode()
     def generate(self, prompt, max_new_tokens=4096):
         """
         Generate text using the local model with proper chat formatting.
@@ -108,22 +109,22 @@ class LLMAgent:
         )
 
         # Generate the response
-        with torch.no_grad():
-            generated_ids = self.model.generate(
-                **model_inputs,
-                max_new_tokens=max_new_tokens,
-                do_sample=False,  # Use greedy decoding as in MAIN-RAG
-                pad_token_id=self.tokenizer.eos_token_id,
-            )
+        # with torch.no_grad():
+        generated_ids = self.model.generate(
+            **model_inputs,
+            max_new_tokens=max_new_tokens,
+            do_sample=False,  # Use greedy decoding as in MAIN-RAG
+            pad_token_id=self.tokenizer.eos_token_id,
+        )
 
         # Extract only the newly generated tokens
-        generated_ids = [
+        extracted_ids = [
             output_ids[len(input_ids) :]
             for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
         ]
 
         # Decode the response
-        response = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[
+        response = self.tokenizer.batch_decode(extracted_ids, skip_special_tokens=True)[
             0
         ]
 
@@ -131,8 +132,16 @@ class LLMAgent:
         if not response or response.strip() == "":
             response = "I don't have enough information to provide a specific answer."
 
+        del model_inputs
+        del generated_ids
+        del extracted_ids
+        
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
         return response
 
+    @torch.inference_mode()
     def get_log_probs(self, prompt, target_tokens=["Yes", "No"]):
         """
         Calculate log probabilities for specific tokens.
@@ -146,8 +155,8 @@ class LLMAgent:
         """
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
 
-        with torch.no_grad():
-            outputs = self.model(**inputs)
+        #with torch.no_grad():
+        outputs = self.model(**inputs)
 
         # Get logits for the last token position
         logits = outputs.logits[0, -1, :]
@@ -168,6 +177,13 @@ class LLMAgent:
             token: log_probs[tid].item()
             for token, tid in zip(target_tokens, target_ids)
         }
+        del inputs
+        del outputs
+        del logits
+        del log_probs
+        
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
         return target_log_probs
 
