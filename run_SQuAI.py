@@ -620,11 +620,11 @@ class Enhanced4AgentRAG:
     
     '''
     method_keys = [
-            "referencesWithCosineSimilarity",
-            "referencesWithCosineSimilarityAndKeywordMatching",
-            "referencesWithCosineSimilarityAndCrossEncoder",
-            "referencesWithBiencoderAndBm25",
-            "referencesWithBiencoderAndBm25AndCrossEncoder",
+            "referencesBiencoderTop1",
+            "referencesBiencoderTop10Bm25Top1",
+            "referencesBiencoderTop10CrossEncoderTop1",
+            "referencesBiencoderAndBm25Top1",
+            "referencesBiencoderAndBm25Top10CrossEncoderTop1",
             "referencesWithLLM"
         ]
     def judgeContextsWithReferences(self, answerObject: GeneratedAnswerFormat, contexts ):
@@ -945,32 +945,38 @@ class Enhanced4AgentRAG:
             #variant 1 - native squai context extraction
             references, referencesDuration = citation_handler.format_references(raw_answer)
 
-            #variant 2 - Biencoder (top 1), floating window up to 5 sentences
-            referencesWithCosineSimilarity, referencesWithCosineSimilarityDuration = citation_handler.extract_context_using_cosine_similarity(raw_answer)
+            #variant 2 - Biencoder (selects top 1) out of floating windows of up to 5 sentences
+            referencesBiencoderTop1, referencesBiencoderTop1Duration = citation_handler.extract_context_using_cosine_similarity(raw_answer)
             
-            #variant 3 - Biencoder top 10, then BM25 for top 1
-            referencesWithCosineSimilarityAndKeywordMatching, referencesWithCosineSimilarityAndKeywordMatchingDuration = citation_handler.extract_context_using_cosine_similarity_top_10_and_keyword_matching(raw_answer)
+            #variant 2.5 - BM25 selects top 1 out of floating window up to 5 sentences
 
-            #variant 4 - Biencoder top 10 + cross encoder
-            referencesWithCosineSimilarityAndCrossEncoder, referencesWithCosineSimilarityAndCrossEncoderDuration = citation_handler.extract_context_using_cosine_similarity_top_10_and_cross_encoder(raw_answer)
+            #variant 3 - Biencoder selects top 10 (out of floating windows), then BM25 selects top 1   
+            referencesBiencoderTop10Bm25Top1, referencesBiencoderTop10Bm25Top1Duration = citation_handler.extract_context_using_cosine_similarity_top_10_and_keyword_matching(raw_answer)
 
-            #variant 5 - Biencoder and keyword bm25 directly
-            referencesWithBiencoderAndBm25, referencesWithBiencoderAndBm25Duration = citation_handler.extract_context_using_cosine_similarity_and_bm25(raw_answer)
+            #variant 3.5 - BM25 selects top 10 (out of floating windows), then Biencoder selects top 1
 
-            #variant 6 - BiEncoder and keyword bm25 top 10 + cross encoder
-            referencesWithBiencoderAndBm25AndCrossEncoder, referencesWithBiencoderAndBm25AndCrossEncoderDuration = citation_handler.extract_context_using_biencoder_and_bm25_and_cross_encoder(raw_answer)
+            #variant 4 - Biencoder selects top 10 (out of floating windows) top 10, cross encoder selects top 1
+            referencesBiencoderTop10CrossEncoderTop1, referencesBiencoderTop10CrossEncoderTop1Duration = citation_handler.extract_context_using_cosine_similarity_top_10_and_cross_encoder(raw_answer)
 
-            # variant 7 - extract the context using LLM
+            #variant 4.5 - BM25 selects top 10 (out of floating windows) top 10, cross encoder selects top 1
+
+            #variant 5 - Biencoder and bm25 select top 1 (using RRF)
+            referencesBiencoderAndBm25Top1, referencesBiencoderAndBm25Top1Duration = citation_handler.extract_context_using_cosine_similarity_and_bm25(raw_answer)
+
+            #variant 6 - BiEncoder and keyword bm25 select top 10 together, cross encoder selects top 1
+            referencesBiencoderAndBm25Top10CrossEncoderTop1, referencesBiencoderAndBm25Top10CrossEncoderTop1Duration = citation_handler.extract_context_using_biencoder_and_bm25_and_cross_encoder(raw_answer)
+
+            # variant 7 - extract the context using LLM (prompt to extract the best fit)
             referencesWithLLM, referencesWithLLMDuration = citation_handler._extract_context_passages_using_llm(raw_answer)
 
 
             contexts = {
                 "referencesNative": references,
-                "referencesWithCosineSimilarity": referencesWithCosineSimilarity,
-                "referencesWithCosineSimilarityAndKeywordMatching": referencesWithCosineSimilarityAndKeywordMatching,
-                "referencesWithCosineSimilarityAndCrossEncoder": referencesWithCosineSimilarityAndCrossEncoder,
-                "referencesWithBiencoderAndBm25": referencesWithBiencoderAndBm25,
-                "referencesWithBiencoderAndBm25AndCrossEncoder": referencesWithBiencoderAndBm25AndCrossEncoder,
+                "referencesBiencoderTop1": referencesBiencoderTop1,
+                "referencesBiencoderTop10Bm25Top1": referencesBiencoderTop10Bm25Top1,
+                "referencesBiencoderTop10CrossEncoderTop1": referencesBiencoderTop10CrossEncoderTop1,
+                "referencesBiencoderAndBm25Top1": referencesBiencoderAndBm25Top1,
+                "referencesBiencoderAndBm25Top10CrossEncoderTop1": referencesBiencoderAndBm25Top10CrossEncoderTop1,
                 "referencesWithLLM": referencesWithLLM,
                 "meta": {
                     "papersInLLMContextWhileGeneratingQuestion" : papersInLLMContextWhileGeneratingQuestion,
@@ -984,11 +990,11 @@ class Enhanced4AgentRAG:
                     "duration": {
                         "answerGeneration": answerGenerationEnd - answerGenerationStart,
                         "referencesNativeDuration": referencesDuration,
-                        "referencesWithCosineSimilarityDuration": referencesWithCosineSimilarityDuration,
-                        "referencesWithCosineSimilarityAndKeywordMatchingDuration": referencesWithCosineSimilarityAndKeywordMatchingDuration,
-                        "referencesWithCosineSimilarityAndCrossEncoderDuration": referencesWithCosineSimilarityAndCrossEncoderDuration,
-                        "referencesWithBiencoderAndBm25Duration": referencesWithBiencoderAndBm25Duration,
-                        "referencesWithBiencoderAndBm25AndCrossEncoderDuration": referencesWithBiencoderAndBm25AndCrossEncoderDuration,
+                        "referencesBiencoderTop1Duration": referencesBiencoderTop1Duration,
+                        "referencesBiencoderTop10Bm25Top1Duration": referencesBiencoderTop10Bm25Top1Duration,
+                        "referencesBiencoderTop10CrossEncoderTop1Duration": referencesBiencoderTop10CrossEncoderTop1Duration,
+                        "referencesBiencoderAndBm25Top1Duration": referencesBiencoderAndBm25Top1Duration,
+                        "referencesBiencoderAndBm25Top10CrossEncoderTop1Duration": referencesBiencoderAndBm25Top10CrossEncoderTop1Duration,
                         "referencesWithLLMDuration": referencesWithLLMDuration,
                     }
                 }
@@ -1048,7 +1054,7 @@ class Enhanced4AgentRAG:
                 ),
             }
 
-        return raw_answer, references, referencesWithLLM, referencesWithCosineSimilarity, debug_info
+        return raw_answer, debug_info
 
     def _extract_passages_used(
         self, answerObject: GeneratedAnswerFormat, citation_handler: EnhancedCitationHandler
@@ -1261,7 +1267,7 @@ def main():
             should_split, sub_questions = ragent.question_splitter.analyze_and_split(
                 args.single_question
             )
-            cited_answer, references, referencesWithLLM, referencesWithCosineSimilarity, debug_info = ragent.answer_query(args.single_question, db, should_split, sub_questions)
+            cited_answer, debug_info = ragent.answer_query(args.single_question, db, should_split, sub_questions)
             process_time = time.time() - start_time
 
             result = {
@@ -1275,15 +1281,13 @@ def main():
                 "total_filtered_docs": debug_info["total_filtered_docs"],
                 "full_texts_retrieved": debug_info["full_texts_retrieved"],
                 "passages_used": debug_info["passages_used"],
-                "llmExtractedPassages" : referencesWithLLM,
                 "document_metadata": debug_info["document_metadata"],
                 "process_time": process_time,
                 "retriever_type": args.retriever_type,
             }
 
             logger.info(f"Cited Answer: {cited_answer}")
-            logger.info(f"References: {references}")
-            logger.info(f"References with LLM: {referencesWithLLM}")
+            # logger.info(f"References: {references}")
             logger.info(f"Was Split: {debug_info['was_split']}")
             if debug_info["was_split"]:
                 logger.info(f"Sub-questions: {debug_info['sub_questions']}")
@@ -1292,7 +1296,7 @@ def main():
 
 
             # save comparison of the context extraction
-            passages = {citation_num: [data["contextPassage"]] for citation_num, data in references.items()}
+            # passages = {citation_num: [data["contextPassage"]] for citation_num, data in references.items()}
 
             # judge the passages (only the native squai solution)            
             
@@ -1345,7 +1349,7 @@ def main():
             should_split, sub_questions = ragent.question_splitter.analyze_and_split(
                 item["question"]
             )
-            cited_answer, references, referencesWithLLM, referencesWithCosineSimilarity, debug_info = ragent.answer_query(item, db, should_split, sub_questions)
+            cited_answer, debug_info = ragent.answer_query(item, db, should_split, sub_questions)
             process_time = time.time() - start_time
 
             result = {
@@ -1359,7 +1363,6 @@ def main():
                 "total_filtered_docs": debug_info["total_filtered_docs"],
                 "full_texts_retrieved": debug_info["full_texts_retrieved"],
                 "passages_used": debug_info["passages_used"],
-                "llmExtractedPassages" : referencesWithLLM,
                 "document_metadata": debug_info["document_metadata"],
                 "process_time": process_time,
                 "retriever_type": args.retriever_type,
@@ -1367,8 +1370,7 @@ def main():
             results.append(result)
 
             logger.info(f"Cited Answer: {cited_answer[:200]}...")
-            logger.info(f"References: {references}")
-            logger.info(f"References with LLM: {referencesWithLLM}")
+            # logger.info(f"References: {references}")
             logger.info(f"Was Split: {debug_info['was_split']}")
             if debug_info["was_split"]:
                 logger.info(f"Sub-questions: {debug_info['sub_questions']}")
@@ -1376,7 +1378,7 @@ def main():
             logger.info(f"Citations used: {debug_info['total_citations']}")
 
 
-            passages = {citation_num: [data["contextPassage"]] for citation_num, data in references.items()}
+            # passages = {citation_num: [data["contextPassage"]] for citation_num, data in references.items()}
 
             # judge the passages (only the native squai solution)            
             
