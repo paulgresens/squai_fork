@@ -365,7 +365,11 @@ class EnhancedCitationHandler:
             paperId = paper_info.get("paper_id")
             
             # documentText = documentData.get("text")
-            documentText = cleanFullDocumentTexts[answerEntry[int(doc_id)]]
+            print(f"doc_id value: {doc_id}, type: {type(doc_id)}")
+
+            for key in answerEntry.keys():
+                print(f"Key: '{key}' | Type: {type(key)}")
+            documentText = cleanFullDocumentTexts[int(doc_id)]
 
             if len(documentText) > 128000:
                 documentText = documentText[:64000] + "\n\n... [TEXT OMITTED FOR LENGTH] ...\n\n" + documentText[-64000:]

@@ -263,7 +263,7 @@ class Enhanced4AgentRAG:
             # Add document with citation
             citation_num = citation_handler.add_document(condensed_text, doc_id)
 
-            cleanFullDocumentTexts[citation_num] = clean_text
+            cleanFullDocumentTexts[int(citation_num)] = clean_text
             # Get paper info for better document labeling
             paper_info = citation_handler.citation_to_doc[citation_num]["paper_info"]
             doc_title = (
@@ -288,6 +288,8 @@ class Enhanced4AgentRAG:
             f"Total context size: {total_chars} chars (~{self._estimate_tokens(str(total_chars))} tokens)"
         )
         logger.info(f"Using {documents_used}/{len(full_texts)} documents for Agent 4")
+        logger.info("HERE CLEAN FULL TEXT DOCUMENT TEXT")
+        logger.info(json.dumps({key: len(text) for key, text in cleanFullDocumentTexts.items()}))
 
         return docs_with_citations, cleanFullDocumentTexts
 
