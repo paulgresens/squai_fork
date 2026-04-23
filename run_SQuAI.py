@@ -771,10 +771,11 @@ class Enhanced4AgentRAG:
         ENHANCED: Process query with 4-agent approach, question splitting, and parallel processing
         """
         query = item["question"]
-        answer = item["answer"]
-        topicOverlapsInThePapers = item["topic overlaps"]
-        papersLLMActuallyUsedForQuestionGeneration = item["papers"]
-        papersInLLMContextWhileGeneratingQuestion = item["paperUsedForGeneration"]
+        # answer = item["answer"]
+        generationMeta = item
+        # topicOverlapsInThePapers = item["topic overlaps"]
+        # papersLLMActuallyUsedForQuestionGeneration = item["usageJudgementGeneratorLLM"]
+        # papersInputtedForGeneration = item["papersInputtedForGeneration"]
 
         with time_block("total_4agent_processing"):
             logger.info(f"Processing query with enhanced 4-agent approach: {query}")
@@ -983,13 +984,9 @@ class Enhanced4AgentRAG:
                 "referencesBiencoderAndBm25Top1": referencesBiencoderAndBm25Top1,
                 "referencesBiencoderAndBm25Top10CrossEncoderTop1": referencesBiencoderAndBm25Top10CrossEncoderTop1,
                 "referencesWithLLM": referencesWithLLM,
-                "meta": {
-                    "papersInLLMContextWhileGeneratingQuestion" : papersInLLMContextWhileGeneratingQuestion,
-                    "topicOverlapsInThePapers" : topicOverlapsInThePapers,
+                "generationMeta": generationMeta,
+                "answerMeta": {
                     "papersRetrievedBySQuAI": unique_filtered_doc_ids,
-                    "question": query,
-                    "groundTruthAnswer" : answer,
-                    "papersLLMActuallyUsedForQuestionGeneration": papersLLMActuallyUsedForQuestionGeneration,
                     "paperInformationUsedForAnswering": paperInformationUsedForAnswering,
                     "modelAnswer" : raw_answer,
                     "duration": {
@@ -1012,9 +1009,9 @@ class Enhanced4AgentRAG:
 
             # contextsWithMeanJudgements = self.addMeanJudgements(contextsWithJudgement)
 
-            with open("contextExtractionResult.txt", "a", encoding="utf-8") as f:
+            with open("contextExtractionResult.jsonl", "a", encoding="utf-8") as f:
                 # json.dump(contextsWithMeanJudgements,f, indent=2, ensure_ascii=False)
-                json.dump(contexts,f, indent=2, ensure_ascii=False)
+                f.write(json.dumps(contexts, ensure_ascii=False) + "\n")
 
             #remove for now as this could delete parts of the Answer that include this word
             # Remove any references Agent-4 might have added
