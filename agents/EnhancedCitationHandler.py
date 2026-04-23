@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 import re
 from agents import PaperTitleExtractor
-from typing import Dict
+from typing import Dict, Literal
 from logging import Logger
 from agents.types import GeneratedAnswerFormat
 from text_cleaner import DocumentTextCleaner
@@ -396,7 +396,7 @@ class EnhancedCitationHandler:
 
 
 
-    def extract_top_k_contexts(self, documentId: int, answerSentence: str, top_k:int = 1, useBM25HybridRetrieval: bool = False):
+    def extract_top_k_contexts(self, documentId: int, answerSentence: str, retrievalMethod: Literal["bm25","bitransformer","hybrid"], top_k:int = 1):
         bitransformer = self.bitransformer
         documentText = self.citation_to_doc[documentId].get("text")
         print("--------------------")
@@ -422,57 +422,78 @@ class EnhancedCitationHandler:
 
         contextWindows = documentSentences + window_2 + window_3 + window_4 + window_5
         
-        answerSentenceEncoding = bitransformer.encode(answerSentence)
         
         similarities = []
         for context in contextWindows:
              similarities.append({
-                "bitransformer_score": bitransformer.similarity(answerSentenceEncoding , bitransformer.encode(context)).item(),
                 "context": context 
             })
              
-        if (useBM25HybridRetrieval):
-            tokenized_answer = answerSentence.split(" ")
-            tokenized_context_windows = [context_window.split(" ") for context_window in contextWindows]
+        match retrievalMethod:
+            case "bm25":
+                # tokenized_answer = answerSentence.split(" ")
+                tokenized_answer = answerSentence.rstrip('.?!').lower().split(" ")
+                # tokenized_context_windows = [context_window.split(" ") for context_window in contextWindows]
+                tokenized_context_windows = [cw.rstrip('.?!').lower().split(" ") for cw in contextWindows]
 
-            bm25 = BM25Okapi(tokenized_context_windows)    
-            bm25_scores = bm25.get_scores(tokenized_answer)
-            for i, score in enumerate(bm25_scores):
-                similarities[i]["bm25_score"] = score
+                bm25 = BM25Okapi(tokenized_context_windows)    
+                bm25_scores = bm25.get_scores(tokenized_answer)
+                
+                for i, score in enumerate(bm25_scores):
+                    similarities[i]["bm25_score"] = score
+                sorted_similarities = sorted(similarities, key=lambda x: x["bm25_score"], reverse=True)
+
+                top_k_results = sorted_similarities[:top_k]    
+                return [item["context"] for item in top_k_results]
+
             
-            # Sort by Dense Score to find Dense Rank
-            similarities.sort(key=lambda x: x["bitransformer_score"], reverse=True)
-            for rank, item in enumerate(similarities):
-                item["dense_rank"] = rank
+            case "bitransformer":
+                answerSentenceEncoding = bitransformer.encode(answerSentence)
+                for sim in similarities:
+                    sim["bitransformer_score"] = bitransformer.similarity(answerSentenceEncoding , bitransformer.encode(sim["context"])).item()
+                sorted_similarities = sorted(similarities, key=lambda x: x["bitransformer_score"], reverse=True)
+                top_k_results = sorted_similarities[:top_k]    
+                return [item["context"] for item in top_k_results]
+                
+            case "hybrid":
+                # tokenized_answer = answerSentence.split(" ")
+                tokenized_answer = answerSentence.rstrip('.?!').lower().split(" ")
+                # tokenized_context_windows = [context_window.split(" ") for context_window in contextWindows]
+                tokenized_context_windows = [cw.rstrip('.?!').lower().split(" ") for cw in contextWindows]
+                
+                bm25 = BM25Okapi(tokenized_context_windows)    
+                bm25_scores = bm25.get_scores(tokenized_answer)
 
-            # Sort by BM25 Score to find Sparse Rank
-            similarities.sort(key=lambda x: x["bm25_score"], reverse=True)
-            for rank, item in enumerate(similarities):
-                item["sparse_rank"] = rank
+                for i, score in enumerate(bm25_scores):
+                    similarities[i]["bm25_score"] = score
 
-            # 3. Iterate and Calculate Final RRF Score
-            k = 60
-            for item in similarities:
-                # The Formula: 1 / (k + rank1) + 1 / (k + rank2)
-                item["rrf_score"] = (1 / (k + item["dense_rank"] + 1)) + (1 / (k + item["sparse_rank"] + 1))
-            
-            # 4. Final Sort by the combined score
-            similarities.sort(key=lambda x: x["rrf_score"], reverse=True)
+                answerSentenceEncoding = bitransformer.encode(answerSentence)
+                for sim in similarities:
+                    sim["bitransformer_score"] = bitransformer.similarity(answerSentenceEncoding , bitransformer.encode(sim["context"])).item()
 
-            #todo debug this
+                # Sort by Dense Score to find Dense Rank
+                similarities.sort(key=lambda x: x["bitransformer_score"], reverse=True)
+                for rank, item in enumerate(similarities):
+                    item["dense_rank"] = rank
 
-            top_k_results = similarities[:top_k]
+                # Sort by BM25 Score to find Sparse Rank
+                similarities.sort(key=lambda x: x["bm25_score"], reverse=True)
+                for rank, item in enumerate(similarities):
+                    item["sparse_rank"] = rank
 
-            return [item["context"] for item in top_k_results]
+                # 3. Iterate and Calculate Final RRF Score
+                k = 60
+                for item in similarities:
+                    # The Formula: 1 / (k + rank1) + 1 / (k + rank2)
+                    item["rrf_score"] = (1 / (k + item["dense_rank"] + 1)) + (1 / (k + item["sparse_rank"] + 1))
 
-        sorted_similarities = sorted(similarities, key=lambda x: x["bitransformer_score"], reverse=True)
-        top_k_results = sorted_similarities[:top_k]
+                # 4. Final Sort by the combined score
+                similarities.sort(key=lambda x: x["rrf_score"], reverse=True)
 
-        return [item["context"] for item in top_k_results]
+                top_k_results = similarities[:top_k]
+                return [item["context"] for item in top_k_results]
 
-
-
-    def extract_context_using_cosine_similarity(self, answerObject:GeneratedAnswerFormat):        
+    def referencesBiencoderTop1(self, answerObject:GeneratedAnswerFormat):        
         start = time.time()
         result = {}
         for answerObjectEntry in answerObject:
@@ -481,26 +502,41 @@ class EnhancedCitationHandler:
             paper_info = documentData["paper_info"]
             paperId = paper_info.get("paper_id")
 
-            bestContext = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], 1, False)
+            bestContext = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], "bitransformer" ,1)
+            result.setdefault(answerObjectEntry["documentId"], []).append({"contextPassage": bestContext[0], "paperId": paperId})
+        end = time.time()
+        return result, end-start 
+    
+    def referencesBM25Top1(self, answerObject:GeneratedAnswerFormat):        
+        start = time.time()
+        result = {}
+        for answerObjectEntry in answerObject:
+            doc_id = answerObjectEntry["documentId"]
+            documentData = self.citation_to_doc[doc_id]
+            paper_info = documentData["paper_info"]
+            paperId = paper_info.get("paper_id")
+
+            bestContext = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], "bm25" ,1)
             result.setdefault(answerObjectEntry["documentId"], []).append({"contextPassage": bestContext[0], "paperId": paperId})
         end = time.time()
         return result, end-start 
     
 
-    def extract_context_using_cosine_similarity_top_10_and_keyword_matching(self,answerObject:GeneratedAnswerFormat):
+    def referencesBiencoderTop10Bm25Top1(self,answerObject:GeneratedAnswerFormat):
         start = time.time()
         result = {}
         for answerObjectEntry in answerObject:
-            best10Contexts = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], 10, False)
+            best10Contexts = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], "bitransformer", 10)
 
             doc_id = answerObjectEntry["documentId"]
             documentData = self.citation_to_doc[doc_id]
             paper_info = documentData["paper_info"]
             paperId = paper_info.get("paper_id")
 
-            tokenized_corpus = [context.split(" ") for context in best10Contexts]
+            tokenized_corpus = [context.rstrip('.?!').lower().split(" ") for context in best10Contexts]
+            # tokenized_corpus = [context.split(" ") for context in best10Contexts]
             bm25 = BM25Okapi(tokenized_corpus)
-            tokenized_answer_sentence = answerObjectEntry["sentence"].split(" ")
+            tokenized_answer_sentence = answerObjectEntry["sentence"].rstrip('.?!').lower().split(" ")
             bm25_scores = bm25.get_scores(tokenized_answer_sentence)
 
             best_idx = list(bm25_scores).index(max(bm25_scores))
@@ -509,11 +545,38 @@ class EnhancedCitationHandler:
         end = time.time()
         return result, end-start
     
-    def extract_context_using_cosine_similarity_top_10_and_cross_encoder(self, answerObject:GeneratedAnswerFormat):
+    def referencesBM25Top10BiencoderTop1(self,answerObject:GeneratedAnswerFormat):
         start = time.time()
         result = {}
         for answerObjectEntry in answerObject:
-            best10Contexts = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], 10, False)
+            best10Contexts = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], "bm25", 10)
+
+            doc_id = answerObjectEntry["documentId"]
+            documentData = self.citation_to_doc[doc_id]
+            paper_info = documentData["paper_info"]
+            paperId = paper_info.get("paper_id")
+
+            answerSentence = answerObjectEntry["sentence"]
+            answerSentenceEncoding = self.bitransformer.encode(answerSentence)
+            
+            best10ContextWithBitransformerScore = [{
+                "context": potentialBest,  
+                "bitransformer_score": self.bitransformer.similarity(answerSentenceEncoding , self.bitransformer.encode(potentialBest)).item()
+                 } for potentialBest in best10Contexts]
+            
+
+            sorted_Best = sorted(best10ContextWithBitransformerScore, key=lambda x: x["bitransformer_score"], reverse=True)
+            bestContext = sorted_Best[0]    
+            result.setdefault(answerObjectEntry["documentId"], []).append({"contextPassage":bestContext["context"], "paperId": paperId})
+
+        end = time.time()
+        return result, end-start
+    
+    def referencesBiencoderTop10CrossEncoderTop1(self, answerObject:GeneratedAnswerFormat):
+        start = time.time()
+        result = {}
+        for answerObjectEntry in answerObject:
+            best10Contexts = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], "bitransformer",10)
 
             doc_id = answerObjectEntry["documentId"]
             documentData = self.citation_to_doc[doc_id]
@@ -531,7 +594,29 @@ class EnhancedCitationHandler:
         end = time.time()
         return result, end-start
     
-    def extract_context_using_cosine_similarity_and_bm25(self, answerObject: GeneratedAnswerFormat):
+    def referencesBM25Top10CrossEncoderTop1(self, answerObject:GeneratedAnswerFormat):
+        start = time.time()
+        result = {}
+        for answerObjectEntry in answerObject:
+            best10Contexts = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], "bm25",10)
+
+            doc_id = answerObjectEntry["documentId"]
+            documentData = self.citation_to_doc[doc_id]
+            paper_info = documentData["paper_info"]
+            paperId = paper_info.get("paper_id")
+
+            model_inputs = [[answerObjectEntry["sentence"], context] for context in best10Contexts]
+            scores = self.crossEncoder.predict(model_inputs).tolist()
+
+            max_score = max(scores)
+            best_idx = scores.index(max_score)
+            
+            best_context = best10Contexts[best_idx]
+            result.setdefault(answerObjectEntry["documentId"], []).append({"contextPassage":best_context, "paperId": paperId})
+        end = time.time()
+        return result, end-start
+    
+    def referencesBiencoderAndBm25Top1(self, answerObject: GeneratedAnswerFormat):
         start = time.time()
         result = {}
         for answerObjectEntry in answerObject:
@@ -541,16 +626,16 @@ class EnhancedCitationHandler:
             paper_info = documentData["paper_info"]
             paperId = paper_info.get("paper_id")
 
-            bestContext = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], 1, True)
+            bestContext = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"],"hybrid", 1)
             result.setdefault(answerObjectEntry["documentId"], []).append({"contextPassage":bestContext[0], "paperId": paperId})
         end = time.time()
         return result, end-start
     
-    def extract_context_using_biencoder_and_bm25_and_cross_encoder(self, answerObject: GeneratedAnswerFormat):
+    def referencesBiencoderAndBm25Top10CrossEncoderTop1(self, answerObject: GeneratedAnswerFormat):
         start = time.time()
         result = {}
         for answerObjectEntry in answerObject:
-            best10Contexts = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], 10, True)
+            best10Contexts = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], "hybrid",10)
             
             doc_id = answerObjectEntry["documentId"]
             documentData = self.citation_to_doc[doc_id]

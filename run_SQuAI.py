@@ -946,35 +946,40 @@ class Enhanced4AgentRAG:
             references, referencesDuration = citation_handler.format_references(raw_answer)
 
             #variant 2 - Biencoder (selects top 1) out of floating windows of up to 5 sentences
-            referencesBiencoderTop1, referencesBiencoderTop1Duration = citation_handler.extract_context_using_cosine_similarity(raw_answer)
+            referencesBiencoderTop1, referencesBiencoderTop1Duration = citation_handler.referencesBiencoderTop1(raw_answer)
             
-            #variant 2.5 - BM25 selects top 1 out of floating window up to 5 sentences
+            #variant 3 - BM25 selects top 1 out of floating window up to 5 sentences
+            referencesBM25Top1, referencesBM25Top1Duration = citation_handler.referencesBM25Top1(raw_answer)
 
-            #variant 3 - Biencoder selects top 10 (out of floating windows), then BM25 selects top 1   
-            referencesBiencoderTop10Bm25Top1, referencesBiencoderTop10Bm25Top1Duration = citation_handler.extract_context_using_cosine_similarity_top_10_and_keyword_matching(raw_answer)
+            #variant 4 - Biencoder selects top 10 (out of floating windows), then BM25 selects top 1   
+            referencesBiencoderTop10Bm25Top1, referencesBiencoderTop10Bm25Top1Duration = citation_handler.referencesBiencoderTop10Bm25Top1(raw_answer)
 
-            #variant 3.5 - BM25 selects top 10 (out of floating windows), then Biencoder selects top 1
+            #variant 5 - BM25 selects top 10 (out of floating windows), then Biencoder selects top 1
+            referencesBM25Top10BiencoderTop1,referencesBM25Top10BiencoderTop1Duration = citation_handler.referencesBM25Top10BiencoderTop1(raw_answer)
 
-            #variant 4 - Biencoder selects top 10 (out of floating windows) top 10, cross encoder selects top 1
-            referencesBiencoderTop10CrossEncoderTop1, referencesBiencoderTop10CrossEncoderTop1Duration = citation_handler.extract_context_using_cosine_similarity_top_10_and_cross_encoder(raw_answer)
+            #variant 6 - Biencoder selects top 10 (out of floating windows) top 10, cross encoder selects top 1
+            referencesBiencoderTop10CrossEncoderTop1, referencesBiencoderTop10CrossEncoderTop1Duration = citation_handler.referencesBiencoderTop10CrossEncoderTop1(raw_answer)
 
-            #variant 4.5 - BM25 selects top 10 (out of floating windows) top 10, cross encoder selects top 1
+            #variant 7 - BM25 selects top 10 (out of floating windows) top 10, cross encoder selects top 1
+            referencesBM25Top10CrossEncoderTop1, referencesBM25Top10CrossEncoderTop1Duration = citation_handler.referencesBM25Top10CrossEncoderTop1(raw_answer)
+            #variant 8 - Biencoder and bm25 select top 1 (using RRF)
+            referencesBiencoderAndBm25Top1, referencesBiencoderAndBm25Top1Duration = citation_handler.referencesBiencoderAndBm25Top1(raw_answer)
 
-            #variant 5 - Biencoder and bm25 select top 1 (using RRF)
-            referencesBiencoderAndBm25Top1, referencesBiencoderAndBm25Top1Duration = citation_handler.extract_context_using_cosine_similarity_and_bm25(raw_answer)
+            #variant 9 - BiEncoder and keyword bm25 select top 10 together, cross encoder selects top 1
+            referencesBiencoderAndBm25Top10CrossEncoderTop1, referencesBiencoderAndBm25Top10CrossEncoderTop1Duration = citation_handler.referencesBiencoderAndBm25Top10CrossEncoderTop1(raw_answer)
 
-            #variant 6 - BiEncoder and keyword bm25 select top 10 together, cross encoder selects top 1
-            referencesBiencoderAndBm25Top10CrossEncoderTop1, referencesBiencoderAndBm25Top10CrossEncoderTop1Duration = citation_handler.extract_context_using_biencoder_and_bm25_and_cross_encoder(raw_answer)
-
-            # variant 7 - extract the context using LLM (prompt to extract the best fit)
+            # variant 10 - extract the context using LLM (prompt to extract the best fit)
             referencesWithLLM, referencesWithLLMDuration = citation_handler._extract_context_passages_using_llm(raw_answer)
 
 
             contexts = {
                 "referencesNative": references,
                 "referencesBiencoderTop1": referencesBiencoderTop1,
+                "referencesBM25Top1": referencesBM25Top1,
                 "referencesBiencoderTop10Bm25Top1": referencesBiencoderTop10Bm25Top1,
+                "referencesBM25Top10BiencoderTop1": referencesBM25Top10BiencoderTop1,
                 "referencesBiencoderTop10CrossEncoderTop1": referencesBiencoderTop10CrossEncoderTop1,
+                "referencesBM25Top10CrossEncoderTop1": referencesBM25Top10CrossEncoderTop1,
                 "referencesBiencoderAndBm25Top1": referencesBiencoderAndBm25Top1,
                 "referencesBiencoderAndBm25Top10CrossEncoderTop1": referencesBiencoderAndBm25Top10CrossEncoderTop1,
                 "referencesWithLLM": referencesWithLLM,
@@ -991,8 +996,11 @@ class Enhanced4AgentRAG:
                         "answerGeneration": answerGenerationEnd - answerGenerationStart,
                         "referencesNativeDuration": referencesDuration,
                         "referencesBiencoderTop1Duration": referencesBiencoderTop1Duration,
+                        "referencesBM25Top1Duration": referencesBM25Top1Duration,
                         "referencesBiencoderTop10Bm25Top1Duration": referencesBiencoderTop10Bm25Top1Duration,
+                        "referencesBM25Top10BiencoderTop1Duration": referencesBM25Top10BiencoderTop1Duration,
                         "referencesBiencoderTop10CrossEncoderTop1Duration": referencesBiencoderTop10CrossEncoderTop1Duration,
+                        "referencesBM25Top10CrossEncoderTop1Duration": referencesBM25Top10CrossEncoderTop1Duration,
                         "referencesBiencoderAndBm25Top1Duration": referencesBiencoderAndBm25Top1Duration,
                         "referencesBiencoderAndBm25Top10CrossEncoderTop1Duration": referencesBiencoderAndBm25Top10CrossEncoderTop1Duration,
                         "referencesWithLLMDuration": referencesWithLLMDuration,
