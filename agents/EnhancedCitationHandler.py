@@ -353,7 +353,7 @@ class EnhancedCitationHandler:
         return self.llmAgent.generate(prompt)
         
     # extract context passages for an answer text from the according paper
-    def _extract_context_passages_using_llm(self, answerObject: GeneratedAnswerFormat) -> str:
+    def _extract_context_passages_using_llm(self, answerObject: GeneratedAnswerFormat,cleanFullDocumentTexts) -> str:
         # answerTextSentences =  re.split(r"[.!?]+", answerObject)
         # sentences_with_citations = [s.strip() for s in answerTextSentences if re.search(r"\[\d+\]", s)]            
         start = time.time()
@@ -364,16 +364,23 @@ class EnhancedCitationHandler:
             paper_info = documentData["paper_info"]
             paperId = paper_info.get("paper_id")
             
-            documentText = documentData.get("text")
+            # documentText = documentData.get("text")
+            documentText = cleanFullDocumentTexts[answerEntry[int(doc_id)]]
+
+            if len(documentText) > 128000:
+                documentText = documentText[:64000] + "\n\n... [TEXT OMITTED FOR LENGTH] ...\n\n" + documentText[-64000:]
+
             contextForSentence = self._extract_context_for_sentence_using_llm(answerEntry["sentence"], documentText)
 
             # hallucination check
-            # cleanedDocumentText =  self.normalize(documentText)
-            # cleanedContextSentence = self.normalize(contextForSentence)
+            cleanedDocumentText = re.sub(r'\s+', '', contextForSentence).lower()
+            cleanedContextSentence = re.sub(r'\s+', '', documentText).lower()
+            partialRatio = fuzz.partial_ratio(cleanedContextSentence, cleanedDocumentText)
 
-            # partialRatio = fuzz.partial_ratio(cleanedContextSentence, cleanedDocumentText)
-
-            result.setdefault(doc_id, []).append({"contextPassage":contextForSentence, "paperId": paperId})
+            result.setdefault(doc_id, []).append({"contextPassage":contextForSentence, "paperId": paperId, "hallucinationCheck": {
+                "contextForSentence": contextForSentence,
+                "partialRatioWithSourceText": partialRatio
+            }})
         end = time.time()
         return result, end-start    
     
@@ -396,12 +403,9 @@ class EnhancedCitationHandler:
 
 
 
-    def extract_top_k_contexts(self, documentId: int, answerSentence: str, retrievalMethod: Literal["bm25","bitransformer","hybrid"], top_k:int = 1):
+    def extract_top_k_contexts(self, documentFullText: int, answerSentence: str, retrievalMethod: Literal["bm25","bitransformer","hybrid"], top_k:int = 1):
         bitransformer = self.bitransformer
-        documentText = self.citation_to_doc[documentId].get("text")
-        print("--------------------")
-        print(json.dumps(self.citation_to_doc[documentId]))
-        print("----------------------")
+        documentText = documentFullText
 
         #floating context window 1-5 sentences
         raw_splits = re.split(r"([.!?]+)", documentText)
@@ -493,7 +497,7 @@ class EnhancedCitationHandler:
                 top_k_results = similarities[:top_k]
                 return [item["context"] for item in top_k_results]
 
-    def referencesBiencoderTop1(self, answerObject:GeneratedAnswerFormat):        
+    def referencesBiencoderTop1(self, answerObject:GeneratedAnswerFormat,cleanFullDocumentTexts):        
         start = time.time()
         result = {}
         for answerObjectEntry in answerObject:
@@ -502,12 +506,12 @@ class EnhancedCitationHandler:
             paper_info = documentData["paper_info"]
             paperId = paper_info.get("paper_id")
 
-            bestContext = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], "bitransformer" ,1)
+            bestContext = self.extract_top_k_contexts(cleanFullDocumentTexts[answerObjectEntry["documentId"]], answerObjectEntry["sentence"], "bitransformer" ,1)
             result.setdefault(answerObjectEntry["documentId"], []).append({"contextPassage": bestContext[0], "paperId": paperId})
         end = time.time()
         return result, end-start 
     
-    def referencesBM25Top1(self, answerObject:GeneratedAnswerFormat):        
+    def referencesBM25Top1(self, answerObject:GeneratedAnswerFormat,cleanFullDocumentTexts):        
         start = time.time()
         result = {}
         for answerObjectEntry in answerObject:
@@ -516,17 +520,17 @@ class EnhancedCitationHandler:
             paper_info = documentData["paper_info"]
             paperId = paper_info.get("paper_id")
 
-            bestContext = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], "bm25" ,1)
+            bestContext = self.extract_top_k_contexts(cleanFullDocumentTexts[answerObjectEntry["documentId"]], answerObjectEntry["sentence"], "bm25" ,1)
             result.setdefault(answerObjectEntry["documentId"], []).append({"contextPassage": bestContext[0], "paperId": paperId})
         end = time.time()
         return result, end-start 
     
 
-    def referencesBiencoderTop10Bm25Top1(self,answerObject:GeneratedAnswerFormat):
+    def referencesBiencoderTop10Bm25Top1(self,answerObject:GeneratedAnswerFormat,cleanFullDocumentTexts):
         start = time.time()
         result = {}
         for answerObjectEntry in answerObject:
-            best10Contexts = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], "bitransformer", 10)
+            best10Contexts = self.extract_top_k_contexts(cleanFullDocumentTexts[answerObjectEntry["documentId"]], answerObjectEntry["sentence"], "bitransformer", 10)
 
             doc_id = answerObjectEntry["documentId"]
             documentData = self.citation_to_doc[doc_id]
@@ -545,11 +549,11 @@ class EnhancedCitationHandler:
         end = time.time()
         return result, end-start
     
-    def referencesBM25Top10BiencoderTop1(self,answerObject:GeneratedAnswerFormat):
+    def referencesBM25Top10BiencoderTop1(self,answerObject:GeneratedAnswerFormat,cleanFullDocumentTexts):
         start = time.time()
         result = {}
         for answerObjectEntry in answerObject:
-            best10Contexts = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], "bm25", 10)
+            best10Contexts = self.extract_top_k_contexts(cleanFullDocumentTexts[answerObjectEntry["documentId"]], answerObjectEntry["sentence"], "bm25", 10)
 
             doc_id = answerObjectEntry["documentId"]
             documentData = self.citation_to_doc[doc_id]
@@ -572,11 +576,11 @@ class EnhancedCitationHandler:
         end = time.time()
         return result, end-start
     
-    def referencesBiencoderTop10CrossEncoderTop1(self, answerObject:GeneratedAnswerFormat):
+    def referencesBiencoderTop10CrossEncoderTop1(self, answerObject:GeneratedAnswerFormat,cleanFullDocumentTexts):
         start = time.time()
         result = {}
         for answerObjectEntry in answerObject:
-            best10Contexts = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], "bitransformer",10)
+            best10Contexts = self.extract_top_k_contexts(cleanFullDocumentTexts[answerObjectEntry["documentId"]], answerObjectEntry["sentence"], "bitransformer",10)
 
             doc_id = answerObjectEntry["documentId"]
             documentData = self.citation_to_doc[doc_id]
@@ -594,11 +598,11 @@ class EnhancedCitationHandler:
         end = time.time()
         return result, end-start
     
-    def referencesBM25Top10CrossEncoderTop1(self, answerObject:GeneratedAnswerFormat):
+    def referencesBM25Top10CrossEncoderTop1(self, answerObject:GeneratedAnswerFormat,cleanFullDocumentTexts):
         start = time.time()
         result = {}
         for answerObjectEntry in answerObject:
-            best10Contexts = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], "bm25",10)
+            best10Contexts = self.extract_top_k_contexts(cleanFullDocumentTexts[answerObjectEntry["documentId"]], answerObjectEntry["sentence"], "bm25",10)
 
             doc_id = answerObjectEntry["documentId"]
             documentData = self.citation_to_doc[doc_id]
@@ -616,7 +620,7 @@ class EnhancedCitationHandler:
         end = time.time()
         return result, end-start
     
-    def referencesBiencoderAndBm25Top1(self, answerObject: GeneratedAnswerFormat):
+    def referencesBiencoderAndBm25Top1(self, answerObject: GeneratedAnswerFormat,cleanFullDocumentTexts):
         start = time.time()
         result = {}
         for answerObjectEntry in answerObject:
@@ -626,16 +630,16 @@ class EnhancedCitationHandler:
             paper_info = documentData["paper_info"]
             paperId = paper_info.get("paper_id")
 
-            bestContext = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"],"hybrid", 1)
+            bestContext = self.extract_top_k_contexts(cleanFullDocumentTexts[answerObjectEntry["documentId"]], answerObjectEntry["sentence"],"hybrid", 1)
             result.setdefault(answerObjectEntry["documentId"], []).append({"contextPassage":bestContext[0], "paperId": paperId})
         end = time.time()
         return result, end-start
     
-    def referencesBiencoderAndBm25Top10CrossEncoderTop1(self, answerObject: GeneratedAnswerFormat):
+    def referencesBiencoderAndBm25Top10CrossEncoderTop1(self, answerObject: GeneratedAnswerFormat,cleanFullDocumentTexts):
         start = time.time()
         result = {}
         for answerObjectEntry in answerObject:
-            best10Contexts = self.extract_top_k_contexts(answerObjectEntry["documentId"], answerObjectEntry["sentence"], "hybrid",10)
+            best10Contexts = self.extract_top_k_contexts(cleanFullDocumentTexts[answerObjectEntry["documentId"]], answerObjectEntry["sentence"], "hybrid",10)
             
             doc_id = answerObjectEntry["documentId"]
             documentData = self.citation_to_doc[doc_id]
@@ -653,7 +657,7 @@ class EnhancedCitationHandler:
         end = time.time()
         return result, end-start
     
-    def format_references(self, answerObject: GeneratedAnswerFormat = None) -> str:
+    def format_references(self, answerObject: GeneratedAnswerFormat,cleanFullDocumentTexts) -> str:
         start = time.time()
         """Format references with proper metadata and context passages"""
         if not self.citation_to_doc:
@@ -696,7 +700,7 @@ class EnhancedCitationHandler:
             # Add context passage with actual sentences used
             if answer_text:
                 context_passage = self._extract_context_passage(
-                    answer_text, doc_info["text"], citation_num
+                    answer_text, cleanFullDocumentTexts[int(citation_num)], citation_num
                 ) 
             else:
                 context_passage = (

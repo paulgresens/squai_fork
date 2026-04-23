@@ -196,7 +196,7 @@ class Enhanced4AgentRAG:
         logger.info(
             f"   Extraction: TOP({top_chars} chars) + BOTTOM({bottom_chars} chars) + Title"
         )
-
+        cleanFullDocumentTexts = {}
         for i, (doc_text, doc_id) in enumerate(full_texts):
             # New approach: Extract from top and bottom of paper
             condensed_content = []
@@ -263,6 +263,7 @@ class Enhanced4AgentRAG:
             # Add document with citation
             citation_num = citation_handler.add_document(condensed_text, doc_id)
 
+            cleanFullDocumentTexts[citation_num] = clean_text
             # Get paper info for better document labeling
             paper_info = citation_handler.citation_to_doc[citation_num]["paper_info"]
             doc_title = (
@@ -288,7 +289,7 @@ class Enhanced4AgentRAG:
         )
         logger.info(f"Using {documents_used}/{len(full_texts)} documents for Agent 4")
 
-        return docs_with_citations
+        return docs_with_citations, cleanFullDocumentTexts
 
     def createFinalAnswerGeneratorPrompt(
         self, original_query, full_texts, citation_handler, was_split: bool = False
@@ -296,7 +297,7 @@ class Enhanced4AgentRAG:
         """Agent-4 prompt with context-aware document preparation"""
 
         # Prepare documents with dynamic context management based on question splitting
-        docs_with_citations = self.prepareDocumentsForFinalAnswerGenerator(
+        docs_with_citations,cleanFullDocumentTexts = self.prepareDocumentsForFinalAnswerGenerator(
             full_texts, citation_handler, was_split
         )
 
@@ -374,7 +375,7 @@ class Enhanced4AgentRAG:
         
         Documents: {docs_text}
         Question: {original_query}
-        """
+        """,cleanFullDocumentTexts
     
     def _log_retrieved_papers(
         self, query: str, retrieved_abstracts: List[Tuple], phase: str = "RETRIEVAL"
@@ -917,7 +918,7 @@ class Enhanced4AgentRAG:
                 logger.info(
                     f"Agent-4 generating final answer with context-aware citations... [{strategy_info}]"
                 )
-                prompt = self.createFinalAnswerGeneratorPrompt(
+                prompt,cleanFullDocumentTexts = self.createFinalAnswerGeneratorPrompt(
                     query, full_texts, citation_handler, should_split
                 )
                 answerGenerationStart = time.time()
@@ -944,33 +945,33 @@ class Enhanced4AgentRAG:
             '''
             
             #variant 1 - native squai context extraction
-            references, referencesDuration = citation_handler.format_references(raw_answer)
+            references, referencesDuration = citation_handler.format_references(raw_answer,cleanFullDocumentTexts)
 
             #variant 2 - Biencoder (selects top 1) out of floating windows of up to 5 sentences
-            referencesBiencoderTop1, referencesBiencoderTop1Duration = citation_handler.referencesBiencoderTop1(raw_answer)
+            referencesBiencoderTop1, referencesBiencoderTop1Duration = citation_handler.referencesBiencoderTop1(raw_answer,cleanFullDocumentTexts)
             
             #variant 3 - BM25 selects top 1 out of floating window up to 5 sentences
-            referencesBM25Top1, referencesBM25Top1Duration = citation_handler.referencesBM25Top1(raw_answer)
+            referencesBM25Top1, referencesBM25Top1Duration = citation_handler.referencesBM25Top1(raw_answer,cleanFullDocumentTexts)
 
             #variant 4 - Biencoder selects top 10 (out of floating windows), then BM25 selects top 1   
-            referencesBiencoderTop10Bm25Top1, referencesBiencoderTop10Bm25Top1Duration = citation_handler.referencesBiencoderTop10Bm25Top1(raw_answer)
+            referencesBiencoderTop10Bm25Top1, referencesBiencoderTop10Bm25Top1Duration = citation_handler.referencesBiencoderTop10Bm25Top1(raw_answer,cleanFullDocumentTexts)
 
             #variant 5 - BM25 selects top 10 (out of floating windows), then Biencoder selects top 1
-            referencesBM25Top10BiencoderTop1,referencesBM25Top10BiencoderTop1Duration = citation_handler.referencesBM25Top10BiencoderTop1(raw_answer)
+            referencesBM25Top10BiencoderTop1,referencesBM25Top10BiencoderTop1Duration = citation_handler.referencesBM25Top10BiencoderTop1(raw_answer,cleanFullDocumentTexts)
 
             #variant 6 - Biencoder selects top 10 (out of floating windows) top 10, cross encoder selects top 1
-            referencesBiencoderTop10CrossEncoderTop1, referencesBiencoderTop10CrossEncoderTop1Duration = citation_handler.referencesBiencoderTop10CrossEncoderTop1(raw_answer)
+            referencesBiencoderTop10CrossEncoderTop1, referencesBiencoderTop10CrossEncoderTop1Duration = citation_handler.referencesBiencoderTop10CrossEncoderTop1(raw_answer,cleanFullDocumentTexts)
 
             #variant 7 - BM25 selects top 10 (out of floating windows) top 10, cross encoder selects top 1
-            referencesBM25Top10CrossEncoderTop1, referencesBM25Top10CrossEncoderTop1Duration = citation_handler.referencesBM25Top10CrossEncoderTop1(raw_answer)
+            referencesBM25Top10CrossEncoderTop1, referencesBM25Top10CrossEncoderTop1Duration = citation_handler.referencesBM25Top10CrossEncoderTop1(raw_answer,cleanFullDocumentTexts)
             #variant 8 - Biencoder and bm25 select top 1 (using RRF)
-            referencesBiencoderAndBm25Top1, referencesBiencoderAndBm25Top1Duration = citation_handler.referencesBiencoderAndBm25Top1(raw_answer)
+            referencesBiencoderAndBm25Top1, referencesBiencoderAndBm25Top1Duration = citation_handler.referencesBiencoderAndBm25Top1(raw_answer,cleanFullDocumentTexts)
 
             #variant 9 - BiEncoder and keyword bm25 select top 10 together, cross encoder selects top 1
-            referencesBiencoderAndBm25Top10CrossEncoderTop1, referencesBiencoderAndBm25Top10CrossEncoderTop1Duration = citation_handler.referencesBiencoderAndBm25Top10CrossEncoderTop1(raw_answer)
+            referencesBiencoderAndBm25Top10CrossEncoderTop1, referencesBiencoderAndBm25Top10CrossEncoderTop1Duration = citation_handler.referencesBiencoderAndBm25Top10CrossEncoderTop1(raw_answer,cleanFullDocumentTexts)
 
             # variant 10 - extract the context using LLM (prompt to extract the best fit)
-            referencesWithLLM, referencesWithLLMDuration = citation_handler._extract_context_passages_using_llm(raw_answer)
+            referencesWithLLM, referencesWithLLMDuration = citation_handler._extract_context_passages_using_llm(raw_answer,cleanFullDocumentTexts)
 
 
             contexts = {
@@ -989,6 +990,7 @@ class Enhanced4AgentRAG:
                     "papersRetrievedBySQuAI": unique_filtered_doc_ids,
                     "paperInformationUsedForAnswering": paperInformationUsedForAnswering,
                     "modelAnswer" : raw_answer,
+                    "paperFullTextLength": {key: len(text) for key, text in cleanFullDocumentTexts.items()},
                     "duration": {
                         "answerGeneration": answerGenerationEnd - answerGenerationStart,
                         "referencesNativeDuration": referencesDuration,
