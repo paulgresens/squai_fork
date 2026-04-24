@@ -140,11 +140,12 @@ def getCategoryFromArxiv(arxiv_id):
         match = re.search(r'<arxiv:primary_category\s+term="([^"]+)"', xml_text)
         category = match.group(1)
         #check if this is really correct, maybe take secondary category
-        time.sleep(6)
+        time.sleep(10)
         return category
     
     except Exception as e:
         print(f"Error fetching metadata for {arxiv_id}: {e}")
+        time.sleep(10)
         return None
 
 
@@ -162,10 +163,11 @@ def getPaperReferencesAndEmbeddingFromSemanticScholar(arxiv_id):
     }
     try:
         response = requests.get(url, params={"fields": fields, "limit": 1000}, headers=headers)
-        time.sleep(2)
+        time.sleep(10)
         return response.json()
     except Exception as e:
         print(f"Semantic Scholar Fetch failed: {e}")
+        time.sleep(10)
         return {"error": str(e)}
 
 
@@ -358,7 +360,7 @@ def main():
         physicsCategories = ["astro-ph", "cond-mat","gr-qc", "hep-ex", "hep-lat", "hep-ph",  "hep-th", "math-ph", "nlin.", "nucl-ex", "nucl-th",  "physics",  "quant-ph"]
         
         isPhysics = any(category.startswith(cat) for cat in physicsCategories)
-        if isPhysics:
+        if isPhysics is not None and isPhysics:
             continue
 
         question = None
