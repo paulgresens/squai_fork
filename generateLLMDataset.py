@@ -140,7 +140,7 @@ def getCategoryFromArxiv(arxiv_id):
         match = re.search(r'<arxiv:primary_category\s+term="([^"]+)"', xml_text)
         category = match.group(1)
         #check if this is really correct, maybe take secondary category
-        time.sleep(2)
+        time.sleep(6)
         return category
     
     except Exception as e:
@@ -353,6 +353,14 @@ def main():
         if (randomArxiv in allUsedArxivIds):
             continue
         print("trying: " + randomArxiv)
+
+        category = getCategoryFromArxiv(randomArxiv)
+        physicsCategories = ["astro-ph", "cond-mat","gr-qc", "hep-ex", "hep-lat", "hep-ph",  "hep-th", "math-ph", "nlin.", "nucl-ex", "nucl-th",  "physics",  "quant-ph"]
+        
+        isPhysics = any(category.startswith(cat) for cat in physicsCategories)
+        if isPhysics:
+            continue
+
         question = None
         try:
             question = generateQuestion(randomArxiv, all_squai_ids, db, agent, judgingAgent)
