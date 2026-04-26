@@ -55,26 +55,22 @@ You will be be provided 5 scientific paper text, which share same topic that the
 ]
 
 You should do the following:
-Step 1: Read the given scientific paper texts and extract a list of 10 topics where the papers overlap, contract or complement each other. Focus on important concepts or entities within the papers. Avoid using generic or broad words.
-Step 2: Use the Topics from Step 1 to generate 1 scientific question-answer pair, with the following requirements.
+Step 1:  Identify the Scientific Bridge. Read the provided papers and identify one specific, complex relationship between at least two of them. This could be a contradiction, a direct comparison, a synthesis of two mechanisms, or a scenario where a method from one paper addresses a bottleneck in another.
+Step 2: Generate the QA Pair. Use the bridge from Step 1 to generate exactly 1 scientific question-answer pair, strictly adhering to the following requirements:
+
 Requirements:
--question should be based on the information provided in multiple of the papers
--try generating a questions, that requires multiple papers to answer
--question must be context independently answerable, so no reference to a specific paper or entities that you can only understand with the specific paper. The question should have the same character, as if you would ask an scientific expert in their field something, without having a specific paper in mind. Do not refer to external sources like figures or tables.
--question cannot contain explicit references to the papers or its content such as "in this paper", "the proposed methods" or similar
--prioritize a question that requires synthesizing, resolving, applying, or evaluating information across papers
--question should be a complex scientific question that needs in depth knowledge in that area, avoid just asking a simple or definitional question
--try answering the question as specific as possible
--add the arxiv ids of the papers, that contain the relevant information for answering the question
--only add the arxiv id of the paper if it really did contribute significantly to the answer of the question
+- CRITICAL RULE 1 (No multi-part questions): Do NOT write two-part questions joined by "and" (e.g., "How does X work, and what are the implications for Y?"). The question MUST be a single, cohesive, unified sentence.
+- CRITICAL RULE 2 (No keyword shortcuts): Do NOT copy highly specific jargon or exact phrases directly from the source texts into the question. You must abstract or paraphrase the concepts so the question requires true conceptual understanding rather than simple keyword matching.
+- CRITICAL RULE 3 (True Synthesis): The question must force the reader to evaluate a direct relationship, contradiction, or dependency between the papers. It must be impossible to answer using only one of the papers, and it cannot be answered by simply pasting independent facts next to each other.
+- The question must be context-independently answerable. Do not refer to "in this paper," "the proposed methods," or external sources like figures or tables. It should sound like an expert asking a natural question in their field.
+- The question should be a complex scientific inquiry that requires in-depth knowledge, avoiding simple or definitional queries.
+- Try answering the question as specifically as possible based ONLY on the provided texts.
+- Only add the ArXiv ID of a paper if it truly contributed significantly to answering the question.
 
 provide your answer, stricly following this json format:
 {
-    "topic overlaps" : [
-    <TOPIC OVERLAP 1>,
-    <TOPIC OVERLAP 2>,
-    ...
-    ],
+    "scientificBridge" : "<Briefly describe the exact relationship, contradiction, or synthesis you found between the papers>",
+    "reasoningPath" : "<Explain exactly how a human would answer this. Explicitly state: 'Hop 1: The reader uses Paper [ID] to understand [Concept A]. Hop 2: The reader applies [Concept A] to Paper [ID] to realize [Concept B].'>",
     "question": "<YOUR_QUESTION>",
     "answer": "<YOUR ANSWER>",
     "usageJudgementGeneratorLLM":[<ARXIV_ID_1>, <ARXIV_ID_2>, ...]  
@@ -358,9 +354,11 @@ def main():
 
         category = getCategoryFromArxiv(randomArxiv)
         physicsCategories = ["astro-ph", "cond-mat","gr-qc", "hep-ex", "hep-lat", "hep-ph",  "hep-th", "math-ph", "nlin.", "nucl-ex", "nucl-th",  "physics",  "quant-ph"]
-        
+        if category is None:
+            continue
+
         isPhysics = any(category.startswith(cat) for cat in physicsCategories)
-        if isPhysics is not None and isPhysics:
+        if isPhysics:
             continue
 
         question = None
