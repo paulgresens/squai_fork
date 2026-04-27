@@ -177,9 +177,39 @@ OUTPUT FORMAT
     "answerability": <GOOD / BORDERLINE / BAD>,
     "decontextualization": <GOOD / BORDERLINE / BAD>,
     "reasoning" : <Explain you reasoning why you gave those scores>,
+    "confidence" <0 to 1 rate how confident you are in the judgements>
 }
 
 Do not deviate from this schema. Do not add any preciding information like ```json. Only Answer with the valid json
+"""
+
+EXPERIMENTERER_PROMPT = """
+You are testing whether a scientific multi-hop question truly requires the provided papers.
+You are given:
+a question
+a subset of papers (one or more papers may be missing)
+Your task is to determine whether the question can still be answered using ONLY the provided papers.
+
+IMPORTANT:
+-Use only the information from the given papers
+-Do NOT rely on external knowledge
+-Be strict: if any critical information is missing, the answer is NOT recoverable
+-Partial or speculative answers count as NOT answerable
+
+INPUT:
+Question: {question}
+Papers: {paperTexts}
+
+OUTPUT FORMAT:
+{
+    "answerable" <true/false - boolean>,
+    "confidence" <0 to 1 rate how confident you are>
+}
+Do not deviate from this schema. Do not add any preciding information like ```json. Only Answer with the valid json
+
+Explanation:
+If true: explain how the answer was obtained from the available papers
+If false: explain what critical information is missing and why the question cannot be answered
 """
 
 def build_prompt(texts):
@@ -187,6 +217,9 @@ def build_prompt(texts):
 
 def build_judging_prompt(question,answer,paper1Text,paper2Text,reasoningSteps):
     return JUDGING_PROMPT_TEMPLATE.format(question=question,answer={answer},paper1Text={paper1Text},paper2Text={paper2Text},reasoningSteps={reasoningSteps})
+
+def buildExperimentererPromps(question,paperTexts):
+    return EXPERIMENTERER_PROMPT.format(question=question, paperTexts=paperTexts)
 
 def get_all_squai_arxiv_ids():
     allArxivIds = []
@@ -383,7 +416,8 @@ def generateQuestion(arxivId, allSquaiArxivIds, db, agent, judgingAgent):
     torch.cuda.empty_cache()
     if not cleanedAndParsedJson:
         return None
-    
+    if len(cleanedAndParsedJson["usedPapers"]) != 2:
+        return None
     papersUsedForGenerationWithCategory = []
     for paper in finalPapersAdjustedLength:
         papersUsedForGenerationWithCategory.append({
@@ -401,10 +435,27 @@ def generateQuestion(arxivId, allSquaiArxivIds, db, agent, judgingAgent):
     bridgeEvidencePaperText = next((p for p in finalPapersAdjustedLength if p.get("ArXiv") == bridgeEvidencePaperId), None).get("text")
     bridgeAnswerPaperText = next((p for p in finalPapersAdjustedLength if p.get("ArXiv") == bridgeAnswerPaperId), None).get("text")
 
-    prompt = build_judging_prompt(cleanedAndParsedJson["question"], cleanedAndParsedJson["answer"], bridgeEvidencePaperText, bridgeAnswerPaperText, json.dumps(cleanedAndParsedJson["reasoning"]))
-    judgementResult = judgingAgent.generate(prompt)
+    judgementPrompt = build_judging_prompt(cleanedAndParsedJson["question"], cleanedAndParsedJson["answer"], bridgeEvidencePaperText, bridgeAnswerPaperText, json.dumps(cleanedAndParsedJson["reasoning"]))
+    judgementResult = judgingAgent.generate(judgementPrompt)
     judgementResultParsed = clean_and_parse_json(judgementResult) 
     cleanedAndParsedJson["judgementResult"] = judgementResultParsed
+
+    experimenterPromptEvidence = buildExperimentererPromps(cleanedAndParsedJson["question"], bridgeEvidencePaperText)
+    experimenterPromptEvidenceExperimentorResult = agent.generate(experimenterPromptEvidence)
+    experimenterPromptEvidenceExperimentorResultParsed = clean_and_parse_json(experimenterPromptEvidenceExperimentorResult) 
+    
+    experimenterPromptAnswer = buildExperimentererPromps(cleanedAndParsedJson["question"], bridgeAnswerPaperText)
+    experimenterPromptAnswerExperimentorResult = agent.generate(experimenterPromptAnswer)
+    experimenterPromptAnswerExperimentorResultParsed = clean_and_parse_json(experimenterPromptAnswerExperimentorResult) 
+
+    bothPaperTexts = "EvidencePaperText:\n" + bridgeEvidencePaperText + "\n" + bridgeAnswerPaperText
+    experimenterPromptBoth = buildExperimentererPromps(cleanedAndParsedJson["question"], bothPaperTexts)
+    experimenterPromptBothResult = agent.generate(experimenterPromptBoth)
+    experimenterPromptBothResultParsed = clean_and_parse_json(experimenterPromptBothResult) 
+
+    cleanedAndParsedJson["experimenterPromptEvidenceExperimentorResultParsed"] = experimenterPromptEvidenceExperimentorResultParsed
+    cleanedAndParsedJson["experimenterPromptAnswerExperimentorResultParsed"] = experimenterPromptAnswerExperimentorResultParsed
+    cleanedAndParsedJson["experimenterPromptBothResultParsed"] = experimenterPromptBothResultParsed
 
 
     # usageJudgeResult = []
