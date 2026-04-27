@@ -55,27 +55,45 @@ You will be be provided 5 scientific paper text, which share same topic that the
 ]
 
 You should do the following:
-Step 1:  Identify the Scientific Bridge. Read the provided papers and identify one specific, complex relationship between at least two of them. This could be a contradiction, a direct comparison, a synthesis of two mechanisms, or a scenario where a method from one paper addresses a bottleneck in another.
-Step 2: Generate the QA Pair. Use the bridge from Step 1 to generate exactly 1 scientific question-answer pair, strictly adhering to the following requirements:
+Step 1: Construct a Dependency Chain (X-> Y -> Z) Read the provided papers and identify a strict logical dependency chain between exactly two of them. 
+Do not look for loose topical overlaps; look for a direct scientific dependency where knowledge is contradicted, complemented, applied or synthesized along the chain. Map the chain as follows:
+    Node X (The Anchor): A highly specific starting condition, problem, or context that is EXCLUSIVE to Paper A. Because Paper B will naturally summarize the high-level concept of this anchor, Node X can only be of such a high complexity, that Paper B does not fully explain it in depth.
+    Node Y (The Bridge Entity): A specific shared entity (e.g., a dataset, novel metric, algorithm, phenomenon) that Paper A introduces, discusses, defines etc., and Paper B evaluates, modifies, applies or utilizes.
+    Node Z (The Target Conclusion): The specific conclusion, comparison, contradiction vulnerability, or result that Paper B discovers about Node Y.
+
+Step 2: Generate the QA Pair
+Use the dependency chain to generate exactly 1 scientific question-answer pair, strictly adhering to the following requirements:
 
 Requirements:
-- CRITICAL RULE 1 (No multi-part questions): Do NOT write two-part questions joined by "and" (e.g., "How does X work, and what are the implications for Y?"). The question MUST be a single, cohesive, unified sentence.
-- CRITICAL RULE 2 (No keyword shortcuts): Do NOT copy highly specific jargon or exact phrases directly from the source texts into the question. You must abstract or paraphrase the concepts so the question requires true conceptual understanding rather than simple keyword matching.
-- CRITICAL RULE 3 (True Synthesis): The question must force the reader to evaluate a direct relationship, contradiction, or dependency between the papers. It must be impossible to answer using only one of the papers, and it cannot be answered by simply pasting independent facts next to each other.
-- The question must be context-independently answerable. Do not refer to "in this paper," "the proposed methods," or external sources like figures or tables. It should sound like an expert asking a natural question in their field.
-- The question should be a complex scientific inquiry that requires in-depth knowledge, avoiding simple or definitional queries.
-- Try answering the question as specifically as possible based ONLY on the provided texts.
-- Only add the ArXiv ID of a paper if it truly contributed significantly to answering the question.
+CRITICAL RULE 1 (The Hidden Bridge): You are STRICTLY FORBIDDEN from explicitly naming the Bridge Entity (Node Y) in the question. The question must describe the starting conditions of Node X and ask for the target outcome in Node Z. The reader must be forced to infer or seek out Node Y on their own to connect the papers.
+CRITICAL RULE 2 Contrastive Sufficiency: You must verify, that Paper B is underspecified, not containing enough information about Node X to answer the question without reading Paper A. If Paper B contains enough context about Node X to answer the question without reading Paper A, the question is a failure. The identity of the bridge (Node Y) must be an absolute prerequisite to understanding Paper B's conclusion.
+CRITICAL RULE 3 (Fractured Evidence / True Synthesis): The question must force the reader to evaluate a direct dependency between the papers. It must be physically impossible to answer the question using only one of the papers, or by looking at any single, isolated sentence in the database.
+CRITICAL RULE 4 (No keyword shortcuts): Do NOT copy highly specific jargon directly from the source texts into the question unless it is the proper noun for Node X. You must abstract or paraphrase mechanistic concepts so the question requires true conceptual understanding.
+CRITICAL RULE 5 (Unified Sentence): Do NOT write two-part questions joined by "and" (e.g., "How does X work, and what are the implications for Y?"). The question MUST be a single, cohesive, unified sentence.
+CRITICAL RULE 6 (context independence): The question must be context-independently answerable. Do not refer to "in this paper," "the proposed methods," or external sources like figures or tables.
+CRITICAL RULE 7: The question should be a complex scientific inquiry that requires in-depth knowledge, avoiding simple or definitional queries.
 
-provide your answer, stricly following this json format:
+Only add the ArXiv ID of a paper to the final list if it truly contributed significantly to answering the question.
+
+Provide your answer strictly following this JSON format:
 {
-    "scientificBridge" : "<Briefly describe the exact relationship, contradiction, or synthesis you found between the papers>",
-    "reasoningPath" : "<Explain exactly how a human would answer this. Explicitly state: 'Hop 1: The reader uses Paper [ID] to understand [Concept A]. Hop 2: The reader applies [Concept A] to Paper [ID] to realize [Concept B].'>",
-    "question": "<YOUR_QUESTION>",
-    "answer": "<YOUR ANSWER>",
-    "usageJudgementGeneratorLLM":[<ARXIV_ID_1>, <ARXIV_ID_2>, ...]  
+"dependencyChain": {
+    "nodeXAnchor": "<Describe the starting context/problem from Paper [ID]>",
+    "nodeYBridgeEntity": "<Name the exact dataset/model/concept connecting the two papers>",
+    "nodeZTarget": "<Describe the specific conclusion/result from Paper [ID] regarding Node Y>",
+    "isNodeXInPaperB": "<Search Paper B. Does it mention or summarize the specific concepts of Node X in detail? Answer Yes/No. If Yes, this is a single-hop failure and you must choose a different Node X.>",
+    "canPaperBAnswerAlone": "<Explain why a reader looking ONLY at Paper B would fail to answer the drafted question without the context of Paper A.>"
+},
+"reasoningPath": "<Explain exactly how a human would answer this. Explicitly state: 'Hop 1: The reader uses Paper [ID] to understand [Node X] and identifies the bridge [Node Y]. Hop 2: The reader uses [Node Y] to search Paper [ID] to find [Node Z].'>",
+"draftedQuestion": <the preliminary version of the question to use for internal verification>,
+"omissionCheck": "<Evaluate your drafted question. Does it explicitly contain the string or exact name from 'node_Y_bridge_entity'? Answer Yes/No. If Yes, you MUST rewrite it to be abstract.>",
+"question": <The generated final question that contains node X and Z while strictly omitting Y>,
+"answer": <The generated answer>,
+"usageJudgementGeneratorLLM": ["<ARXIV_ID_1>", "<ARXIV_ID_2>"]
+
 }
-Do not deviate from this schema. Dont add the keywords you generated. Do not add any preciding information like ```json. Only Answer with the valid json
+
+Do not deviate from this schema. Do not add any preceding information like ```json. Only answer with the valid JSON.
 Paper Texts:
 """
 
