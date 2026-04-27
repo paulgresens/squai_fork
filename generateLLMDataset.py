@@ -46,7 +46,7 @@ PAPER_CHARACTER_LIMIT=25000
 QUESTIONS_TO_GENERATE = 200
 
 PROMPT_TEMPLATE = """
-You are generating a scientific 2-hop question-answer-evidence (Q-A-E) triple.
+You are generating a scientific 2-hop question-answer-evidence (Q-A) Tuple.
 You are given 5 candidate scientific papers in the following format: 
 [
   {
@@ -89,19 +89,19 @@ OUTPUT FORMAT
     "usedPapers" : [
         {
             "arXiv": <paperId>,
-            "role": <bridgeEvidence or bridgeAnswer depending on the papers role> 
+            "role": <bridgeEvidence / bridgeAnswer depending on the papers role> 
         },
         {
             "arXiv": <paperId>,
-            "role": <bridgeEvidence or bridgeAnswer depending on the papers role>
+            "role": <bridgeEvidence/ bridgeAnswer depending on the papers role>
         }
     ],
+    "rejectedPapers: [<paperId1>, <paperId2>, <paperId3>],
     "reasoning": {
         "step1": <Explain your reasoning for step1 on paper A>,
         "step2": <use step1 reasoning to derive or support the final answer>,
         "connectionExplanation" <explain why the steps are connected and why step2 requires the result of step1>
-    } 
-    "rejectedPapers: [<paperId1>, <paperId2>, <paperId3>],
+    }, 
     "question" : <one clear, self-contained question requiring 2-hop reasoning>
     "answerWithPaperReferences" : <long-form paragraph integrating Paper A and Paper B with citations like [Paper A], [Paper B]>,
     "answerWithoutPaperReferences": <long-form paragraph that answers the question, without referencing the papers, but directly incorporatestheir information, so that it is standalone understandable>,
@@ -112,31 +112,81 @@ Do not deviate from this schema. Do not add any preciding information like ```js
 Paper Texts:
 """
 
+JUDGING_PROMPT_TEMPLATE ="""
+You are evaluating a scientific question-answer (Q-A) example.
+Your goal is to assess whether it is a valid 2-hop, evidence-grounded scientific multi-hop question.
+A valid example must:
+-require combining information from exactly TWO papers
+-involve dependent reasoning (Step 2 must require Step 1)
+-not be decomposable into independent sub-questions
+-be fully answerable from the provided evidence
+-be self-contained and unambiguous
 
-JUDGING_PROMPT_TEMPLATE = """
-You will be provided a scientific question, an answer, and a scientific paper text. 
-Your task is to evaluate whether the specific information in the scientific paper text is necessary to answer the question.
+IMPORTANT:
+-For each criterion, assign one label:
+-GOOD = fully satisfies the criterion
+-BORDERLINE = partially satisfies the criterion
+-BAD = does not satisfy the criterion
+-Be strict: only assign GOOD if the criterion is clearly satisfied.
 
-Step 1: Read the question and the synthesized answer. Identify the core scientific claims being made.
-Step 2: Scan the scientific paper text. 
-Step 3: Determine if the paper provides explicit evidence, data, or mechanisms that directly support the answer. Do not accept mere keyword overlap.
+INPUT:
+Question: {question} 
+Answer: {answer} 
+bridgeEvidencePaperText: {paper1Text}
+bridgeAnswerPaperText: {paper2Text}
+Reasoning Steps: {reasoningSteps}
 
-Output your final verdict inside a <verdict> tags. The verdict must be exactly "true" or "false".
+EVALUATION CRITERIA
+A. Reasoning Structure
+Multi-hop Validity: Does answering the question require combining both papers?
+-GOOD: Both papers are strictly required
+-BORDERLINE: Both papers contribute but one may be sufficient
+-BAD: Only one paper is sufficient (single-hop)
 
-Output Example:
-    <Your thinking process described in step 1-3 here>
-    <verdict>true</verdict>
+Dependency Strength: Does Step 2 depend on the result of Step 1?
+GOOD: Step 2 strictly requires Step 1
+BORDERLINE: Partial dependence
+BAD: Steps are independent (disconnected reasoning)
 
-question: {question}
-answer: {answer}
-scientific paper text: {scientificPaperText} 
+Non-Decomposability: Is the question NOT decomposable into independent sub-questions?
+-GOOD: Cannot be split; requires joint reasoning
+-BORDERLINE: Partially decomposable
+-BAD: Clearly decomposable into independent sub-questions
+
+B. Evidence Grounding: Evidence DistributionAre both papers required and non-redundant?
+-GOOD: Each paper contributes distinct, necessary information
+-BORDERLINE: Some overlap or redundancy
+-BAD: One paper is sufficient; the other is redundant
+
+Answerability: Is the answer fully supported by the provided evidence?
+-GOOD: Fully supported by cited evidence
+-BORDERLINE: Partially supported
+-BAD: Not supported or contradicts the evidence
+
+C. Dataset Quality: DecontextualizationIs the question self-contained and unambiguous?
+-GOOD: Fully self-contained; all entities clearly defined
+-BORDERLINE: Minor ambiguity
+-BAD: Not understandable without external context
+
+OUTPUT FORMAT
+{
+    "multiHopValidity": <GOOD / BORDERLINE / BAD>,
+    "dependencyStrength": <GOOD / BORDERLINE / BAD>,
+    "nonDecomposability": <GOOD / BORDERLINE / BAD>,
+    "evidenceDistribution" <GOOD / BORDERLINE / BAD>,
+    "answerability": <GOOD / BORDERLINE / BAD>,
+    "decontextualization": <GOOD / BORDERLINE / BAD>,
+    "reasoning" : <Explain you reasoning why you gave those scores>,
+}
+
+Do not deviate from this schema. Do not add any preciding information like ```json. Only Answer with the valid json
 """
 
 def build_prompt(texts):
     return PROMPT_TEMPLATE + json.dumps(texts)
 
-def build_judging_prompt(question,answer,scientificPaperText):
-    return JUDGING_PROMPT_TEMPLATE.format(question=question,answer=answer,scientificPaperText=scientificPaperText)
+def build_judging_prompt(question,answer,paper1Text,paper2Text,reasoningSteps):
+    return JUDGING_PROMPT_TEMPLATE.format(question=question,answer={answer},paper1Text={paper1Text},paper2Text={paper2Text},reasoningSteps={reasoningSteps})
 
 def get_all_squai_arxiv_ids():
     allArxivIds = []
@@ -334,16 +384,27 @@ def generateQuestion(arxivId, allSquaiArxivIds, db, agent, judgingAgent):
     if not cleanedAndParsedJson:
         return None
     
-    # papersUsedForGenerationWithCategory = []
-    # for paper in finalPapersAdjustedLength:
-    #     papersUsedForGenerationWithCategory.append({
-    #         "ArXiv" : paper["ArXiv"],
-    #         "category": getCategoryFromArxiv(paper["ArXiv"]),
-    #         "cosineSimilarity": paper["cosineSimilarity"] if "cosineSimilarity" in paper else None
-    #     })
-    # cleanedAndParsedJson["papersInputtedForGeneration"] = papersUsedForGenerationWithCategory
-    # cleanedAndParsedJson["anchorPaper"] = starting_id
-    # cleanedAndParsedJson["adaptiveCharacterLimit"] = adaptiveCharacterLimit
+    papersUsedForGenerationWithCategory = []
+    for paper in finalPapersAdjustedLength:
+        papersUsedForGenerationWithCategory.append({
+            "ArXiv" : paper["ArXiv"],
+            "category": getCategoryFromArxiv(paper["ArXiv"]),
+            "cosineSimilarity": paper["cosineSimilarity"] if "cosineSimilarity" in paper else None
+        })
+    cleanedAndParsedJson["papersInputtedForGeneration"] = papersUsedForGenerationWithCategory
+    cleanedAndParsedJson["anchorPaper"] = starting_id
+    cleanedAndParsedJson["adaptiveCharacterLimit"] = adaptiveCharacterLimit
+
+    bridgeEvidencePaperId = next((paper for paper in cleanedAndParsedJson["usedPapers"] if paper.get("role") == "bridgeEvidence"), None)["arXiv"]
+    bridgeAnswerPaperId = next((paper for paper in cleanedAndParsedJson["usedPapers"] if paper.get("role") == "bridgeAnswer"), None)["arXiv"]
+
+    bridgeEvidencePaperText = next((p for p in finalPapersAdjustedLength if p.get("ArXiv") == bridgeEvidencePaperId), None).get("text")
+    bridgeAnswerPaperText = next((p for p in finalPapersAdjustedLength if p.get("ArXiv") == bridgeAnswerPaperId), None).get("text")
+
+    prompt = build_judging_prompt(cleanedAndParsedJson["question"], cleanedAndParsedJson["answer"], bridgeEvidencePaperText, bridgeAnswerPaperText, json.dumps(cleanedAndParsedJson["reasoning"]))
+    judgementResult = judgingAgent.generate(prompt)
+    judgementResultParsed = clean_and_parse_json(judgementResult) 
+    cleanedAndParsedJson["judgementResult"] = judgementResultParsed
 
 
     # usageJudgeResult = []
