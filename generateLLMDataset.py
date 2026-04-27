@@ -46,7 +46,8 @@ PAPER_CHARACTER_LIMIT=25000
 QUESTIONS_TO_GENERATE = 200
 
 PROMPT_TEMPLATE = """
-You will be be provided 5 scientific paper text, which share same topic that they are talking about. They will be provided in the following format:
+You are generating a scientific 2-hop question-answer-evidence (Q-A-E) triple.
+You are given 5 candidate scientific papers in the following format: 
 [
   {
     "ArXiv": string,
@@ -54,32 +55,60 @@ You will be be provided 5 scientific paper text, which share same topic that the
   }
 ]
 
-You should do the following:
-Step 1: Read the given scientific paper texts and extract a list of 10 topics where the papers overlap, contract or complement each other. Focus on important concepts or entities within the papers. Avoid using generic or broad words.
-Step 2: Use the Topics from Step 1 to generate 1 scientific question-answer pair, with the following requirements.
-Requirements:
--question should be based on the information provided in multiple of the papers
--try generating a questions, that requires multiple papers to answer
--question must be context independently answerable, so no reference to a specific paper or entities that you can only understand with the specific paper. The question should have the same character, as if you would ask an scientific expert in their field something, without having a specific paper in mind. Do not refer to external sources like figures or tables.
--question cannot contain explicit references to the papers or its content such as "in this paper", "the proposed methods" or similar
--prioritize a question that requires synthesizing, resolving, applying, or evaluating information across papers
--question should be a complex scientific question that needs in depth knowledge in that area, avoid just asking a simple or definitional question
--try answering the question as specific as possible
--add the arxiv ids of the papers, that contain the relevant information for answering the question
--only add the arxiv id of the paper if it really did contribute significantly to the answer of the question
+Your task is to select the best pair of papers and generate ONE question that requires connected reasoning across exactly TWO papers.
 
-provide your answer, stricly following this json format:
+REQUIREMENTS
+A valid question MUST:
+-require exactly two reasoning steps (2-hop)
+-use exactly two supporting papers
+-require sequential reasoning:
+    -Step 2 must depend on the result of Step 1
+    -If Step 1 is removed, Step 2 should not be solvable
+-NOT be answerable from either paper alone
+-be self-contained and unambiguous
+-require combining information across both papers
+
+PAPER SELECTION
+First, select the best pair of papers.
+The selected pair must satisfy:
+-Paper A provides an intermediate entity, method, dataset, variable, or result
+-Paper B uses, evaluates, extends, contrasts with, explains, or depends on that intermediate element
+-The final answer requires combining both papers
+-Do NOT select papers that are only loosely related or redundant.
+
+AVOID
+Do NOT generate:
+-multi-part questions (e.g., "What is X and what is Y?")
+-vague or generic questions (e.g., "implications", "advantages")
+-literature summary questions
+-questions answerable from a single paper
+-questions where papers are only topically related but not logically connected
+
+OUTPUT FORMAT
 {
-    "topic overlaps" : [
-    <TOPIC OVERLAP 1>,
-    <TOPIC OVERLAP 2>,
-    ...
+    "usedPapers" : [
+        {
+            "arXiv": <paperId>,
+            "role": <bridgeEvidence or bridgeAnswer depending on the papers role> 
+        },
+        {
+            "arXiv": <paperId>,
+            "role": <bridgeEvidence or bridgeAnswer depending on the papers role>
+        }
     ],
-    "question": "<YOUR_QUESTION>",
-    "answer": "<YOUR ANSWER>",
-    "usageJudgementGeneratorLLM":[<ARXIV_ID_1>, <ARXIV_ID_2>, ...]  
+    "reasoning": {
+        "step1": <Explain your reasoning for step1 on paper A>,
+        "step2": <use step1 reasoning to derive or support the final answer>,
+        "connectionExplanation" <explain why the steps are connected and why step2 requires the result of step1>
+    } 
+    "rejectedPapers: [<paperId1>, <paperId2>, <paperId3>],
+    "question" : <one clear, self-contained question requiring 2-hop reasoning>
+    "answerWithPaperReferences" : <long-form paragraph integrating Paper A and Paper B with citations like [Paper A], [Paper B]>,
+    "answerWithoutPaperReferences": <long-form paragraph that answers the question, without referencing the papers, but directly incorporatestheir information, so that it is standalone understandable>,
+    "isNotSingleHop" <explain why the question you generated is not single hop>
 }
-Do not deviate from this schema. Dont add the keywords you generated. Do not add any preciding information like ```json. Only Answer with the valid json
+
+Do not deviate from this schema. Do not add any preciding information like ```json. Only Answer with the valid json
 Paper Texts:
 """
 
@@ -305,32 +334,32 @@ def generateQuestion(arxivId, allSquaiArxivIds, db, agent, judgingAgent):
     if not cleanedAndParsedJson:
         return None
     
-    papersUsedForGenerationWithCategory = []
-    for paper in finalPapersAdjustedLength:
-        papersUsedForGenerationWithCategory.append({
-            "ArXiv" : paper["ArXiv"],
-            "category": getCategoryFromArxiv(paper["ArXiv"]),
-            "cosineSimilarity": paper["cosineSimilarity"] if "cosineSimilarity" in paper else None
-        })
-    cleanedAndParsedJson["papersInputtedForGeneration"] = papersUsedForGenerationWithCategory
-    cleanedAndParsedJson["anchorPaper"] = starting_id
-    cleanedAndParsedJson["adaptiveCharacterLimit"] = adaptiveCharacterLimit
+    # papersUsedForGenerationWithCategory = []
+    # for paper in finalPapersAdjustedLength:
+    #     papersUsedForGenerationWithCategory.append({
+    #         "ArXiv" : paper["ArXiv"],
+    #         "category": getCategoryFromArxiv(paper["ArXiv"]),
+    #         "cosineSimilarity": paper["cosineSimilarity"] if "cosineSimilarity" in paper else None
+    #     })
+    # cleanedAndParsedJson["papersInputtedForGeneration"] = papersUsedForGenerationWithCategory
+    # cleanedAndParsedJson["anchorPaper"] = starting_id
+    # cleanedAndParsedJson["adaptiveCharacterLimit"] = adaptiveCharacterLimit
 
 
-    usageJudgeResult = []
-    paperLengths = []
-    for paper in finalPapersAdjustedLength:
-        prompt = build_judging_prompt(cleanedAndParsedJson["question"], cleanedAndParsedJson["answer"], paper["text"])
-        judgementResult = judgingAgent.generate(prompt)
-        match = re.search(r'<verdict>\s*(true|false)\s*</verdict>', judgementResult, re.IGNORECASE)
-        judgement = None
-        if match:
-             judgement =  match.group(1).lower() == "true"
-        usageJudgeResult.append({"ArXiv": paper["ArXiv"], "wasUsed": judgement})
-        paperLengths.append({"ArXiv": paper["ArXiv"], "textLength": len(paper["text"])})
-        torch.cuda.empty_cache()
-    cleanedAndParsedJson["usageJudgeResult"] = usageJudgeResult
-    cleanedAndParsedJson["paperTextLengths"] = paperLengths
+    # usageJudgeResult = []
+    # paperLengths = []
+    # for paper in finalPapersAdjustedLength:
+    #     prompt = build_judging_prompt(cleanedAndParsedJson["question"], cleanedAndParsedJson["answer"], paper["text"])
+    #     judgementResult = judgingAgent.generate(prompt)
+    #     match = re.search(r'<verdict>\s*(true|false)\s*</verdict>', judgementResult, re.IGNORECASE)
+    #     judgement = None
+    #     if match:
+    #          judgement =  match.group(1).lower() == "true"
+    #     usageJudgeResult.append({"ArXiv": paper["ArXiv"], "wasUsed": judgement})
+    #     paperLengths.append({"ArXiv": paper["ArXiv"], "textLength": len(paper["text"])})
+    #     torch.cuda.empty_cache()
+    # cleanedAndParsedJson["usageJudgeResult"] = usageJudgeResult
+    # cleanedAndParsedJson["paperTextLengths"] = paperLengths
     return cleanedAndParsedJson
 
 def main():
