@@ -44,7 +44,7 @@ class LLMAgent:
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         
         #unlock more input length 
-        self.tokenizer.model_max_length = 131072
+        self.tokenizer.model_max_length = 40000
 
         # Determine torch dtype based on precision
         if precision == "bfloat16" and torch.cuda.is_bf16_supported():
@@ -66,6 +66,7 @@ class LLMAgent:
                 torch_dtype=torch_dtype,
                 device_map="auto",  # Automatically optimize GPU usage
                 trust_remote_code=True,  # Required for some models
+                attn_implementation="flash_attention_2",
                 use_auth_token=token,
             )
         else:
@@ -75,6 +76,7 @@ class LLMAgent:
                 torch_dtype=torch_dtype,
                 device_map="auto",  # Automatically optimize GPU usage
                 trust_remote_code=True,  # Required for some models
+                attn_implementation="flash_attention_2",
             )
 
         # Save device information
