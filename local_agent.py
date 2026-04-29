@@ -66,7 +66,7 @@ class LLMAgent:
                 torch_dtype=torch_dtype,
                 device_map="auto",  # Automatically optimize GPU usage
                 trust_remote_code=True,  # Required for some models
-                attn_implementation="flash_attention_2",
+                # attn_implementation="flash_attention_2",
                 use_auth_token=token,
             )
         else:
@@ -76,7 +76,7 @@ class LLMAgent:
                 torch_dtype=torch_dtype,
                 device_map="auto",  # Automatically optimize GPU usage
                 trust_remote_code=True,  # Required for some models
-                attn_implementation="flash_attention_2",
+                # attn_implementation="flash_attention_2",
             )
 
         # Save device information

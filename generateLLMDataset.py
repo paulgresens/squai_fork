@@ -352,7 +352,7 @@ def clean_and_parse_json(text):
     else:
         return None
 
-def generateQuestion(arxivId, allSquaiArxivIds, db, agent, judgingAgent):
+def generateQuestion(arxivId, allSquaiArxivIds, db, agent): #, judgingAgent
     starting_id = arxivId
     startingPaperFullText = getPaperFullText(db,starting_id)
     if startingPaperFullText is None:
@@ -491,39 +491,42 @@ def generateQuestion(arxivId, allSquaiArxivIds, db, agent, judgingAgent):
     bridgeAnswerPaperText = next((p for p in finalPapersAdjustedLength if p.get("ArXiv") == bridgeAnswerPaperId), None).get("text")
     print("got paper texts")
 
-    judgementPrompt = build_judging_prompt(cleanedAndParsedJson["question"], cleanedAndParsedJson["answerWithoutPaperReferences"], bridgeEvidencePaperText, bridgeAnswerPaperText, json.dumps(cleanedAndParsedJson["reasoning"]))
+    cleanedAndParsedJson["bridgeEvidencePaperText"] = bridgeEvidencePaperText
+    cleanedAndParsedJson["bridgeAnswerPaperText"] = bridgeAnswerPaperText
+
+    # judgementPrompt = build_judging_prompt(cleanedAndParsedJson["question"], cleanedAndParsedJson["answerWithoutPaperReferences"], bridgeEvidencePaperText, bridgeAnswerPaperText, json.dumps(cleanedAndParsedJson["reasoning"]))
     
-    judgementResult = judgingAgent.generate(judgementPrompt)
-    judgementResultParsed = clean_and_parse_json(judgementResult) 
-    print("JUDGE\n")
-    print(json.dumps(judgementResultParsed))
-    cleanedAndParsedJson["judgementResult"] = judgementResultParsed
-    free_gpu_memory()
+    # judgementResult = judgingAgent.generate(judgementPrompt)
+    # judgementResultParsed = clean_and_parse_json(judgementResult) 
+    # print("JUDGE\n")
+    # print(json.dumps(judgementResultParsed))
+    # cleanedAndParsedJson["judgementResult"] = judgementResultParsed
+    # free_gpu_memory()
 
-    experimenterPromptEvidence = buildExperimentererPromps("paper1: " + cleanedAndParsedJson["question"], bridgeEvidencePaperText)
-    experimenterPromptEvidenceExperimentorResult = agent.generate(experimenterPromptEvidence)
-    experimenterPromptEvidenceExperimentorResultParsed = clean_and_parse_json(experimenterPromptEvidenceExperimentorResult) 
-    free_gpu_memory()
-    experimenterPromptAnswer = buildExperimentererPromps("paper1: " + cleanedAndParsedJson["question"], bridgeAnswerPaperText)
-    experimenterPromptAnswerExperimentorResult = agent.generate(experimenterPromptAnswer)
-    experimenterPromptAnswerExperimentorResultParsed = clean_and_parse_json(experimenterPromptAnswerExperimentorResult) 
-    free_gpu_memory()
+    # experimenterPromptEvidence = buildExperimentererPromps("paper1: " + cleanedAndParsedJson["question"], bridgeEvidencePaperText)
+    # experimenterPromptEvidenceExperimentorResult = agent.generate(experimenterPromptEvidence)
+    # experimenterPromptEvidenceExperimentorResultParsed = clean_and_parse_json(experimenterPromptEvidenceExperimentorResult) 
+    # free_gpu_memory()
+    # experimenterPromptAnswer = buildExperimentererPromps("paper1: " + cleanedAndParsedJson["question"], bridgeAnswerPaperText)
+    # experimenterPromptAnswerExperimentorResult = agent.generate(experimenterPromptAnswer)
+    # experimenterPromptAnswerExperimentorResultParsed = clean_and_parse_json(experimenterPromptAnswerExperimentorResult) 
+    # free_gpu_memory()
 
-    bothPaperTexts = "EvidencePaperText:\n" + bridgeEvidencePaperText + "\n" + "BridgeAnswerText" +bridgeAnswerPaperText
-    experimenterPromptBoth = buildExperimentererPromps(cleanedAndParsedJson["question"], bothPaperTexts)
-    experimenterPromptBothResult = agent.generate(experimenterPromptBoth)
-    experimenterPromptBothResultParsed = clean_and_parse_json(experimenterPromptBothResult) 
-    free_gpu_memory()
+    # bothPaperTexts = "EvidencePaperText:\n" + bridgeEvidencePaperText + "\n" + "BridgeAnswerText" +bridgeAnswerPaperText
+    # experimenterPromptBoth = buildExperimentererPromps(cleanedAndParsedJson["question"], bothPaperTexts)
+    # experimenterPromptBothResult = agent.generate(experimenterPromptBoth)
+    # experimenterPromptBothResultParsed = clean_and_parse_json(experimenterPromptBothResult) 
+    # free_gpu_memory()
 
-    experimentererConnectionPrompt =  buildExperimentererConnectionPrompt(bridgeEvidencePaperText, bridgeAnswerPaperText, cleanedAndParsedJson["reasoning"]["connectionExplanation"])
-    experimentererConnectionResult = agent.generate(experimentererConnectionPrompt)
-    experimentererConnectionResultParsed = clean_and_parse_json(experimentererConnectionResult)
-    free_gpu_memory()
+    # experimentererConnectionPrompt =  buildExperimentererConnectionPrompt(bridgeEvidencePaperText, bridgeAnswerPaperText, cleanedAndParsedJson["reasoning"]["connectionExplanation"])
+    # experimentererConnectionResult = agent.generate(experimentererConnectionPrompt)
+    # experimentererConnectionResultParsed = clean_and_parse_json(experimentererConnectionResult)
+    # free_gpu_memory()
 
-    cleanedAndParsedJson["experimenterPromptEvidenceExperimentorResult"] = experimenterPromptEvidenceExperimentorResultParsed
-    cleanedAndParsedJson["experimenterPromptAnswerExperimentorResult"] = experimenterPromptAnswerExperimentorResultParsed
-    cleanedAndParsedJson["experimenterPromptBothResult"] = experimenterPromptBothResultParsed
-    cleanedAndParsedJson["experimentererConnectionResult"] = experimentererConnectionResultParsed
+    # cleanedAndParsedJson["experimenterPromptEvidenceExperimentorResult"] = experimenterPromptEvidenceExperimentorResultParsed
+    # cleanedAndParsedJson["experimenterPromptAnswerExperimentorResult"] = experimenterPromptAnswerExperimentorResultParsed
+    # cleanedAndParsedJson["experimenterPromptBothResult"] = experimenterPromptBothResultParsed
+    # cleanedAndParsedJson["experimentererConnectionResult"] = experimentererConnectionResultParsed
 
 
     # usageJudgeResult = []
@@ -545,7 +548,7 @@ def generateQuestion(arxivId, allSquaiArxivIds, db, agent, judgingAgent):
 def main():
     db = plyvel.DB(DB_PATH, create_if_missing=False)
     agent = LLMAgent(MODEL)
-    judgingAgent = LLMAgent(JUDGING_MODEL)
+    # judgingAgent = LLMAgent(JUDGING_MODEL)
     all_squai_ids = get_all_squai_arxiv_ids()
     
     if os.path.exists(CACHE_FILE):
@@ -575,10 +578,10 @@ def main():
 
         question = None
         try:
-            question = generateQuestion(randomArxiv, all_squai_ids, db, agent, judgingAgent)
+            question = generateQuestion(randomArxiv, all_squai_ids, db, agent) # removed parameter , judgingAgent here
         except torch.OutOfMemoryError:
             with open(ERROR_CACHE_FILE, "a", encoding="utf-8") as f:
-                    f.write(randomArxiv + "\n")    
+                    f.write("OOM ERROR" + randomArxiv + "\n")    
             gc.collect() 
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
