@@ -90,6 +90,8 @@ Do NOT generate:
 -questions where papers are only topically related but not logically connected
 
 OUTPUT FORMAT
+You must use your internal reasoning to verify all negative constraints and dependency rules before generating the JSON. Immediately after your reasoning concludes, output ONLY the raw, valid JSON stricly following this format:
+
 {
     "usedPapers" : [
         {
@@ -114,7 +116,7 @@ OUTPUT FORMAT
     "isNotSingleHop" <explain why the question you generated is not single hop>
 }
 
-Do not deviate from this schema. Do not add any preciding information like ```json. Only Answer with the valid json
+Do not deviate from this schema.
 Paper Texts:
 """
 
@@ -207,7 +209,6 @@ OUTPUT FORMAT
     }},
     "confidence": <0 to 1 rate how confident you are in the judgements>
 }}
-
 Do not deviate from this schema. Do not add any preciding information like ```json. Only Answer with the valid json
 """
 
@@ -461,10 +462,9 @@ def generateQuestion(arxivId, allSquaiArxivIds, db, agent): #, judgingAgent
     prompt = build_prompt(clean_papers_for_prompt)
     print("asking llm")
     llmanswer = agent.generate(prompt)
-
+    print("ANSWERER")
+    print(llmanswer)
     cleanedAndParsedJson = clean_and_parse_json(llmanswer) 
-    print("ANSWERER\n")
-    print(json.dumps(cleanedAndParsedJson))
     free_gpu_memory()
 
     if not cleanedAndParsedJson:
