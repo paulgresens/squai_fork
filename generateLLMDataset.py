@@ -41,12 +41,12 @@ OUTPUT_FILE = "generatedQuestions.jsonl"
 CACHE_FILE="alreadyUsedArxivIds.txt"
 ERROR_CACHE_FILE = "errorAtTheseArxivIds.txt"
 # MODEL = "Qwen/Qwen2.5-72B-Instruct"
-MODEL = "unsloth/Qwen2.5-72B-Instruct"
+# MODEL = "unsloth/Qwen2.5-72B-Instruct"
 # MODEL = "meta-llama/Llama-3.3-70B-Instruct" # even worse
 #MODEL = "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
 # MODEL = "Qwen/Qwen3-Next-80B-A3B-Instruct" # next model to try
-# MODEL = "unsloth/Qwen3-Next-80B-A3B-Instruct-bnb-4bit"
-JUDGING_MODEL = "mistralai/Mixtral-8x7B-Instruct-v0.1"
+MODEL = "unsloth/Qwen3-Next-80B-A3B-Instruct-bnb-4bit"
+# JUDGING_MODEL = "mistralai/Mixtral-8x7B-Instruct-v0.1"
 PAPER_CHARACTER_LIMIT=25000
 QUESTIONS_TO_GENERATE = 200
 
