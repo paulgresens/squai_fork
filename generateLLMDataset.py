@@ -43,6 +43,7 @@ ERROR_CACHE_FILE = "errorAtTheseArxivIds.txt"
 # MODEL = "Qwen/Qwen2.5-72B-Instruct"
 # MODEL = "meta-llama/Llama-3.3-70B-Instruct" # even worse
 MODEL = "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
+#MODEL = "" # next model to try
 JUDGING_MODEL = "mistralai/Mixtral-8x7B-Instruct-v0.1"
 PAPER_CHARACTER_LIMIT=25000
 QUESTIONS_TO_GENERATE = 200
@@ -203,7 +204,7 @@ OUTPUT FORMAT
         "judgement": "<GOOD / BORDERLINE / BAD>",
         "explanation": "<explain your judgement for decontextualization>"
 
-    }}
+    }},
     "confidence": <0 to 1 rate how confident you are in the judgements>
 }}
 
@@ -230,7 +231,7 @@ Papers: {paperTexts}
 OUTPUT FORMAT:
 {{
     "answerable": <true/false - answer this as a boolean value>,
-    "explanation" "<if true: explain how the answer was obtained from the available papers, if false:explain what critical information is missing and why the question cannot be answered >",
+    "explanation": "<if true: explain how the answer was obtained from the available papers, if false:explain what critical information is missing and why the question cannot be answered >",
     "confidence":  <0 to 1 rate how confident you are>
 }}
 Do not deviate from this schema. Do not add any preciding information like ```json. Only Answer with the valid json
@@ -321,6 +322,7 @@ def getPaperReferencesAndEmbeddingFromSemanticScholar(arxiv_id):
         "User-Agent": "ResearchScript/1.0",
         "x-api-key": SEMANTIC_SCHOLAR_API_KEY
     }
+    print("getting references and vectors for: " + arxiv_id)
     try:
         response = requests.get(url, params={"fields": fields, "limit": 1000}, headers=headers)
         time.sleep(10)
@@ -504,22 +506,22 @@ def generateQuestion(arxivId, allSquaiArxivIds, db, agent): #, judgingAgent
     # free_gpu_memory()
 
     # experimenterPromptEvidence = buildExperimentererPromps("paper1: " + cleanedAndParsedJson["question"], bridgeEvidencePaperText)
-    # experimenterPromptEvidenceExperimentorResult = agent.generate(experimenterPromptEvidence)
+    # experimenterPromptEvidenceExperimentorResult = judgingAgent.generate(experimenterPromptEvidence)
     # experimenterPromptEvidenceExperimentorResultParsed = clean_and_parse_json(experimenterPromptEvidenceExperimentorResult) 
     # free_gpu_memory()
     # experimenterPromptAnswer = buildExperimentererPromps("paper1: " + cleanedAndParsedJson["question"], bridgeAnswerPaperText)
-    # experimenterPromptAnswerExperimentorResult = agent.generate(experimenterPromptAnswer)
+    # experimenterPromptAnswerExperimentorResult = judgingAgent.generate(experimenterPromptAnswer)
     # experimenterPromptAnswerExperimentorResultParsed = clean_and_parse_json(experimenterPromptAnswerExperimentorResult) 
     # free_gpu_memory()
 
     # bothPaperTexts = "EvidencePaperText:\n" + bridgeEvidencePaperText + "\n" + "BridgeAnswerText" +bridgeAnswerPaperText
     # experimenterPromptBoth = buildExperimentererPromps(cleanedAndParsedJson["question"], bothPaperTexts)
-    # experimenterPromptBothResult = agent.generate(experimenterPromptBoth)
+    # experimenterPromptBothResult = judgingAgent.generate(experimenterPromptBoth)
     # experimenterPromptBothResultParsed = clean_and_parse_json(experimenterPromptBothResult) 
     # free_gpu_memory()
 
     # experimentererConnectionPrompt =  buildExperimentererConnectionPrompt(bridgeEvidencePaperText, bridgeAnswerPaperText, cleanedAndParsedJson["reasoning"]["connectionExplanation"])
-    # experimentererConnectionResult = agent.generate(experimentererConnectionPrompt)
+    # experimentererConnectionResult = judgingAgent.generate(experimentererConnectionPrompt)
     # experimentererConnectionResultParsed = clean_and_parse_json(experimentererConnectionResult)
     # free_gpu_memory()
 
