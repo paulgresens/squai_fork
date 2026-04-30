@@ -36,7 +36,7 @@ os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 # --- CONFIGURATION ---
 INPUT_FILE = "generatedQuestionsWithoutJudgement.jsonl"
 OUTPUT_FILE = "generatedQuestionsWithJudgement.jsonl"
-JUDGING_MODEL = "mistralai/Mixtral-8x7B-Instruct-v0.1"
+JUDGING_MODEL = "unsloth/Llama-3.3-70B-Instruct-bnb-4bit"
 
 JUDGING_PROMPT_TEMPLATE ="""
 You are evaluating a scientific question-answer (Q-A) example.
@@ -244,13 +244,27 @@ def addJudgementToQuestion(question,judgingAgent):
 
 def main():
     judgingAgent = LLMAgent(JUDGING_MODEL)
-    
+    alreadyAnsweredQuestioncCount = 0
+    try:
+        with open(OUTPUT_FILE, "r") as in_file:
+            for line in in_file:
+                line = line.strip()
+                if line:
+                    alreadyAnsweredQuestioncCount += 1
+    except FileNotFoundError:
+        alreadyAnsweredQuestioncCount = 0
+    print("already processes entries: " + str(alreadyAnsweredQuestioncCount))
     with open(INPUT_FILE, "r") as in_file:
-        for line in in_file:
+        for i, line in enumerate(in_file):
+            if i < alreadyAnsweredQuestioncCount:
+                continue
+           
             line = line.strip()
             if not line:
                 continue # Skip empty lines
             question = clean_and_parse_json(line)
+
+
             finishedQuestionWithJudgement = addJudgementToQuestion(question,judgingAgent)
 
             with open(OUTPUT_FILE, "a") as file: # Using "a" to append each new question
