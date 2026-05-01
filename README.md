@@ -141,7 +141,7 @@ SQuAI improves combined scores by up to **12%** in faithfulness compared to a st
 
 ### Dataset & Resources
 
-- **unarXive 2024**: Full-text arXiv papers with structured metadata, section segmentation, and citation annotations. [Hugging Face Dataset](https://huggingface.co/datasets/ines-besrour/unarxive_2024)
+- **unarXive 2024**: Full-text arXiv papers with structured metadata, section segmentation, and citation annotwations. [Hugging Face Dataset](https://huggingface.co/datasets/ines-besrour/unarxive_2024)
 - **QA Triplet Benchmark**: 1,000 synthetic question–answer–evidence triplets for reproducible evaluation.
 
 ### `$HOME/data_dir`
@@ -156,6 +156,8 @@ For the case that you want to change where the FAISS data is stored, create a fi
 
 Check if `/etc/dont_copy` exists.
 
+<!-- scp togr096h@dataport1.hpc.tu-dresden.de:/data/horse/ws/togr096h-faiss1/SQuAI/contextExtractionResult.txt  ./dump/ &&  -->
 
-
-scp togr096h@dataport1.hpc.tu-dresden.de:/data/horse/ws/togr096h-faiss1/SQuAI/contextExtractionResult.txt  ./
+scp togr096h@dataport1.hpc.tu-dresden.de:/data/horse/ws/togr096h-faiss1/SQuAI/generatedQuestions.jsonl ./dump/
+scp togr096h@dataport1.hpc.tu-dresden.de:/data/horse/ws/togr096h-faiss1/SQuAI/generatedQuestionsWithoutJudgement.jsonl ./dump/
+scp togr096h@dataport1.hpc.tu-dresden.de:/data/horse/ws/togr096h-faiss1/SQuAI/generatedQuestionsWithJudgement.jsonl ./dump/
