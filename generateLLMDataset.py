@@ -62,8 +62,16 @@ You are given 5 candidate scientific papers in the following format:
 
 Your task is to select the best pair of papers and generate ONE question that requires connected reasoning across exactly TWO papers.
 
+PAPER SELECTION
+First, select the best pair of papers.
+The selected pair must satisfy:
+-Paper A provides an intermediate entity, method, dataset, variable, or result
+-Paper B uses, evaluates, extends, contrasts with, explains, or depends on that intermediate element
+-The final answer requires combining both papers
+-Do NOT select papers that are only loosely related or redundant.
+
 REQUIREMENTS
-A valid question MUST:
+A valid question MUST: 
 -require exactly two reasoning steps (2-hop)
 -use exactly two supporting papers
 -require sequential reasoning:
@@ -72,16 +80,8 @@ A valid question MUST:
 -NOT be answerable from either paper alone
 -be self-contained and unambiguous
 -require combining information across both papers
-
+-only use information that is present in the papers, do not invent hypothetical connections or applications. Only use existing connections.
 -question cannot contain explicit references to the papers or its content such as "in this paper", "the proposed methods" or similar
-
-PAPER SELECTION
-First, select the best pair of papers.
-The selected pair must satisfy:
--Paper A provides an intermediate entity, method, dataset, variable, or result
--Paper B uses, evaluates, extends, contrasts with, explains, or depends on that intermediate element
--The final answer requires combining both papers
--Do NOT select papers that are only loosely related or redundant.
 
 AVOID
 Do NOT generate:

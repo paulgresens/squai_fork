@@ -36,7 +36,7 @@ os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 # --- CONFIGURATION ---
 INPUT_FILE = "generatedQuestionsWithoutJudgement.jsonl"
 OUTPUT_FILE = "generatedQuestionsWithJudgement.jsonl"
-JUDGING_MODEL = "unsloth/Llama-3.3-70B-Instruct-bnb-4bit"
+JUDGING_MODEL = "unsloth/Meta-Llama-3.1-70B"
 
 JUDGING_PROMPT_TEMPLATE ="""
 You are evaluating a scientific question-answer (Q-A) example.
@@ -251,8 +251,9 @@ def main():
                 line = line.strip()
                 if line:
                     alreadyAnsweredQuestioncCount += 1
-    except FileNotFoundError:
+    except :
         alreadyAnsweredQuestioncCount = 0
+ 
     print("already processes entries: " + str(alreadyAnsweredQuestioncCount))
     with open(INPUT_FILE, "r") as in_file:
         for i, line in enumerate(in_file):
@@ -271,7 +272,7 @@ def main():
                 # json.dump automatically formats your dictionary and writes it to the file
                 json.dump(finishedQuestionWithJudgement, file)
                 file.write("\n") # Add a newline so the next JSON object starts on a new line
-
+            print("JUDGEMENT completed for " + question["question"])
 if __name__ == "__main__":
     free_gpu_memory()
     main()
