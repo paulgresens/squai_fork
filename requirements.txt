@@ -41,5 +41,12 @@ requests
 #cleaning
 rapidfuzz 
 
-#flash attn
-flash-attn --no-build-isolation
+# --- Hardware Acceleration (The "Fast Path") ---
+# Use --no-build-isolation to prevent version conflicts during compilation
+# causal-conv1d>=1.6.0
+# flash-linear-attention>=0.4.0
+# flash-attn>=2.7.0
+
+# # --- Build Tools (Required to compile the kernels above) ---
+# ninja
+# packaging
