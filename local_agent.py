@@ -101,9 +101,10 @@ class LLMAgent:
         messages = [{"role": "user", "content": prompt}]
 
         # Apply the model's chat template
-        formatted_prompt = self.tokenizer.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
-        )
+        # formatted_prompt = self.tokenizer.apply_chat_template(
+        #     messages, tokenize=False, add_generation_prompt=True
+        # )
+        formatted_prompt = prompt
 
         # Tokenize the formatted prompt
         model_inputs = self.tokenizer([formatted_prompt], return_tensors="pt").to(

@@ -36,7 +36,7 @@ os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 # --- CONFIGURATION ---
 INPUT_FILE = "generatedQuestionsWithoutJudgement.jsonl"
 OUTPUT_FILE = "generatedQuestionsWithJudgement.jsonl"
-JUDGING_MODEL = "unsloth/Meta-Llama-3.1-70B"
+JUDGING_MODEL = "meta-llama/Meta-Llama-3-70B"
 
 JUDGING_PROMPT_TEMPLATE ="""
 You are evaluating a scientific question-answer (Q-A) example.
