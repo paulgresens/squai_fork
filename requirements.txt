@@ -50,3 +50,4 @@ rapidfuzz
 # # --- Build Tools (Required to compile the kernels above) ---
 # ninja
 # packaging
+openai
