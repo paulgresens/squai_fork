@@ -12,6 +12,7 @@ import numpy as np
 from dotenv import load_dotenv
 import time
 from local_agent import LLMAgent
+import requests
 from config import DB_PATH
 
 def free_gpu_memory():
@@ -103,7 +104,7 @@ OUTPUT FORMAT
             "role": <bridgeEvidence/ bridgeAnswer depending on the papers role>
         }
     ],
-    "rejectedPapers: [<paperId1>, <paperId2>, <paperId3>],
+    "rejectedPapers": [<paperId1>, <paperId2>, <paperId3>],
     "reasoning": {
         "step1": <Explain your reasoning for step1 on paper A>,
         "step2": <use step1 reasoning to derive or support the final answer>,
@@ -113,7 +114,7 @@ OUTPUT FORMAT
     "question" : <decontextualize the questionDraft, so that it contains no explicit reference to the papers or external figures. Every reference to a paper should instead directly name the concept, phenomenon, method or similar that you are referring to, briefly describing it if needed. The question cannot contain explicit references to the papers or its content such as "in this paper", "the proposed methods" or similar.>",
     "answerWithPaperReferences" : <long-form paragraph integrating Paper A and Paper B with citations like [Paper A], [Paper B]>,
     "answerWithoutPaperReferences": <long-form paragraph that answers the question, without referencing the papers, but directly incorporatestheir information, so that it is standalone understandable>,
-    "isNotSingleHop" <explain why the question you generated is not single hop>
+    "isNotSingleHop": <explain why the question you generated is not single hop>
 }
 
 Do not deviate from this schema. Do not add any preciding information like ```json. Only Answer with the valid json
@@ -311,6 +312,35 @@ def getCategoryFromArxiv(arxiv_id):
         return None
 
 
+def askScadsApiLLM(prompt):
+    url = "https://llm.scads.ai/v1/chat/completions"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {SCADS_API_KEY}"
+    }
+
+    # 3. Create your prompt payload
+    payload = {
+        "model": "openai/gpt-oss-120b",
+        "messages": [
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        "temperature": 0.0
+    }
+
+    # 4. Send the request and print the answer
+    response = requests.post(url, headers=headers, json=payload)
+    print("-----------------")
+    print(response)
+    print("-----------------")
+    # Convert the response to JSON and extract the text
+    data = response.json()
+    return (data["choices"][0]["message"]["content"])
+
+
 
 def get_cosine_similarity(vec1, vec2):
     v1, v2 = np.array(vec1), np.array(vec2)
@@ -355,7 +385,8 @@ def clean_and_parse_json(text):
     else:
         return None
 
-def generateQuestion(arxivId, allSquaiArxivIds, db, agent): #, judgingAgent
+# def generateQuestion(arxivId, allSquaiArxivIds, db, agent): #, judgingAgent
+def generateQuestion(arxivId, allSquaiArxivIds, db): #, judgingAgent
     starting_id = arxivId
     startingPaperFullText = getPaperFullText(db,starting_id)
     if startingPaperFullText is None:
@@ -465,7 +496,8 @@ def generateQuestion(arxivId, allSquaiArxivIds, db, agent): #, judgingAgent
 
     prompt = build_prompt(clean_papers_for_prompt)
     print("asking llm")
-    llmanswer = agent.generate(prompt)
+    # llmanswer = agent.generate(prompt)
+    llmanswer = askScadsApiLLM(prompt)
     print("ANSWERER")
     print(llmanswer)
     cleanedAndParsedJson = clean_and_parse_json(llmanswer) 
@@ -553,7 +585,7 @@ def generateQuestion(arxivId, allSquaiArxivIds, db, agent): #, judgingAgent
 
 def main():
     db = plyvel.DB(DB_PATH, create_if_missing=False)
-    agent = LLMAgent(MODEL)
+    # agent = LLMAgent(MODEL)
     # judgingAgent = LLMAgent(JUDGING_MODEL)
     all_squai_ids = get_all_squai_arxiv_ids()
     
@@ -584,7 +616,8 @@ def main():
 
         question = None
         try:
-            question = generateQuestion(randomArxiv, all_squai_ids, db, agent) # removed parameter , judgingAgent here
+#           question = generateQuestion(randomArxiv, all_squai_ids, db, agent) # removed parameter , judgingAgent here
+            question = generateQuestion(randomArxiv, all_squai_ids, db) # removed parameter , judgingAgent here
         except torch.OutOfMemoryError:
             with open(ERROR_CACHE_FILE, "a", encoding="utf-8") as f:
                     f.write("OOM ERROR" + randomArxiv + "\n")    
