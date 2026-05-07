@@ -35,9 +35,8 @@ def free_gpu_memory():
 
 
 
-load_dotenv()
-os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 # --- CONFIGURATION ---
+SCADS_API_MODEL = "openai/gpt-oss-120b"
 INPUT_FILE = "generatedQuestionsWithoutJudgement.jsonl"
 OUTPUT_FILE = "generatedQuestionsWithJudgement.jsonl"
 JUDGING_MODEL = "Qwen/Qwen3-Next-80B-A3B-Instruct"
@@ -196,6 +195,35 @@ def buildExperimentererPromps(question,paperTexts):
 def buildExperimentererConnectionPrompt(paper1, paper2,connection):
     return EXPERIMENTERER_CONNECTION_PROMPT.format(paper1=paper1, paper2=paper2, connection=connection)
 
+def askScadsApiLLM(prompt):
+    url = "https://llm.scads.ai/v1/chat/completions"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {SCADS_API_KEY}"
+    }
+
+    # 3. Create your prompt payload
+    payload = {
+        "model": SCADS_API_MODEL,
+        "messages": [
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        "temperature": 0.0
+    }
+
+    # 4. Send the request and print the answer
+    response = requests.post(url, headers=headers, json=payload)
+    print("-----------------")
+    print(response)
+    print("-----------------")
+    # Convert the response to JSON and extract the text
+    data = response.json()
+    time.sleep(10)
+    return (data["choices"][0]["message"]["content"])
+
 
 def clean_and_parse_json(text):
     start_idx = text.find('{')
@@ -210,7 +238,7 @@ def clean_and_parse_json(text):
     else:
         return None
 
-def addJudgementToQuestion(question,judgingAgent):
+def addJudgementToQuestion(question):
     cleanedAndParsedJson = question
 
     bridgeEvidencePaperText = cleanedAndParsedJson["bridgeEvidencePaperText"]
@@ -218,7 +246,8 @@ def addJudgementToQuestion(question,judgingAgent):
 
     judgementPrompt = build_judging_prompt(cleanedAndParsedJson["question"], cleanedAndParsedJson["answerWithoutPaperReferences"], bridgeEvidencePaperText, bridgeAnswerPaperText, json.dumps(cleanedAndParsedJson["reasoning"]))
     
-    judgementResult = judgingAgent.generate(judgementPrompt)
+    # judgementResult = judgingAgent.generate(judgementPrompt)
+    judgementResult = askScadsApiLLM(judgementPrompt)
     judgementResultParsed = clean_and_parse_json(judgementResult) 
     print("JUDGE\n")
     print(json.dumps(judgementResultParsed))
@@ -226,17 +255,20 @@ def addJudgementToQuestion(question,judgingAgent):
     free_gpu_memory()
 
     experimenterPromptEvidence = buildExperimentererPromps("paper1: " + cleanedAndParsedJson["question"], bridgeEvidencePaperText)
-    experimenterPromptEvidenceExperimentorResult = judgingAgent.generate(experimenterPromptEvidence)
+    # experimenterPromptEvidenceExperimentorResult = judgingAgent.generate(experimenterPromptEvidence)
+    experimenterPromptEvidenceExperimentorResult = askScadsApiLLM(experimenterPromptEvidence)
     experimenterPromptEvidenceExperimentorResultParsed = clean_and_parse_json(experimenterPromptEvidenceExperimentorResult) 
     free_gpu_memory()
     experimenterPromptAnswer = buildExperimentererPromps("paper1: " + cleanedAndParsedJson["question"], bridgeAnswerPaperText)
-    experimenterPromptAnswerExperimentorResult = judgingAgent.generate(experimenterPromptAnswer)
+    # experimenterPromptAnswerExperimentorResult = judgingAgent.generate(experimenterPromptAnswer)
+    experimenterPromptAnswerExperimentorResult = askScadsApiLLM(experimenterPromptAnswer)
     experimenterPromptAnswerExperimentorResultParsed = clean_and_parse_json(experimenterPromptAnswerExperimentorResult) 
     free_gpu_memory()
 
     bothPaperTexts = "EvidencePaperText:\n" + bridgeEvidencePaperText + "\n" + "BridgeAnswerText" + "\n" + bridgeAnswerPaperText
     experimenterPromptBoth = buildExperimentererPromps(cleanedAndParsedJson["question"], bothPaperTexts)
-    experimenterPromptBothResult = judgingAgent.generate(experimenterPromptBoth)
+    # experimenterPromptBothResult = judgingAgent.generate(experimenterPromptBoth)
+    experimenterPromptBothResult = askScadsApiLLM(experimenterPromptBoth)
     experimenterPromptBothResultParsed = clean_and_parse_json(experimenterPromptBothResult) 
     free_gpu_memory()
 
@@ -252,7 +284,7 @@ def addJudgementToQuestion(question,judgingAgent):
     return cleanedAndParsedJson
 
 def main():
-    judgingAgent = LLMAgent(JUDGING_MODEL)
+    # judgingAgent = LLMAgent(JUDGING_MODEL)
     alreadyAnsweredQuestioncCount = 0
     try:
         with open(OUTPUT_FILE, "r") as in_file:
@@ -275,7 +307,9 @@ def main():
             question = clean_and_parse_json(line)
 
 
-            finishedQuestionWithJudgement = addJudgementToQuestion(question,judgingAgent)
+            # finishedQuestionWithJudgement = addJudgementToQuestion(question,judgingAgent)
+            finishedQuestionWithJudgement = addJudgementToQuestion(question)
+                                                                   
 
             with open(OUTPUT_FILE, "a") as file: # Using "a" to append each new question
                 # json.dump automatically formats your dictionary and writes it to the file
