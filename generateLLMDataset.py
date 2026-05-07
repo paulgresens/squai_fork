@@ -92,6 +92,7 @@ Do NOT generate:
 -literature summary questions
 -questions answerable from a single paper
 -questions where papers are only topically related but not logically connected
+-Do NOT use external scientific knowledge, commonsense assumptions, or unstated domain knowledge, only use the information that is present in the papers
 
 OUTPUT FORMAT
 {
@@ -616,13 +617,13 @@ def main():
             continue
         print("trying: " + randomArxiv)
 
-        category = getCategoryFromArxiv(randomArxiv)
-        physicsCategories = ["astro-ph", "cond-mat","gr-qc", "hep-ex", "hep-lat", "hep-ph",  "hep-th", "math-ph", "nlin.", "nucl-ex", "nucl-th",  "physics",  "quant-ph"]
+        # category = getCategoryFromArxiv(randomArxiv)
+        # physicsCategories = ["astro-ph", "cond-mat","gr-qc", "hep-ex", "hep-lat", "hep-ph",  "hep-th", "math-ph", "nlin.", "nucl-ex", "nucl-th",  "physics",  "quant-ph"]
         
         # pfusch später fixen mit else True
-        isPhysics = any(category.startswith(cat) for cat in physicsCategories) if category is not None else True
-        if isPhysics is not None and isPhysics:
-            continue
+        # isPhysics = any(category.startswith(cat) for cat in physicsCategories) if category is not None else True
+        # if isPhysics is not None and isPhysics:
+        #     continue
 
         question = None
         try:
