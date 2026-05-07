@@ -14,6 +14,10 @@ import time
 from local_agent import LLMAgent
 from config import DB_PATH
 
+load_dotenv()
+# --- CONFIGURATION ---
+SCADS_API_KEY = os.getenv("SCADS_API_KEY")
+
 def free_gpu_memory():
     """Force garbage collection and clear GPU cache."""
     # Attempt to clear globals if they exist here (failsafe)
@@ -155,8 +159,8 @@ Papers: {paperTexts}
 
 OUTPUT FORMAT:
 {{
-    "answerable": <true/false - answer this as a boolean value>,
     "explanation": "<strict reasoning: list and explain which exact steps are supported and which are missing>",
+    "answerable": <true/false - answer this as a boolean value based on your explanation on wether the question is fully answerable or not. Answer with true if it is, else with false>,
     "confidence":  <0 to 1 rate how confident you are>
 }}
 Do not deviate from this schema. Do not add any preciding information like ```json. Only Answer with the valid json
@@ -236,15 +240,15 @@ def addJudgementToQuestion(question,judgingAgent):
     experimenterPromptBothResultParsed = clean_and_parse_json(experimenterPromptBothResult) 
     free_gpu_memory()
 
-    experimentererConnectionPrompt =  buildExperimentererConnectionPrompt(bridgeEvidencePaperText, bridgeAnswerPaperText, cleanedAndParsedJson["reasoning"]["connectionExplanation"])
-    experimentererConnectionResult = judgingAgent.generate(experimentererConnectionPrompt)
-    experimentererConnectionResultParsed = clean_and_parse_json(experimentererConnectionResult)
-    free_gpu_memory()
+    # experimentererConnectionPrompt =  buildExperimentererConnectionPrompt(bridgeEvidencePaperText, bridgeAnswerPaperText, cleanedAndParsedJson["reasoning"]["connectionExplanation"])
+    # experimentererConnectionResult = judgingAgent.generate(experimentererConnectionPrompt)
+    # experimentererConnectionResultParsed = clean_and_parse_json(experimentererConnectionResult)
+    # free_gpu_memory()
 
     cleanedAndParsedJson["experimenterPromptEvidenceExperimentorResult"] = experimenterPromptEvidenceExperimentorResultParsed
     cleanedAndParsedJson["experimenterPromptAnswerExperimentorResult"] = experimenterPromptAnswerExperimentorResultParsed
     cleanedAndParsedJson["experimenterPromptBothResult"] = experimenterPromptBothResultParsed
-    cleanedAndParsedJson["experimentererConnectionResult"] = experimentererConnectionResultParsed
+    # cleanedAndParsedJson["experimentererConnectionResult"] = experimentererConnectionResultParsed
     return cleanedAndParsedJson
 
 def main():
