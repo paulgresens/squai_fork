@@ -310,7 +310,7 @@ def getCategoryFromArxiv(arxiv_id):
     
     except Exception as e:
         print(f"Error fetching metadata for {arxiv_id}: {e}")
-        time.sleep(10)
+        time.sleep(300)
         return None
 
 
