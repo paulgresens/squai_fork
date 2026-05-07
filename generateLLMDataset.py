@@ -10,7 +10,6 @@ import torch
 import io
 import numpy as np
 from dotenv import load_dotenv
-import time
 from local_agent import LLMAgent
 import requests
 from config import DB_PATH
@@ -500,6 +499,7 @@ def generateQuestion(arxivId, allSquaiArxivIds, db): #, judgingAgent
     prompt = build_prompt(clean_papers_for_prompt)
     print("asking llm")
     # llmanswer = agent.generate(prompt)
+    print(str(time.time()))
     llmanswer = askScadsApiLLM(prompt)
     print("ANSWERER")
     print(llmanswer)
