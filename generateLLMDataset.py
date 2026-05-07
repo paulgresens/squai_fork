@@ -11,7 +11,6 @@ import io
 import numpy as np
 from dotenv import load_dotenv
 from local_agent import LLMAgent
-import requests
 from config import DB_PATH
 
 def free_gpu_memory():
@@ -308,9 +307,17 @@ def getCategoryFromArxiv(arxiv_id):
         time.sleep(10)
         return category
     
-    except Exception as e:
+    except requests.exceptions.HTTPError as e:
         print(f"Error fetching metadata for {arxiv_id}: {e}")
-        time.sleep(300)
+        status_code = e.response.status_code
+        print("429 - sleeping for 5min")
+        if (status_code == 429):
+            time.sleep(300)
+        else:
+            time.sleep(10)
+        return None
+    except Exception as e:
+        time.sleep(10)
         return None
 
 
