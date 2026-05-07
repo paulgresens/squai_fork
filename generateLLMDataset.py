@@ -311,10 +311,11 @@ def getCategoryFromArxiv(arxiv_id):
     except requests.exceptions.HTTPError as e:
         print(f"Error fetching metadata for {arxiv_id}: {e}")
         status_code = e.response.status_code
-        print("429 - sleeping for 5min")
         if (status_code == 429):
+            print("429 - sleeping for 5min")
             time.sleep(300)
         else:
+            print("errorCode: " + str(status_code))
             time.sleep(10)
         return None
     except Exception as e:
