@@ -47,7 +47,7 @@ ERROR_CACHE_FILE = "errorAtTheseArxivIds.txt"
 #MODEL = "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
 #MODEL = "Qwen/Qwen3-Next-80B-A3B-Instruct" # best performance it seems
 # SCADS_API_MODEL = "openai/gpt-oss-120b"
-SCADS_API_MODEL = "MiniMaxAI/MiniMax-M2.5"
+SCADS_API_MODEL = "moonshotai/Kimi-K2.6"
 
 # MODEL = "unsloth/Qwen3-Next-80B-A3B-Instruct-bnb-4bit"
 # JUDGING_MODEL = "mistralai/Mixtral-8x7B-Instruct-v0.1"
