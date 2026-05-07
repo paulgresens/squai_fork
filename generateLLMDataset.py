@@ -45,7 +45,10 @@ ERROR_CACHE_FILE = "errorAtTheseArxivIds.txt"
 # MODEL = "unsloth/Qwen2.5-72B-Instruct"
 # MODEL = "meta-llama/Llama-3.3-70B-Instruct" # even worse
 #MODEL = "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
-MODEL = "Qwen/Qwen3-Next-80B-A3B-Instruct" # best performance it seems
+#MODEL = "Qwen/Qwen3-Next-80B-A3B-Instruct" # best performance it seems
+# SCADS_API_MODEL = "openai/gpt-oss-120b"
+SCADS_API_MODEL = "MiniMaxAI/MiniMax-M2.5"
+
 # MODEL = "unsloth/Qwen3-Next-80B-A3B-Instruct-bnb-4bit"
 # JUDGING_MODEL = "mistralai/Mixtral-8x7B-Instruct-v0.1"
 PAPER_CHARACTER_LIMIT=25000
@@ -321,7 +324,7 @@ def askScadsApiLLM(prompt):
 
     # 3. Create your prompt payload
     payload = {
-        "model": "openai/gpt-oss-120b",
+        "model": SCADS_API_MODEL,
         "messages": [
             {
                 "role": "user",
