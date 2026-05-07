@@ -132,17 +132,22 @@ Do not deviate from this schema. Do not add any preciding information like ```js
 """
 
 EXPERIMENTERER_PROMPT = """
-You are testing whether a scientific multi-hop question truly requires the provided papers.
+You are testing whether a scientific multi-hop question can be fully answered using only the provided papers.
 You are given:
-a question
+-a question
 a subset of papers (one or more papers may be missing)
-Your task is to determine whether the question can still be fully answered using ONLY the provided papers.
+
+You are NOT checking whether the topic is mentioned.
+You are checking whether the COMPLETE reasoning chain needed to answer the question is explicitly supported by the provided papers.
 
 IMPORTANT:
 -Use only the information from the given papers
 -Do NOT rely on external knowledge
 -Be strict: if any critical information is missing, the answer is NOT recoverable
--Partial or speculative answers count as NOT answerable
+-Every step required to answer must be explicitly supported by the text
+-If ANY reasoning step is missing, mark as NOT answerable
+-Mentioning related concepts is NOT sufficient
+-Partial reasoning is NOT sufficient
 
 INPUT:
 Question: {question}
@@ -151,7 +156,7 @@ Papers: {paperTexts}
 OUTPUT FORMAT:
 {{
     "answerable": <true/false - answer this as a boolean value>,
-    "explanation": "<if true: explain how the answer was obtained from the available papers, if false:explain what critical information is missing and why the question cannot be answered >",
+    "explanation": "<strict reasoning: list and explain which exact steps are supported and which are missing>",
     "confidence":  <0 to 1 rate how confident you are>
 }}
 Do not deviate from this schema. Do not add any preciding information like ```json. Only Answer with the valid json
