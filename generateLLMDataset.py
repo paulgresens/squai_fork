@@ -408,11 +408,11 @@ def getPaperReferencesAndEmbeddingFromSemanticScholar(arxiv_id):
     print("getting references and vectors for: " + arxiv_id)
     try:
         response = requests.get(url, params={"fields": fields, "limit": 1000}, headers=headers)
-        time.sleep(5)
+        time.sleep(2)
         return response.json()
     except Exception as e:
         print(f"Semantic Scholar Fetch failed: {e}")
-        time.sleep(5)
+        time.sleep(2)
         return {"error": str(e)}
     finally:
         api_lock.unlock()

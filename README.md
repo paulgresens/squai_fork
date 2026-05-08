@@ -161,3 +161,23 @@ Check if `/etc/dont_copy` exists.
 scp togr096h@dataport1.hpc.tu-dresden.de:/data/horse/ws/togr096h-faiss1/SQuAI/generatedQuestions.jsonl ./dump/
 scp togr096h@dataport1.hpc.tu-dresden.de:/data/horse/ws/togr096h-faiss1/SQuAI/generatedQuestionsWithoutJudgement.jsonl ./dump/
 scp togr096h@dataport1.hpc.tu-dresden.de:/data/horse/ws/togr096h-faiss1/SQuAI/generatedQuestionsWithJudgement.jsonl ./dump/
+
+# MERGE generatedQuestions files
+
+cat generatedQuestions.jsonl generatedQuestions2.jsonl generatedQuestions3.jsonl generatedQuestions4.jsonl generatedQuestions5.jsonl generatedQuestions6.jsonl generatedQuestions7.jsonl generatedQuestions8.jsonl generatedQuestions9.jsonl generatedQuestions10.jsonl> merged.jsonl
+
+curl "https://llm.scads.ai/v1/chat/completions" \
+ -H "Content-Type: application/json" \
+ -H "Authorization: Bearer TOKEN" \
+ -d '{
+"model": "openai/gpt-oss-120b",
+"messages": [
+{
+"role": "user",
+"content": "Explain the weak containment property in C*-algebras in one sentence."
+}
+],
+"temperature": 0.0
+}'
+
+last prompt edit: beginning with question 16
