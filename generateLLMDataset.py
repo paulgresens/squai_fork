@@ -8,6 +8,7 @@ import requests
 import gc
 import torch
 import io
+import fcntl
 import numpy as np
 from dotenv import load_dotenv
 from local_agent import LLMAgent
@@ -46,11 +47,50 @@ ERROR_CACHE_FILE = "errorAtTheseArxivIds.txt"
 #MODEL = "Qwen/Qwen3-Next-80B-A3B-Instruct" # best performance it seems
 # SCADS_API_MODEL = "openai/gpt-oss-120b"
 SCADS_API_MODEL = "moonshotai/Kimi-K2.6"
+SEMANTIC_SCHOLAR_API_BLOCK_FILE = "semanticScholarApiLock.txt"
+DB_LOCK_FILE = "dbLock.txt"
 
 # MODEL = "unsloth/Qwen3-Next-80B-A3B-Instruct-bnb-4bit"
 # JUDGING_MODEL = "mistralai/Mixtral-8x7B-Instruct-v0.1"
 PAPER_CHARACTER_LIMIT=25000
 QUESTIONS_TO_GENERATE = 200
+
+
+
+class APILockManager:
+    def __init__(self, lock_file):
+        self.lock_file = lock_file
+        self.file_obj = None
+
+    def lock(self):
+        """Acquires the lock. Will freeze the script here if another script holds it."""
+        # Open the file manually and KEEP IT OPEN.
+        self.file_obj = open(self.lock_file, "a", encoding="utf-8")
+        fcntl.flock(self.file_obj, fcntl.LOCK_EX)
+        self.file_obj.write("LOCKED")
+        self.file_obj.flush() # Ensure it writes to disk immediately
+        print("🔒 Lock acquired.")
+
+    def unlock(self):
+        """Explicitly releases the lock so other scripts can proceed."""
+        if self.file_obj and not self.file_obj.closed:
+            # Release the lock and close the file
+            fcntl.flock(self.file_obj, fcntl.LOCK_UN)
+            self.file_obj.close()
+            self.file_obj = None
+            print("🔓 Lock released.")
+
+
+# Instantiate your lock manager once at the top of your script
+api_lock = APILockManager(SEMANTIC_SCHOLAR_API_BLOCK_FILE)
+db_lock = APILockManager(DB_LOCK_FILE)
+
+if not os.path.exists(SEMANTIC_SCHOLAR_API_BLOCK_FILE):
+    with open(SEMANTIC_SCHOLAR_API_BLOCK_FILE, "a", encoding="utf-8") as f:
+        f.write("lock")
+if not os.path.exists(DB_LOCK_FILE):
+    with open(DB_LOCK_FILE, "a", encoding="utf-8") as f:
+        f.write("lock")
 
 PROMPT_TEMPLATE = """
 You are generating a scientific 2-hop question-answer-evidence (Q-A) Tuple.
@@ -364,23 +404,44 @@ def getPaperReferencesAndEmbeddingFromSemanticScholar(arxiv_id):
         "User-Agent": "ResearchScript/1.0",
         "x-api-key": SEMANTIC_SCHOLAR_API_KEY
     }
+    api_lock.lock()
     print("getting references and vectors for: " + arxiv_id)
     try:
         response = requests.get(url, params={"fields": fields, "limit": 1000}, headers=headers)
-        time.sleep(10)
+        time.sleep(5)
         return response.json()
     except Exception as e:
         print(f"Semantic Scholar Fetch failed: {e}")
-        time.sleep(10)
+        time.sleep(5)
         return {"error": str(e)}
+    finally:
+        api_lock.unlock()
 
 
 
-def getPaperFullText(db, arxivId):
-    content = db.get(arxivId.encode('utf-8'))
-    if content is None: 
-        return None
-    return (content.decode('utf-8'), arxivId)[0]
+
+def getPaperFullText(arxivId):
+    try:
+        db_lock.lock()
+        print("-------DB_BOOT_TIME")
+        print(time.time())
+        db = plyvel.DB(DB_PATH, create_if_missing=False)
+        print(time.time())
+        print("-------DB_BOOT_TIME")
+
+
+        content = db.get(arxivId.encode('utf-8'))
+        if content is None: 
+            return None
+        return (content.decode('utf-8'), arxivId)[0]
+    except:
+        print("SOMEHOW GOT AN ERROR USING THE DB")
+    finally:
+        if 'db' in locals():
+            print("CLOSING THE DB AGAIN")
+            db.close()
+        db_lock.unlock()
+    
 
 
 def clean_and_parse_json(text):
@@ -396,10 +457,9 @@ def clean_and_parse_json(text):
     else:
         return None
 
-# def generateQuestion(arxivId, allSquaiArxivIds, db, agent): #, judgingAgent
-def generateQuestion(arxivId, allSquaiArxivIds, db): #, judgingAgent
+def generateQuestion(arxivId, allSquaiArxivIds): #, judgingAgent
     starting_id = arxivId
-    startingPaperFullText = getPaperFullText(db,starting_id)
+    startingPaperFullText = getPaperFullText(starting_id)
     if startingPaperFullText is None:
         return None
     paper_data = getPaperReferencesAndEmbeddingFromSemanticScholar(starting_id)
@@ -454,7 +514,7 @@ def generateQuestion(arxivId, allSquaiArxivIds, db): #, judgingAgent
     while len(final_papers) < 5 and len(papersInThreshold ) > 0:
         potentialPaper = random.choice(papersInThreshold)
         arxivId = potentialPaper["paperId"]
-        paperFullText = getPaperFullText(db,arxivId)
+        paperFullText = getPaperFullText(arxivId)
         if paperFullText is not None:
             final_papers.append({
             "ArXiv": arxivId,
@@ -524,7 +584,7 @@ def generateQuestion(arxivId, allSquaiArxivIds, db): #, judgingAgent
     for paper in finalPapersAdjustedLength:
         papersUsedForGenerationWithCategory.append({
             "ArXiv" : paper["ArXiv"],
-            "category": getCategoryFromArxiv(paper["ArXiv"]),
+            "category": None, #getCategoryFromArxiv(paper["ArXiv"]),
             "cosineSimilarity": paper["cosineSimilarity"] if "cosineSimilarity" in paper else None
         })
     cleanedAndParsedJson["papersInputtedForGeneration"] = papersUsedForGenerationWithCategory
@@ -596,7 +656,6 @@ def generateQuestion(arxivId, allSquaiArxivIds, db): #, judgingAgent
     return cleanedAndParsedJson
 
 def main():
-    db = plyvel.DB(DB_PATH, create_if_missing=False)
     # agent = LLMAgent(MODEL)
     # judgingAgent = LLMAgent(JUDGING_MODEL)
     all_squai_ids = get_all_squai_arxiv_ids()
@@ -628,8 +687,7 @@ def main():
 
         question = None
         try:
-#           question = generateQuestion(randomArxiv, all_squai_ids, db, agent) # removed parameter , judgingAgent here
-            question = generateQuestion(randomArxiv, all_squai_ids, db) # removed parameter , judgingAgent here
+            question = generateQuestion(randomArxiv, all_squai_ids) # removed parameter , judgingAgent here
         except torch.OutOfMemoryError:
             with open(ERROR_CACHE_FILE, "a", encoding="utf-8") as f:
                     f.write("OOM ERROR" + randomArxiv + "\n")    
