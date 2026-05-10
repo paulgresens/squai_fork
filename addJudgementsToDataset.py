@@ -285,30 +285,21 @@ def addJudgementToQuestion(question):
 
 def main():
     # judgingAgent = LLMAgent(JUDGING_MODEL)
-    alreadyAnsweredQuestioncCount = 0
-    try:
-        with open(OUTPUT_FILE, "r") as in_file:
-            for line in in_file:
-                line = line.strip()
-                if line:
-                    alreadyAnsweredQuestioncCount += 1
-    except :
-        alreadyAnsweredQuestioncCount = 0
+
  
-    print("already processes entries: " + str(alreadyAnsweredQuestioncCount))
     with open(INPUT_FILE, "r") as in_file:
         for i, line in enumerate(in_file):
-            if i < alreadyAnsweredQuestioncCount:
-                continue
            
             line = line.strip()
             if not line:
                 continue # Skip empty lines
             question = clean_and_parse_json(line)
 
-
-            # finishedQuestionWithJudgement = addJudgementToQuestion(question,judgingAgent)
-            finishedQuestionWithJudgement = addJudgementToQuestion(question)
+            if question.get("judgementResult"):
+                finishedQuestionWithJudgement = question
+            else:
+                # finishedQuestionWithJudgement = addJudgementToQuestion(question,judgingAgent)
+                finishedQuestionWithJudgement = addJudgementToQuestion(question)
                                                                    
 
             with open(OUTPUT_FILE, "a") as file: # Using "a" to append each new question
