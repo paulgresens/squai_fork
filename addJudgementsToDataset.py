@@ -284,9 +284,18 @@ def addJudgementToQuestion(question):
     return cleanedAndParsedJson
 
 def main():
+    questionsWithoutJudgement = 0
     # judgingAgent = LLMAgent(JUDGING_MODEL)
+    alreadyJudgedQuestions = []
+    with open(OUTPUT_FILE, "r") as in_file:
+        for j, lineAlready in enumerate(in_file):
+            lineAlready = lineAlready.strip()
+            if not lineAlready:
+                continue # Skip empty lines
+            question = clean_and_parse_json(lineAlready)
+            alreadyJudgedQuestions.append(question["anchorPaper"])
+    judgedQuestion = len(alreadyJudgedQuestions)
 
- 
     with open(INPUT_FILE, "r") as in_file:
         for i, line in enumerate(in_file):
            
@@ -295,18 +304,26 @@ def main():
                 continue # Skip empty lines
             question = clean_and_parse_json(line)
 
-            if question.get("judgementResult"):
-                finishedQuestionWithJudgement = question
-            else:
-                # finishedQuestionWithJudgement = addJudgementToQuestion(question,judgingAgent)
+            questionAnchorPaper = question["anchorPaper"]
+            
+            if questionAnchorPaper in alreadyJudgedQuestions:            
+                print("Already judged question with anchor paper: " + questionAnchorPaper)
+                continue
+            else: 
+                questionsWithoutJudgement += 1
                 finishedQuestionWithJudgement = addJudgementToQuestion(question)
-                                                                   
-
+                print("Questions for anchor paper not judged yet: " + questionAnchorPaper)
+                                                                
             with open(OUTPUT_FILE, "a") as file: # Using "a" to append each new question
                 # json.dump automatically formats your dictionary and writes it to the file
                 json.dump(finishedQuestionWithJudgement, file)
                 file.write("\n") # Add a newline so the next JSON object starts on a new line
-            print("JUDGEMENT completed for " + question["question"])
+    print("-----------------------------")
+    print("already judged:  " + str(judgedQuestion))
+    print("added judgement: " + str(questionsWithoutJudgement))
+    print("total:           " + str(judgedQuestion + questionsWithoutJudgement ))
+    print("-----------------------------")        
+
 if __name__ == "__main__":
     free_gpu_memory()
     main()
