@@ -509,7 +509,9 @@ def generateQuestion(arxivId, allSquaiArxivIds): #, judgingAgent
 
     final_papers = [{
         "ArXiv": starting_id,
-        "text":  startingPaperFullText 
+        "text":  startingPaperFullText,
+        "untruncatedTextLength": len(startingPaperFullText),
+
     }]
     while len(final_papers) < 5 and len(papersInThreshold ) > 0:
         potentialPaper = random.choice(papersInThreshold)
@@ -519,6 +521,7 @@ def generateQuestion(arxivId, allSquaiArxivIds): #, judgingAgent
             final_papers.append({
             "ArXiv": arxivId,
             "text": paperFullText,
+            "untruncatedTextLength": len(paperFullText),
             "cosineSimilarity" : potentialPaper["cosineSimilarity"]
             })
         papersInThreshold.remove(potentialPaper)
