@@ -68,26 +68,33 @@ Reasoning Steps: {reasoningSteps}
 EVALUATION CRITERIA
 A. Reasoning Structure
 Multi-hop Validity: Does answering the question require combining both papers?
--GOOD: Both papers are strictly required
+Assesses whether answering the question requires integrating information from both papers. Thus, this criterion is only satisfied, if neither paper provides sufficient information for deriving the complete answer.
+-GOOD: Both papers are strictly required, the question cannot be answered using only one paper
 -BORDERLINE: Both papers contribute but one may be sufficient
 -BAD: Only one paper is sufficient (single-hop)
 
-Dependency Strength: Does Step 2 depend on the result of Step 1?
+Dependency Strength: 
+evaluates whether the steps in the reasoning chain are sequentially dependent, in order for the conclusion to be drawn. Thus, the second reasoning step cannot be solved without first applying or interpreting the first one.
+Step 2 must require the result, entity, method, dataset, variable, or conclusion obtained in Step 1.
 GOOD: Step 2 strictly requires Step 1
 BORDERLINE: Partial dependence
 BAD: Steps are independent (disconnected reasoning)
 
 Non-Decomposability: Is the question NOT decomposable into independent sub-questions?
+Verifies that questions cannot be broken down into independent single-hop sub-questions. Instead, reasoning steps must be connected in such a way, that separately solving them would not be sufficient for deriving an answer.
 -GOOD: Cannot be split; requires joint reasoning
 -BORDERLINE: Partially decomposable
 -BAD: Clearly decomposable into independent sub-questions
 
-B. Evidence Grounding: Evidence DistributionAre both papers required and non-redundant?
+B. Evidence Grounding
+Evidence Distribution: Are both papers required and non-redundant?
+Examines whether both papers contribute distinct and necessary evidence, ensuring that required evidence is spread across both papers and questions cannot be answered by using a single dominant source, with redundant information.
 -GOOD: Each paper contributes distinct, necessary information
 -BORDERLINE: Some overlap or redundancy
 -BAD: One paper is sufficient; the other is redundant
 
 Answerability: Is the answer fully supported by the provided evidence?
+Assesses whether the answer is fully supported and obtainable by only relying on information present in the  papers, without requiring external knowledge or speculative inference, not explicitly supported by either paper. 
 -GOOD: Fully supported by cited evidence
 -BORDERLINE: Partially supported
 -BAD: Not supported or contradicts the evidence

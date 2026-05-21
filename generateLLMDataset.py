@@ -7,28 +7,10 @@ import plyvel
 import requests
 import gc
 import torch
-import io
 import fcntl
 import numpy as np
 from dotenv import load_dotenv
-from local_agent import LLMAgent
 from config import DB_PATH
-
-def free_gpu_memory():
-    """Force garbage collection and clear GPU cache."""
-    # Attempt to clear globals if they exist here (failsafe)
-    if 'agent' in globals():
-        del globals()['agent']
-    if 'model' in globals():
-        del globals()['model']
-    if 'tokenizer' in globals():
-        del globals()['tokenizer']
-        
-    gc.collect()
-    torch.cuda.empty_cache()
-    torch.cuda.ipc_collect()
-    print("✅ GPU Memory Cleared.")
-
 
 
 load_dotenv()
@@ -575,7 +557,6 @@ def generateQuestion(arxivId, allSquaiArxivIds): #, judgingAgent
     print("ANSWERER")
     print(llmanswer)
     cleanedAndParsedJson = clean_and_parse_json(llmanswer) 
-    free_gpu_memory()
 
     if not cleanedAndParsedJson:
         return None
@@ -658,8 +639,6 @@ def generateQuestion(arxivId, allSquaiArxivIds): #, judgingAgent
     return cleanedAndParsedJson
 
 def main():
-    # agent = LLMAgent(MODEL)
-    # judgingAgent = LLMAgent(JUDGING_MODEL)
     all_squai_ids = get_all_squai_arxiv_ids()
     
     if os.path.exists(CACHE_FILE):
@@ -721,7 +700,6 @@ def main():
         gc.collect()
 
 if __name__ == "__main__":
-    free_gpu_memory()
     main()
 
 
