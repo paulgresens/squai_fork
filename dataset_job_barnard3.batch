@@ -1,0 +1,18 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --tasks-per-node=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=16G
+#SBATCH --partition=barnard
+#SBATCH --time=44:00:00
+#SBATCH --mail-type=start,end,fail
+#SBATCH --mail-user=tpgresens@gmail.com
+
+export HF_HOME="/data/horse/ws/togr096h-faiss1/huggingface-cache"
+echo "Cache is set to: $HF_HOME"
+
+ml release/24.04 GCC/12.3.0 OpenMPI/4.1.5 PyTorch/2.1.2
+source /data/horse/ws/togr096h-faiss1/SQuAI/env/bin/activate
+cd /data/horse/ws/togr096h-faiss1/SQuAI
+pip install -r requirements.txt
+python -u generateLLMDataset3.py
