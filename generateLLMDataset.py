@@ -34,7 +34,7 @@ DB_LOCK_FILE = "dbLock.txt"
 
 # MODEL = "unsloth/Qwen3-Next-80B-A3B-Instruct-bnb-4bit"
 # JUDGING_MODEL = "mistralai/Mixtral-8x7B-Instruct-v0.1"
-PAPER_CHARACTER_LIMIT=25000
+PAPER_CHARACTER_LIMIT=20000
 QUESTIONS_TO_GENERATE = 200
 
 
