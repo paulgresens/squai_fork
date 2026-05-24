@@ -346,6 +346,7 @@ def getCategoryFromArxiv(arxiv_id):
 
 
 def askScadsApiLLM(prompt):
+    start_time = time.perf_counter()
     url = "https://llm.scads.ai/v1/chat/completions"
     headers = {
         "Content-Type": "application/json",
@@ -361,7 +362,8 @@ def askScadsApiLLM(prompt):
                 "content": prompt
             }
         ],
-        "temperature": 0.0
+        "temperature": 0.0,
+        "timeout": 900
     }
 
     # 4. Send the request and print the answer
@@ -370,6 +372,8 @@ def askScadsApiLLM(prompt):
     print(response)
     print("-----------------")
     # Convert the response to JSON and extract the text
+    end_time = time.perf_counter()
+    print("time for scads api call: " + str(end_time - start_time))
     data = response.json()
     return (data["choices"][0]["message"]["content"])
 
@@ -552,8 +556,9 @@ def generateQuestion(arxivId, allSquaiArxivIds): #, judgingAgent
     prompt = build_prompt(clean_papers_for_prompt)
     print("asking llm")
     # llmanswer = agent.generate(prompt)
-    print(str(time.time()))
+
     llmanswer = askScadsApiLLM(prompt)
+
     print("ANSWERER")
     print(llmanswer)
     cleanedAndParsedJson = clean_and_parse_json(llmanswer) 
