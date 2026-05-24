@@ -34,7 +34,7 @@ DB_LOCK_FILE = "dbLock.txt"
 
 # MODEL = "unsloth/Qwen3-Next-80B-A3B-Instruct-bnb-4bit"
 # JUDGING_MODEL = "mistralai/Mixtral-8x7B-Instruct-v0.1"
-PAPER_CHARACTER_LIMIT=20000
+PAPER_CHARACTER_LIMIT=60000
 QUESTIONS_TO_GENERATE = 200
 
 
@@ -394,7 +394,7 @@ def askScadsApiLLM(prompt):
             }
         ],
         "temperature": 0.0,
-        "max_tokens": 2048,
+        "max_tokens": 8192,
         "stream": True
     }
 
@@ -414,39 +414,57 @@ def askScadsApiLLM(prompt):
             print(response)
             print("-----------------")
 
-            if response.status_code == 504:
+            if response.status_code != 200:
                 end_time = time.perf_counter()
                 print("time for scads api call: " + str(end_time - start_time))
-                print("SCADS returned 504 Gateway Timeout")
-                print("Response body preview:", response.text[:1000])
+                print("HTTP status:", response.status_code)
+                print("Response body preview:", response.text[:2000])
                 return None
 
-            response.raise_for_status()
-
-            for line in response.iter_lines(decode_unicode=True):
-                if not line:
+            # This loop waits until the stream is finished.
+            for raw_line in response.iter_lines(decode_unicode=True):
+                print("line: " + raw_line)
+                if not raw_line:
                     continue
+                line = raw_line.strip()
 
-                # OpenAI-compatible streaming format:
-                # data: {"choices":[{"delta":{"content":"..."}}]}
                 if line.startswith("data: "):
-                    line = line[len("data: "):]
+                    line = line[len("data: "):].strip()
 
-                if line.strip() == "[DONE]":
+                # OpenAI-compatible stream end marker.
+                if line == "[DONE]":
+                    print("\nStream finished with [DONE].")
                     break
 
                 try:
                     chunk = json.loads(line)
                 except json.JSONDecodeError:
-                    print("Could not parse stream line:", line[:500])
+                    print("Could not parse stream line:", repr(line[:1000]))
                     continue
 
                 choices = chunk.get("choices", [])
                 if not choices:
                     continue
 
-                delta = choices[0].get("delta", {})
-                content = delta.get("content")
+                choice = choices[0]
+
+                content = None
+
+                # Normal streaming format:
+                # {"choices":[{"delta":{"content":"..."}}]}
+                delta = choice.get("delta")
+                if isinstance(delta, dict):
+                    content = delta.get("content")
+
+                # Fallback for nonstandard message chunks.
+                if content is None:
+                    message = choice.get("message")
+                    if isinstance(message, dict):
+                        content = message.get("content")
+
+                # Fallback for text-style chunks.
+                if content is None:
+                    content = choice.get("text")
 
                 if content:
                     if first_token_time is None:
@@ -462,6 +480,11 @@ def askScadsApiLLM(prompt):
         end_time = time.perf_counter()
         print()
         print("time for scads api call: " + str(end_time - start_time))
+        print("final streamed response length:", len(full_response))
+
+        if not full_response.strip():
+            print("WARNING: Stream ended, but no content was collected.")
+            return None
 
         return full_response
 
@@ -470,7 +493,6 @@ def askScadsApiLLM(prompt):
         print("time for scads api call: " + str(end_time - start_time))
         print("Request failed:", e)
         return None
-
 
 
 def get_cosine_similarity(vec1, vec2):
@@ -625,11 +647,15 @@ def generateQuestion(arxivId, allSquaiArxivIds): #, judgingAgent
     # print("paper with less than 50k characters: " + str(len(papersWithLessThan50k)))
     # print("paper with more than 50k characters: " + str(len(papersWithMoreThan50k)))
     # print("characters left from sub 50k papers: " + str(charactersLeftFromSub50kPapers))
+    for p in papersWithLessThanCharacterLimit:
+        p["adaptiveCharacterLimit"] = len(p["text"])
+
     for p in papersWithMoreThanCharacterLimit:
         text = p["text"]
         adaptiveCharacterLimit = int(PAPER_CHARACTER_LIMIT + (len(text) / totalCharsInAbove50kPapers) * charactersLeftFromSub50kPapers)
         snipLength = int(adaptiveCharacterLimit / 2)
         p["text"] = "First " + str(snipLength) + " characters: "+  text[:snipLength] + "   Last " + str(snipLength) + " characters: " + text[-snipLength:]
+        p["adaptiveCharacterLimit"] = adaptiveCharacterLimit
 
     finalPapersAdjustedLength = papersWithLessThanCharacterLimit + papersWithMoreThanCharacterLimit
 
@@ -667,7 +693,9 @@ def generateQuestion(arxivId, allSquaiArxivIds): #, judgingAgent
         papersUsedForGenerationWithCategory.append({
             "ArXiv" : paper["ArXiv"],
             "category": None, #getCategoryFromArxiv(paper["ArXiv"]),
-            "cosineSimilarity": paper["cosineSimilarity"] if "cosineSimilarity" in paper else None
+            "cosineSimilarity": paper["cosineSimilarity"] if "cosineSimilarity" in paper else None,
+            "untruncatedTextLength" : paper["untruncatedTextLength"],
+            "adaptiveCharacterLimit": paper["adaptiveCharacterLimit"]
         })
     cleanedAndParsedJson["papersInputtedForGeneration"] = papersUsedForGenerationWithCategory
     cleanedAndParsedJson["anchorPaper"] = starting_id
