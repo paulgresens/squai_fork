@@ -345,6 +345,38 @@ def getCategoryFromArxiv(arxiv_id):
         return None
 
 
+# def askScadsApiLLM(prompt):
+#     start_time = time.perf_counter()
+#     url = "https://llm.scads.ai/v1/chat/completions"
+#     headers = {
+#         "Content-Type": "application/json",
+#         "Authorization": f"Bearer {SCADS_API_KEY}"
+#     }
+
+#     # 3. Create your prompt payload
+#     payload = {
+#         "model": SCADS_API_MODEL,
+#         "messages": [
+#             {
+#                 "role": "user",
+#                 "content": prompt
+#             }
+#         ],
+#         "temperature": 0.0,
+#         "timeout": 900
+#     }
+
+#     # 4. Send the request and print the answer
+#     response = requests.post(url, headers=headers, json=payload)
+#     print("-----------------")
+#     print(response)
+#     print("-----------------")
+#     # Convert the response to JSON and extract the text
+#     end_time = time.perf_counter()
+#     print("time for scads api call: " + str(end_time - start_time))
+#     data = response.json()
+#     return (data["choices"][0]["message"]["content"])
+
 def askScadsApiLLM(prompt):
     start_time = time.perf_counter()
     url = "https://llm.scads.ai/v1/chat/completions"
@@ -353,7 +385,6 @@ def askScadsApiLLM(prompt):
         "Authorization": f"Bearer {SCADS_API_KEY}"
     }
 
-    # 3. Create your prompt payload
     payload = {
         "model": SCADS_API_MODEL,
         "messages": [
@@ -363,19 +394,82 @@ def askScadsApiLLM(prompt):
             }
         ],
         "temperature": 0.0,
-        "timeout": 900
+        "max_tokens": 2048,
+        "stream": True
     }
 
-    # 4. Send the request and print the answer
-    response = requests.post(url, headers=headers, json=payload)
-    print("-----------------")
-    print(response)
-    print("-----------------")
-    # Convert the response to JSON and extract the text
-    end_time = time.perf_counter()
-    print("time for scads api call: " + str(end_time - start_time))
-    data = response.json()
-    return (data["choices"][0]["message"]["content"])
+    full_response = ""
+    first_token_time = None
+
+    try:
+        with requests.post(
+            url,
+            headers=headers,
+            json=payload,
+            stream=True,
+            timeout=(30, 1000)
+        ) as response:
+
+            print("-----------------")
+            print(response)
+            print("-----------------")
+
+            if response.status_code == 504:
+                end_time = time.perf_counter()
+                print("time for scads api call: " + str(end_time - start_time))
+                print("SCADS returned 504 Gateway Timeout")
+                print("Response body preview:", response.text[:1000])
+                return None
+
+            response.raise_for_status()
+
+            for line in response.iter_lines(decode_unicode=True):
+                if not line:
+                    continue
+
+                # OpenAI-compatible streaming format:
+                # data: {"choices":[{"delta":{"content":"..."}}]}
+                if line.startswith("data: "):
+                    line = line[len("data: "):]
+
+                if line.strip() == "[DONE]":
+                    break
+
+                try:
+                    chunk = json.loads(line)
+                except json.JSONDecodeError:
+                    print("Could not parse stream line:", line[:500])
+                    continue
+
+                choices = chunk.get("choices", [])
+                if not choices:
+                    continue
+
+                delta = choices[0].get("delta", {})
+                content = delta.get("content")
+
+                if content:
+                    if first_token_time is None:
+                        first_token_time = time.perf_counter()
+                        print(
+                            "time to first streamed token: "
+                            + str(first_token_time - start_time)
+                        )
+
+                    print(content, end="", flush=True)
+                    full_response += content
+
+        end_time = time.perf_counter()
+        print()
+        print("time for scads api call: " + str(end_time - start_time))
+
+        return full_response
+
+    except requests.exceptions.RequestException as e:
+        end_time = time.perf_counter()
+        print("time for scads api call: " + str(end_time - start_time))
+        print("Request failed:", e)
+        return None
 
 
 
