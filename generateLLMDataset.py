@@ -695,6 +695,7 @@ def generateQuestion(arxivId, allSquaiArxivIds): #, judgingAgent
             "category": None, #getCategoryFromArxiv(paper["ArXiv"]),
             "cosineSimilarity": paper["cosineSimilarity"] if "cosineSimilarity" in paper else None,
             "untruncatedTextLength" : paper["untruncatedTextLength"],
+            "isShortened": paper["adaptiveCharacterLimit"] < paper["untruncatedTextLength"],
             "adaptiveCharacterLimit": paper["adaptiveCharacterLimit"]
         })
     cleanedAndParsedJson["papersInputtedForGeneration"] = papersUsedForGenerationWithCategory

@@ -7,11 +7,11 @@ import plyvel
 import requests
 import gc
 import torch
-import io
 import fcntl
 import numpy as np
 from dotenv import load_dotenv
 from config import DB_PATH
+
 
 load_dotenv()
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
@@ -34,7 +34,7 @@ DB_LOCK_FILE = "dbLock.txt"
 
 # MODEL = "unsloth/Qwen3-Next-80B-A3B-Instruct-bnb-4bit"
 # JUDGING_MODEL = "mistralai/Mixtral-8x7B-Instruct-v0.1"
-PAPER_CHARACTER_LIMIT=20000
+PAPER_CHARACTER_LIMIT=60000
 QUESTIONS_TO_GENERATE = 200
 
 
@@ -345,14 +345,46 @@ def getCategoryFromArxiv(arxiv_id):
         return None
 
 
+# def askScadsApiLLM(prompt):
+#     start_time = time.perf_counter()
+#     url = "https://llm.scads.ai/v1/chat/completions"
+#     headers = {
+#         "Content-Type": "application/json",
+#         "Authorization": f"Bearer {SCADS_API_KEY}"
+#     }
+
+#     # 3. Create your prompt payload
+#     payload = {
+#         "model": SCADS_API_MODEL,
+#         "messages": [
+#             {
+#                 "role": "user",
+#                 "content": prompt
+#             }
+#         ],
+#         "temperature": 0.0,
+#         "timeout": 900
+#     }
+
+#     # 4. Send the request and print the answer
+#     response = requests.post(url, headers=headers, json=payload)
+#     print("-----------------")
+#     print(response)
+#     print("-----------------")
+#     # Convert the response to JSON and extract the text
+#     end_time = time.perf_counter()
+#     print("time for scads api call: " + str(end_time - start_time))
+#     data = response.json()
+#     return (data["choices"][0]["message"]["content"])
+
 def askScadsApiLLM(prompt):
+    start_time = time.perf_counter()
     url = "https://llm.scads.ai/v1/chat/completions"
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {SCADS_API_KEY}"
     }
 
-    # 3. Create your prompt payload
     payload = {
         "model": SCADS_API_MODEL,
         "messages": [
@@ -361,18 +393,106 @@ def askScadsApiLLM(prompt):
                 "content": prompt
             }
         ],
-        "temperature": 0.0
+        "temperature": 0.0,
+        "max_tokens": 8192,
+        "stream": True
     }
 
-    # 4. Send the request and print the answer
-    response = requests.post(url, headers=headers, json=payload)
-    print("-----------------")
-    print(response)
-    print("-----------------")
-    # Convert the response to JSON and extract the text
-    data = response.json()
-    return (data["choices"][0]["message"]["content"])
+    full_response = ""
+    first_token_time = None
 
+    try:
+        with requests.post(
+            url,
+            headers=headers,
+            json=payload,
+            stream=True,
+            timeout=(30, 1000)
+        ) as response:
+
+            print("-----------------")
+            print(response)
+            print("-----------------")
+
+            if response.status_code != 200:
+                end_time = time.perf_counter()
+                print("time for scads api call: " + str(end_time - start_time))
+                print("HTTP status:", response.status_code)
+                print("Response body preview:", response.text[:2000])
+                return None
+
+            # This loop waits until the stream is finished.
+            for raw_line in response.iter_lines(decode_unicode=True):
+                print("line: " + raw_line)
+                if not raw_line:
+                    continue
+                line = raw_line.strip()
+
+                if line.startswith("data: "):
+                    line = line[len("data: "):].strip()
+
+                # OpenAI-compatible stream end marker.
+                if line == "[DONE]":
+                    print("\nStream finished with [DONE].")
+                    break
+
+                try:
+                    chunk = json.loads(line)
+                except json.JSONDecodeError:
+                    print("Could not parse stream line:", repr(line[:1000]))
+                    continue
+
+                choices = chunk.get("choices", [])
+                if not choices:
+                    continue
+
+                choice = choices[0]
+
+                content = None
+
+                # Normal streaming format:
+                # {"choices":[{"delta":{"content":"..."}}]}
+                delta = choice.get("delta")
+                if isinstance(delta, dict):
+                    content = delta.get("content")
+
+                # Fallback for nonstandard message chunks.
+                if content is None:
+                    message = choice.get("message")
+                    if isinstance(message, dict):
+                        content = message.get("content")
+
+                # Fallback for text-style chunks.
+                if content is None:
+                    content = choice.get("text")
+
+                if content:
+                    if first_token_time is None:
+                        first_token_time = time.perf_counter()
+                        print(
+                            "time to first streamed token: "
+                            + str(first_token_time - start_time)
+                        )
+
+                    print(content, end="", flush=True)
+                    full_response += content
+
+        end_time = time.perf_counter()
+        print()
+        print("time for scads api call: " + str(end_time - start_time))
+        print("final streamed response length:", len(full_response))
+
+        if not full_response.strip():
+            print("WARNING: Stream ended, but no content was collected.")
+            return None
+
+        return full_response
+
+    except requests.exceptions.RequestException as e:
+        end_time = time.perf_counter()
+        print("time for scads api call: " + str(end_time - start_time))
+        print("Request failed:", e)
+        return None
 
 
 def get_cosine_similarity(vec1, vec2):
@@ -390,11 +510,11 @@ def getPaperReferencesAndEmbeddingFromSemanticScholar(arxiv_id):
     print("getting references and vectors for: " + arxiv_id)
     try:
         response = requests.get(url, params={"fields": fields, "limit": 1000}, headers=headers)
-        time.sleep(5)
+        time.sleep(2)
         return response.json()
     except Exception as e:
         print(f"Semantic Scholar Fetch failed: {e}")
-        time.sleep(5)
+        time.sleep(2)
         return {"error": str(e)}
     finally:
         api_lock.unlock()
@@ -491,7 +611,7 @@ def generateQuestion(arxivId, allSquaiArxivIds): #, judgingAgent
 
     final_papers = [{
         "ArXiv": starting_id,
-        "text":  startingPaperFullText,
+        "text":  startingPaperFullText, 
         "untruncatedTextLength": len(startingPaperFullText),
     }]
     while len(final_papers) < 5 and len(papersInThreshold ) > 0:
@@ -527,11 +647,15 @@ def generateQuestion(arxivId, allSquaiArxivIds): #, judgingAgent
     # print("paper with less than 50k characters: " + str(len(papersWithLessThan50k)))
     # print("paper with more than 50k characters: " + str(len(papersWithMoreThan50k)))
     # print("characters left from sub 50k papers: " + str(charactersLeftFromSub50kPapers))
+    for p in papersWithLessThanCharacterLimit:
+        p["adaptiveCharacterLimit"] = len(p["text"])
+
     for p in papersWithMoreThanCharacterLimit:
         text = p["text"]
         adaptiveCharacterLimit = int(PAPER_CHARACTER_LIMIT + (len(text) / totalCharsInAbove50kPapers) * charactersLeftFromSub50kPapers)
         snipLength = int(adaptiveCharacterLimit / 2)
         p["text"] = "First " + str(snipLength) + " characters: "+  text[:snipLength] + "   Last " + str(snipLength) + " characters: " + text[-snipLength:]
+        p["adaptiveCharacterLimit"] = adaptiveCharacterLimit
 
     finalPapersAdjustedLength = papersWithLessThanCharacterLimit + papersWithMoreThanCharacterLimit
 
@@ -552,8 +676,9 @@ def generateQuestion(arxivId, allSquaiArxivIds): #, judgingAgent
     prompt = build_prompt(clean_papers_for_prompt)
     print("asking llm")
     # llmanswer = agent.generate(prompt)
-    print(str(time.time()))
+
     llmanswer = askScadsApiLLM(prompt)
+
     print("ANSWERER")
     print(llmanswer)
     cleanedAndParsedJson = clean_and_parse_json(llmanswer) 
@@ -568,7 +693,10 @@ def generateQuestion(arxivId, allSquaiArxivIds): #, judgingAgent
         papersUsedForGenerationWithCategory.append({
             "ArXiv" : paper["ArXiv"],
             "category": None, #getCategoryFromArxiv(paper["ArXiv"]),
-            "cosineSimilarity": paper["cosineSimilarity"] if "cosineSimilarity" in paper else None
+            "cosineSimilarity": paper["cosineSimilarity"] if "cosineSimilarity" in paper else None,
+            "untruncatedTextLength" : paper["untruncatedTextLength"],
+            "isShortened": paper["adaptiveCharacterLimit"] < paper["untruncatedTextLength"],
+            "adaptiveCharacterLimit": paper["adaptiveCharacterLimit"]
         })
     cleanedAndParsedJson["papersInputtedForGeneration"] = papersUsedForGenerationWithCategory
     cleanedAndParsedJson["anchorPaper"] = starting_id
@@ -639,8 +767,6 @@ def generateQuestion(arxivId, allSquaiArxivIds): #, judgingAgent
     return cleanedAndParsedJson
 
 def main():
-    # agent = LLMAgent(MODEL)
-    # judgingAgent = LLMAgent(JUDGING_MODEL)
     all_squai_ids = get_all_squai_arxiv_ids()
     
     if os.path.exists(CACHE_FILE):
