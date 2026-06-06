@@ -90,25 +90,34 @@ PAPER SELECTION
 First, select the best pair of papers.
 The selected pair must satisfy:
 
--Paper A must provide more than a named entity. It must provide an operational meaning, condition, mechanism, definition, directionality, limitation, assumption, or result that is needed to interpret Paper B.
--Paper B must provide a concrete use case, measurement, experiment, result, comparison, or observation that cannot be fully interpreted without the information from Paper A.
--A question is invalid if Paper A is only used to identify the name of a method, metric, model, or dataset that Paper B already mentions, so you cannot just describe the selected entity losely and ask for identification or naming of it.
+-Paper A must provide more than a named entity. It must provide an operational meaning, condition, mechanism, definition, directionality, limitation, assumption, guarantee, interpretation, failure mode, objective, result or similar that is needed to interpret Paper B.
+-Paper B must provide a concrete use case, measurement, experiment, result, comparison, design choice, observation, conclusion or similar whose meaning depends on the information from Paper A.
+-Paper A must provide an intermediate proposition about an entity, method, dataset, variable, result, or concept, not merely the name of that entity.
+-Paper B must require applying that proposition, not merely recognizing that the same entity is used again.
+
+-A question is invalid if Paper A is only used to identify the name of a method, metric, model, dataset or similar that Paper B already mentions, so you cannot just describe the selected entity loosely and ask for identification or naming of it.
 The final answer must not be only the name of a method, metric, dataset, model, or concept. It must be an explanation, conclusion, comparison, interpretation, or derived statement that depends on combining both papers.
 -The final answer requires combining both papers
 -Do NOT select papers that are only loosely related or redundant.
+
 
 REQUIREMENTS
 A valid question MUST: 
 -require exactly two reasoning steps (2-hop)
 -use exactly two supporting papers
 -require sequential reasoning:
-    -Step 2 must depend on the result of Step 1
+    -Step 1 must derive a proposition from Paper A, not merely identify a named entity
+    -Step 2 must apply that proposition to evidence from Paper B
     -If Step 1 is removed, Step 2 should not be solvable
 -NOT be answerable from either paper alone
 -be self-contained and unambiguous
 -require combining information across both papers
+-A valid question must require real reasoning rather than entity linking. The answer must depend on applying a proposition from Paper A to interpret evidence from Paper B, not merely identifying a named artifact or matching similar wording across papers.
 -only use information that is present in the papers, do not invent hypothetical connections or applications. Only use existing connections.
+-The question may mention the concept from Paper A, but it must not state the full intermediate conclusion from Paper A as an already-given premise. The respondent should still need Paper A to derive or justify Step 1.
 -question cannot contain explicit references to the papers or its content such as "in this paper", "the proposed methods" or similar
+-The question may use necessary technical terminology from the papers, but it should not copy distinctive phrasing from either paper unless the phrase is a standard technical term. Rephrase the evidence into a reasoning-focused question.
+
 
 AVOID
 Do NOT generate:
@@ -118,6 +127,9 @@ Do NOT generate:
 -questions answerable from a single paper
 -questions where papers are only topically related but not logically connected
 -Do NOT use external scientific knowledge, commonsense assumptions, or unstated domain knowledge, only use the information that is present in the papers
+-questions where Paper A only introduces an artifact and Paper B merely reuses, applies, evaluates, compares against, cites, or optimizes that artifact or where the answer is just the artifact itself or a verbatim description of it
+-questions where the two steps are independent facts that can be answered separately and simply concatenated
+-questions where Step 1 can be solved mainly by matching a distinctive phrase in the question to nearly identical wording in Paper A
 
 OUTPUT FORMAT
 {
@@ -137,14 +149,16 @@ OUTPUT FORMAT
         "step2": <use step1 reasoning to derive or support the final answer>,
         "connectionExplanation": <explain why the steps are connected and why step2 requires the result of step1>,
     }, 
-    "questionDraft" : "<one clear, self-contained question requiring 2-hop reasoning, this serves as a draft for you final question. You can but don't have to explicitely reference the papers here to help formulate a better question.>",
+    "questionDraft" : "<one clear, self-contained question requiring 2-hop reasoning, this serves as a draft for you final question. You can but don't have to explicitly reference the papers here to help formulate a better question.>",
     "question" : <decontextualize the questionDraft, so that it contains no explicit reference to the papers or external figures. Every reference to a paper should instead directly name the concept, phenomenon, method or similar that you are referring to, briefly describing it if needed. The question cannot contain explicit references to the papers or its content such as "in this paper", "the proposed methods" or similar.>",
     "answerWithPaperReferences" : <long-form paragraph integrating Paper A and Paper B with citations like [Paper A], [Paper B]>,
-    "answerWithoutPaperReferences": <long-form paragraph that answers the question, without referencing the papers, but directly incorporatestheir information, so that it is standalone understandable>,
-    "isNotSingleHop": <explain why the question you generated is not single hop>
+    "answerWithoutPaperReferences": <long-form paragraph that answers the question, without referencing the papers, but directly incorporates their information, so that it is standalone understandable>,
+    "isNotSingleHop": <explain why neither Paper A nor Paper B alone can answer the question, why Step 2 requires applying the proposition from Step 1, and why the question is not merely artifact reuse, entity linking, or lexical matching>
 }
 
-Do not deviate from this schema. Do not add any preciding information like ```json. Only Answer with the valid json
+If no valid question can be generated, answer only with the exact string "NO_QUESTION_GENERATABLE".
+If a valid question can be generated, answer only with the valid JSON object. You are not allowed to deviate from  this schema. Do not add any preceding information like ```json. Only Answer with the valid json.
+
 Paper Texts:
 """
 
@@ -175,36 +189,43 @@ Reasoning Steps: {reasoningSteps}
 EVALUATION CRITERIA
 A. Reasoning Structure
 Multi-hop Validity: Does answering the question require combining both papers?
--GOOD: Both papers are strictly required
--BORDERLINE: Both papers contribute but one may be sufficient
--BAD: Only one paper is sufficient (single-hop)
+-GOOD: Both papers are strictly required; neither paper alone provides enough information to answer the complete question.
+-BORDERLINE: Both papers contribute, but one paper may be sufficient to answer the main question, or the second paper mainly adds background/context.
+-BAD: Only one paper is sufficient; the question is effectively single-hop.
+Important: If one paper only identifies, introduces, defines, or names an artifact that the other paper already uses, mentions, evaluates, optimizes, cites, or compares against, this is not enough for GOOD. The answer must require combining non-redundant evidence from both papers.
 
 Dependency Strength: Does Step 2 depend on the result of Step 1?
-GOOD: Step 2 strictly requires Step 1
-BORDERLINE: Partial dependence
-BAD: Steps are independent (disconnected reasoning)
+-GOOD: Step 2 strictly requires applying a proposition derived from Step 1. Step 1 must provide more than a named entity; it must provide a mechanism, condition, definition, limitation, assumption, guarantee, interpretation, objective, result, or similar.
+-BORDERLINE: Step 2 is related to Step 1, but the dependency is weak, mostly entity-linking, or one step can mostly be solved without the other.
+-BAD: Steps are independent, disconnected, or Step 1 only identifies a name/entity used in Step 2.
+
+Important: If Step 1 can be solved mainly by matching a distinctive phrase in the question to nearly identical wording in one paper, and Step 2 only tracks the same artifact in the other paper, do not assign GOOD.
 
 Non-Decomposability: Is the question NOT decomposable into independent sub-questions?
--GOOD: Cannot be split; requires joint reasoning
--BORDERLINE: Partially decomposable
--BAD: Clearly decomposable into independent sub-questions
+-GOOD: The question cannot be split into independent single-hop questions; solving one part changes, constrains, or enables solving the other.
+-BORDERLINE: The question is partially decomposable, but the sub-answers still need some linking or interpretation.
+-BAD: The question clearly decomposes into independent sub-questions whose answers can simply be concatenated.
 
-B. Evidence Grounding: Evidence DistributionAre both papers required and non-redundant?
--GOOD: Each paper contributes distinct, necessary information
--BORDERLINE: Some overlap or redundancy
--BAD: One paper is sufficient; the other is redundant
+B. Evidence Grounding
+Evidence Distribution: Are both papers required and non-redundant?
+-GOOD: Each paper contributes distinct, necessary information. One paper provides an intermediate proposition, and the other provides evidence whose meaning depends on applying that proposition.
+-BORDERLINE: Both papers contribute, but there is overlap, redundancy, or one paper is dominant while the other only adds support.
+-BAD: One paper is sufficient; the other is redundant, only background, or only provides the name/source of an artifact.
+
+Important: Artifact reuse alone is insufficient. If Paper A introduces an artifact and Paper B merely uses, applies, evaluates, compares against, cites, optimizes, or extends that artifact, assign BAD or BORDERLINE unless the question requires applying a non-trivial proposition about that artifact.
 
 Answerability: Is the answer fully supported by the provided evidence?
--GOOD: Fully supported by cited evidence
--BORDERLINE: Partially supported
--BAD: Not supported or contradicts the evidence
-
+-GOOD: Fully supported by the provided evidence from the papers; no external knowledge, speculation, or unsupported inference is needed.
+-BORDERLINE: Partially supported, but some part of the answer requires mild inference, is under-specified, or is not directly grounded.
+-BAD: Not supported, contradicted by the evidence, or requires external knowledge/speculation.
 C. Dataset Quality: 
-Decontextualization
-Is the question self-contained and unambiguous? The question cannot contain explicit references to the papers or its content such as "in this paper", "the proposed methods", " this approach" or similar.
--GOOD: Fully self-contained; all entities clearly defined
--BORDERLINE: Minor ambiguity
--BAD: Not understandable without external context
+Decontextualization: Is the question self-contained and unambiguous?
+The question cannot contain explicit references to the papers or their content such as "in this paper", "the proposed method", "this approach", "the authors", or similar.
+-GOOD: Fully self-contained; all entities/concepts needed to understand the question are clearly named or described; no explicit paper references.
+-BORDERLINE: Mostly self-contained, but contains minor ambiguity, an underspecified phrase, or a concept that is described but not clearly identifiable.
+-BAD: Not understandable without external context, relies on paper-specific references, or is ambiguous.
+
+Important: Technical terminology from the papers is allowed when necessary. However, the question should not simply copy distinctive phrasing from a paper in order to make Step 1 a lexical lookup.
 
 OUTPUT FORMAT
 {{
@@ -239,7 +260,6 @@ OUTPUT FORMAT
 }}
 Do not deviate from this schema. Do not add any preciding information like ```json. Only Answer with the valid json
 """
-
 EXPERIMENTERER_PROMPT = """
 You are testing whether a scientific multi-hop question truly requires the provided papers.
 You are given:
