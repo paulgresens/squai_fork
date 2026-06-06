@@ -34,7 +34,7 @@ DB_LOCK_FILE = "dbLock.txt"
 
 # MODEL = "unsloth/Qwen3-Next-80B-A3B-Instruct-bnb-4bit"
 # JUDGING_MODEL = "mistralai/Mixtral-8x7B-Instruct-v0.1"
-PAPER_CHARACTER_LIMIT=40000
+PAPER_CHARACTER_LIMIT=30000
 QUESTIONS_TO_GENERATE = 200
 
 
@@ -89,8 +89,11 @@ Your task is to select the best pair of papers and generate ONE question that re
 PAPER SELECTION
 First, select the best pair of papers.
 The selected pair must satisfy:
--Paper A provides an intermediate entity, method, dataset, variable, or result
--Paper B uses, evaluates, extends, contrasts with, explains, or depends on that intermediate element
+
+-Paper A must provide more than a named entity. It must provide an operational meaning, condition, mechanism, definition, directionality, limitation, assumption, or result that is needed to interpret Paper B.
+-Paper B must provide a concrete use case, measurement, experiment, result, comparison, or observation that cannot be fully interpreted without the information from Paper A.
+-A question is invalid if Paper A is only used to identify the name of a method, metric, model, or dataset that Paper B already mentions, so you cannot just describe the selected entity losely and ask for identification or naming of it.
+The final answer must not be only the name of a method, metric, dataset, model, or concept. It must be an explanation, conclusion, comparison, interpretation, or derived statement that depends on combining both papers.
 -The final answer requires combining both papers
 -Do NOT select papers that are only loosely related or redundant.
 
@@ -584,10 +587,12 @@ def generateQuestion(arxivId, allSquaiArxivIds): #, judgingAgent
 
     if len(valid_refs) < 4:
         return None
+    
+    selected_refs = random.sample(valid_refs, min(10, len(valid_refs)))
 
     paperCosineSimilarity = []
 
-    for ref in valid_refs:
+    for ref in selected_refs:
         paperId = ref["externalIds"]["ArXiv"]
         paperMeta = getPaperReferencesAndEmbeddingFromSemanticScholar(paperId)
        
