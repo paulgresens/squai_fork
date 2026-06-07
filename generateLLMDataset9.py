@@ -100,15 +100,24 @@ The final answer must not be only the name of a method, metric, dataset, model, 
 -The final answer requires combining both papers
 -Do NOT select papers that are only loosely related or redundant.
 
+Do not generate questions whose reasoning type is only:
+-entity linking,
+-artifact reuse,
+-citation tracing,
+-numeric lookup,
+-table lookup,
+-independent comparison,
+-descriptive clue matching.
 
 REQUIREMENTS
 A valid question MUST: 
 -require exactly two reasoning steps (2-hop)
 -use exactly two supporting papers
 -require sequential reasoning:
-    -Step 1 must derive a proposition from Paper A, not merely identify a named entity
-    -Step 2 must apply that proposition to evidence from Paper B
-    -If Step 1 is removed, Step 2 should not be solvable
+    -Step 1 must derive a proposition from Paper A, not merely identify a named entity, metric, model, dataset or benchmark. Instead it should derive an interpretable proposition from Paper A such as a mechanism, condition, limitation, guarantee, assumption, theoretical relation, or failure mode.
+    -Step 2 must apply the proposition from Step 1 to interpret a concrete result, design choice, experiment, observation, or conclusion from Paper B.
+    -Step 2 must not be solvable by reading Paper B alone, even if Paper B mentions the same method, metric, model, dataset, benchmark, architecture, or loss function. Thus Paper A must be strictly required to answer the question.
+    -If the answer can be produced by first identifying an artifact from Paper A and then looking up how Paper B uses that artifact, the question is invalid.
 -NOT be answerable from either paper alone
 -be self-contained and unambiguous
 -require combining information across both papers
@@ -126,10 +135,17 @@ Do NOT generate:
 -literature summary questions
 -questions answerable from a single paper
 -questions where papers are only topically related but not logically connected
--Do NOT use external scientific knowledge, commonsense assumptions, or unstated domain knowledge, only use the information that is present in the papers
 -questions where Paper A only introduces an artifact and Paper B merely reuses, applies, evaluates, compares against, cites, or optimizes that artifact or where the answer is just the artifact itself or a verbatim description of it
 -questions where the two steps are independent facts that can be answered separately and simply concatenated
 -questions where Step 1 can be solved mainly by matching a distinctive phrase in the question to nearly identical wording in Paper A
+
+-Do NOT use external scientific knowledge, commonsense assumptions, or unstated domain knowledge, only use the information that is present in the papers
+
+Invalid:
+Paper A defines method X. Paper B uses method X.
+Paper A introduces dataset X. Paper B evaluates on X.
+Paper A introduces metric X. Paper B reports metric X.
+Paper A describes architecture X. Paper B applies X.
 
 OUTPUT FORMAT
 {
@@ -145,10 +161,13 @@ OUTPUT FORMAT
     ],
     "rejectedPapers": [<paperId1>, <paperId2>, <paperId3>],
     "reasoning": {
+        "bridgeProposition": <the interpretable proposition derived from Paper A, such as a mechanism, condition, limitation, guarantee, theoretical relation, or failure mode; this must not be merely a named artifact>,
+        "paperBObservation": <the concrete result, design choice, experiment, observation, or conclusion from Paper B that requires interpretation>,
+        "appliedInference": <explain the connection>,
         "step1": <Explain your reasoning for step1 on paper A>,
         "step2": <use step1 reasoning to derive or support the final answer>,
-        "connectionExplanation": <explain why the steps are connected and why step2 requires the result of step1>,
-    }, 
+        "connectionExplanation": <explain why Step 2 cannot be solved without Step 1, and why this is not entity linking, artifact reuse, table lookup, numeric lookup, or lexical matching>
+        },
     "questionDraft" : "<one clear, self-contained question requiring 2-hop reasoning, this serves as a draft for you final question. You can but don't have to explicitly reference the papers here to help formulate a better question.>",
     "question" : <decontextualize the questionDraft, so that it contains no explicit reference to the papers or external figures. Every reference to a paper should instead directly name the concept, phenomenon, method or similar that you are referring to, briefly describing it if needed. The question cannot contain explicit references to the papers or its content such as "in this paper", "the proposed methods" or similar.>",
     "answerWithPaperReferences" : <long-form paragraph integrating Paper A and Paper B with citations like [Paper A], [Paper B]>,
@@ -162,7 +181,6 @@ If a valid question can be generated, answer only with the valid JSON object. Yo
 Paper Texts:
 """
 
-
 JUDGING_PROMPT_TEMPLATE ="""
 You are evaluating a scientific question-answer (Q-A) example.
 Your goal is to assess whether it is a valid 2-hop, evidence-grounded scientific multi-hop question.
@@ -172,6 +190,8 @@ A valid example must:
 -not be decomposable into independent sub-questions
 -be fully answerable from the provided evidence
 -be self-contained and unambiguous
+
+The provided Reasoning Steps are not ground truth. They are only the generator's claimed reasoning chain. Verify the claim directly against the two paper texts. If the reasoning steps overstate dependency, invent a connection, or make Paper A seem more necessary than it really is, penalize the relevant criteria.
 
 IMPORTANT:
 -For each criterion, assign one label:
@@ -213,7 +233,8 @@ Evidence Distribution: Are both papers required and non-redundant?
 -BORDERLINE: Both papers contribute, but there is overlap, redundancy, or one paper is dominant while the other only adds support.
 -BAD: One paper is sufficient; the other is redundant, only background, or only provides the name/source of an artifact.
 
-Important: Artifact reuse alone is insufficient. If Paper A introduces an artifact and Paper B merely uses, applies, evaluates, compares against, cites, optimizes, or extends that artifact, assign BAD or BORDERLINE unless the question requires applying a non-trivial proposition about that artifact.
+Very Important: Artifact reuse alone is insufficient. If Paper A introduces an artifact and Paper B merely uses, applies, evaluates, compares against, cites, optimizes, or extends that artifact, assign BAD or BORDERLINE unless the question requires applying a non-trivial proposition about that artifact.
+If the answer can be produced by first identifying an artifact from Paper A and then looking up how Paper B uses that artifact, the Evidence grounding judgement has to be bad.
 
 Answerability: Is the answer fully supported by the provided evidence?
 -GOOD: Fully supported by the provided evidence from the papers; no external knowledge, speculation, or unsupported inference is needed.
@@ -232,31 +253,32 @@ OUTPUT FORMAT
 {{
     "multiHopValidity": {{
         "judgement": "<GOOD / BORDERLINE / BAD>",
-        "explanation": "<explain your judgement for multiHopValidity>"
+        "explanation": "<thoroughly describe how good the question fulfills the multiHopValidity criteria and justify jour judgement>"
     }},
     "dependencyStrength": {{
         "judgement": "<GOOD / BORDERLINE / BAD>",
-        "explanation": "<explain your judgement for dependencyStrength>"
+        "explanation": "<thoroughly describe how good the question fulfills the dependencyStrength criteria and justify jour judgement>"
     }},
     "nonDecomposability": {{
         "judgement": "<GOOD / BORDERLINE / BAD>",
-        "explanation": "<explain your judgement for nonDecomposability>"
+        "explanation": "<thoroughly describe how good the question fulfills the nonDecomposability criteria and justify jour judgement>"
     }},
     "evidenceDistribution": {{
         "judgement":"<GOOD / BORDERLINE / BAD>",
-        "explanation": "<explain your judgement for evidenceDistribution>"
+        "explanation": "<thoroughly describe how good the question fulfills the evidenceDistribution criteria and justify jour judgement>"
 
     }},
     "answerability": {{
         "judgement": "<GOOD / BORDERLINE / BAD>",
-        "explanation": "<explain your judgement for answerability>"
+        "explanation": "<thoroughly describe how good the question fulfills the answerability criteria and justify jour judgement>"
 
     }},
     "decontextualization": {{
         "judgement": "<GOOD / BORDERLINE / BAD>",
-        "explanation": "<explain your judgement for decontextualization>"
+        "explanation": "<thoroughly describe how good the question fulfills the decontextualization criteria and justify jour judgement>"
 
     }},
+
     "confidence": <0 to 1 rate how confident you are in the judgements>
 }}
 Do not deviate from this schema. Do not add any preciding information like ```json. Only Answer with the valid json
