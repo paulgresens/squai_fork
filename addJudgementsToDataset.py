@@ -1,45 +1,21 @@
 import os
-import re
 import time
 import json
-import random
-import plyvel
 import requests
 import gc
 import torch
-import io
 import numpy as np
 from dotenv import load_dotenv
 import time
-from local_agent import LLMAgent
-from config import DB_PATH
 
 load_dotenv()
 # --- CONFIGURATION ---
 SCADS_API_KEY = os.getenv("SCADS_API_KEY")
 
-def free_gpu_memory():
-    """Force garbage collection and clear GPU cache."""
-    # Attempt to clear globals if they exist here (failsafe)
-    if 'agent' in globals():
-        del globals()['agent']
-    if 'model' in globals():
-        del globals()['model']
-    if 'tokenizer' in globals():
-        del globals()['tokenizer']
-        
-    gc.collect()
-    torch.cuda.empty_cache()
-    torch.cuda.ipc_collect()
-    print("✅ GPU Memory Cleared.")
-
-
-
 # --- CONFIGURATION ---
 SCADS_API_MODEL = "openai/gpt-oss-120b"
-INPUT_FILE = "generatedQuestionsWithoutJudgement.jsonl"
-OUTPUT_FILE = "generatedQuestionsWithJudgement.jsonl"
-JUDGING_MODEL = "Qwen/Qwen3-Next-80B-A3B-Instruct"
+INPUT_FILE = "./dump/mergedVersion3.jsonl"
+OUTPUT_FILE = "./dump/mergedVersion3Judged.jsonl"
 
 JUDGING_PROMPT_TEMPLATE ="""
 You are evaluating a scientific question-answer (Q-A) example.
@@ -50,6 +26,8 @@ A valid example must:
 -not be decomposable into independent sub-questions
 -be fully answerable from the provided evidence
 -be self-contained and unambiguous
+
+The provided Reasoning Steps are not ground truth. They are only the generator's claimed reasoning chain. Verify the claim directly against the two paper texts. If the reasoning steps overstate dependency, invent a connection, or make Paper A seem more necessary than it really is, penalize the relevant criteria.
 
 IMPORTANT:
 -For each criterion, assign one label:
@@ -68,76 +46,77 @@ Reasoning Steps: {reasoningSteps}
 EVALUATION CRITERIA
 A. Reasoning Structure
 Multi-hop Validity: Does answering the question require combining both papers?
-Assesses whether answering the question requires integrating information from both papers. Thus, this criterion is only satisfied, if neither paper provides sufficient information for deriving the complete answer.
--GOOD: Both papers are strictly required, the question cannot be answered using only one paper
--BORDERLINE: Both papers contribute but one may be sufficient
--BAD: Only one paper is sufficient (single-hop)
+-GOOD: Both papers are strictly required; neither paper alone provides enough information to answer the complete question.
+-BORDERLINE: Both papers contribute, but one paper may be sufficient to answer the main question, or the second paper mainly adds background/context.
+-BAD: Only one paper is sufficient; the question is effectively single-hop.
+Important: If one paper only identifies, introduces, defines, or names an artifact that the other paper already uses, mentions, evaluates, optimizes, cites, or compares against, this is not enough for GOOD. The answer must require combining non-redundant evidence from both papers.
 
-Dependency Strength: 
-evaluates whether the steps in the reasoning chain are sequentially dependent, in order for the conclusion to be drawn. Thus, the second reasoning step cannot be solved without first applying or interpreting the first one.
-Step 2 must require the result, entity, method, dataset, variable, or conclusion obtained in Step 1.
-GOOD: Step 2 strictly requires Step 1
-BORDERLINE: Partial dependence
-BAD: Steps are independent (disconnected reasoning)
+Dependency Strength: Does Step 2 depend on the result of Step 1?
+-GOOD: Step 2 strictly requires applying a proposition derived from Step 1. Step 1 must provide more than a named entity; it must provide a mechanism, condition, definition, limitation, assumption, guarantee, interpretation, objective, result, or similar.
+-BORDERLINE: Step 2 is related to Step 1, but the dependency is weak, mostly entity-linking, or one step can mostly be solved without the other.
+-BAD: Steps are independent, disconnected, or Step 1 only identifies a name/entity used in Step 2.
+
+Important: If Step 1 can be solved mainly by matching a distinctive phrase in the question to nearly identical wording in one paper, and Step 2 only tracks the same artifact in the other paper, do not assign GOOD.
 
 Non-Decomposability: Is the question NOT decomposable into independent sub-questions?
-Verifies that questions cannot be broken down into independent single-hop sub-questions. Instead, reasoning steps must be connected in such a way, that separately solving them would not be sufficient for deriving an answer.
--GOOD: Cannot be split; requires joint reasoning
--BORDERLINE: Partially decomposable
--BAD: Clearly decomposable into independent sub-questions
+-GOOD: The question cannot be split into independent single-hop questions; solving one part changes, constrains, or enables solving the other.
+-BORDERLINE: The question is partially decomposable, but the sub-answers still need some linking or interpretation.
+-BAD: The question clearly decomposes into independent sub-questions whose answers can simply be concatenated.
 
 B. Evidence Grounding
 Evidence Distribution: Are both papers required and non-redundant?
-Examines whether both papers contribute distinct and necessary evidence, ensuring that required evidence is spread across both papers and questions cannot be answered by using a single dominant source, with redundant information.
--GOOD: Each paper contributes distinct, necessary information
--BORDERLINE: Some overlap or redundancy
--BAD: One paper is sufficient; the other is redundant
+-GOOD: Each paper contributes distinct, necessary information. One paper provides an intermediate proposition, and the other provides evidence whose meaning depends on applying that proposition.
+-BORDERLINE: Both papers contribute, but there is overlap, redundancy, or one paper is dominant while the other only adds support.
+-BAD: One paper is sufficient; the other is redundant, only background, or only provides the name/source of an artifact.
+
+Very Important: Artifact reuse alone is insufficient. If Paper A introduces an artifact and Paper B merely uses, applies, evaluates, compares against, cites, optimizes, or extends that artifact, assign BAD or BORDERLINE unless the question requires applying a non-trivial proposition about that artifact.
+If the answer can be produced by first identifying an artifact from Paper A and then looking up how Paper B uses that artifact, the Evidence grounding judgement has to be bad.
 
 Answerability: Is the answer fully supported by the provided evidence?
-Assesses whether the answer is fully supported and obtainable by only relying on information present in the  papers, without requiring external knowledge or speculative inference, not explicitly supported by either paper. 
--GOOD: Fully supported by cited evidence
--BORDERLINE: Partially supported
--BAD: Not supported or contradicts the evidence
-
+-GOOD: Fully supported by the provided evidence from the papers; no external knowledge, speculation, or unsupported inference is needed.
+-BORDERLINE: Partially supported, but some part of the answer requires mild inference, is under-specified, or is not directly grounded.
+-BAD: Not supported, contradicted by the evidence, or requires external knowledge/speculation.
 C. Dataset Quality: 
-Decontextualization
-Is the question self-contained and unambiguous? The question cannot contain explicit references to the papers or its content such as "in this paper", "the proposed methods", " this approach" or similar.
--GOOD: Fully self-contained; all entities clearly defined
--BORDERLINE: Minor ambiguity
--BAD: Not understandable without external context
+Decontextualization: Is the question self-contained and unambiguous?
+The question cannot contain explicit references to the papers or their content such as "in this paper", "the proposed method", "this approach", "the authors", or similar.
+-GOOD: Fully self-contained; all entities/concepts needed to understand the question are clearly named or described; no explicit paper references.
+-BORDERLINE: Mostly self-contained, but contains minor ambiguity, an underspecified phrase, or a concept that is described but not clearly identifiable.
+-BAD: Not understandable without external context, relies on paper-specific references, or is ambiguous.
+
+Important: Technical terminology from the papers is allowed when necessary. However, the question should not simply copy distinctive phrasing from a paper in order to make Step 1 a lexical lookup.
 
 OUTPUT FORMAT
 {{
     "multiHopValidity": {{
         "judgement": "<GOOD / BORDERLINE / BAD>",
-        "explanation": "<explain your judgement for multiHopValidity>"
+        "explanation": "<thoroughly describe how good the question fulfills the multiHopValidity criteria and justify jour judgement>"
     }},
     "dependencyStrength": {{
         "judgement": "<GOOD / BORDERLINE / BAD>",
-        "explanation": "<explain your judgement for dependencyStrength>"
+        "explanation": "<thoroughly describe how good the question fulfills the dependencyStrength criteria and justify jour judgement>"
     }},
     "nonDecomposability": {{
         "judgement": "<GOOD / BORDERLINE / BAD>",
-        "explanation": "<explain your judgement for nonDecomposability>"
+        "explanation": "<thoroughly describe how good the question fulfills the nonDecomposability criteria and justify jour judgement>"
     }},
     "evidenceDistribution": {{
         "judgement":"<GOOD / BORDERLINE / BAD>",
-        "explanation": "<explain your judgement for evidenceDistribution>"
+        "explanation": "<thoroughly describe how good the question fulfills the evidenceDistribution criteria and justify jour judgement>"
 
     }},
     "answerability": {{
         "judgement": "<GOOD / BORDERLINE / BAD>",
-        "explanation": "<explain your judgement for answerability>"
+        "explanation": "<thoroughly describe how good the question fulfills the answerability criteria and justify jour judgement>"
 
     }},
     "decontextualization": {{
         "judgement": "<GOOD / BORDERLINE / BAD>",
-        "explanation": "<explain your judgement for decontextualization>"
+        "explanation": "<thoroughly describe how good the question fulfills the decontextualization criteria and justify jour judgement>"
 
     }},
+
     "confidence": <0 to 1 rate how confident you are in the judgements>
 }}
-
 Do not deviate from this schema. Do not add any preciding information like ```json. Only Answer with the valid json
 """
 
@@ -228,7 +207,7 @@ def askScadsApiLLM(prompt):
     print("-----------------")
     # Convert the response to JSON and extract the text
     data = response.json()
-    time.sleep(10)
+    time.sleep(2)
     return (data["choices"][0]["message"]["content"])
 
 
@@ -246,6 +225,7 @@ def clean_and_parse_json(text):
         return None
 
 def addJudgementToQuestion(question):
+    start_time = time.perf_counter()
     cleanedAndParsedJson = question
 
     bridgeEvidencePaperText = cleanedAndParsedJson["bridgeEvidencePaperText"]
@@ -259,40 +239,30 @@ def addJudgementToQuestion(question):
     print("JUDGE\n")
     print(json.dumps(judgementResultParsed))
     cleanedAndParsedJson["judgementResult"] = judgementResultParsed
-    free_gpu_memory()
 
     experimenterPromptEvidence = buildExperimentererPromps("paper1: " + cleanedAndParsedJson["question"], bridgeEvidencePaperText)
-    # experimenterPromptEvidenceExperimentorResult = judgingAgent.generate(experimenterPromptEvidence)
     experimenterPromptEvidenceExperimentorResult = askScadsApiLLM(experimenterPromptEvidence)
     experimenterPromptEvidenceExperimentorResultParsed = clean_and_parse_json(experimenterPromptEvidenceExperimentorResult) 
-    free_gpu_memory()
+
     experimenterPromptAnswer = buildExperimentererPromps("paper1: " + cleanedAndParsedJson["question"], bridgeAnswerPaperText)
-    # experimenterPromptAnswerExperimentorResult = judgingAgent.generate(experimenterPromptAnswer)
     experimenterPromptAnswerExperimentorResult = askScadsApiLLM(experimenterPromptAnswer)
     experimenterPromptAnswerExperimentorResultParsed = clean_and_parse_json(experimenterPromptAnswerExperimentorResult) 
-    free_gpu_memory()
 
     bothPaperTexts = "EvidencePaperText:\n" + bridgeEvidencePaperText + "\n" + "BridgeAnswerText" + "\n" + bridgeAnswerPaperText
     experimenterPromptBoth = buildExperimentererPromps(cleanedAndParsedJson["question"], bothPaperTexts)
-    # experimenterPromptBothResult = judgingAgent.generate(experimenterPromptBoth)
     experimenterPromptBothResult = askScadsApiLLM(experimenterPromptBoth)
     experimenterPromptBothResultParsed = clean_and_parse_json(experimenterPromptBothResult) 
-    free_gpu_memory()
-
-    # experimentererConnectionPrompt =  buildExperimentererConnectionPrompt(bridgeEvidencePaperText, bridgeAnswerPaperText, cleanedAndParsedJson["reasoning"]["connectionExplanation"])
-    # experimentererConnectionResult = judgingAgent.generate(experimentererConnectionPrompt)
-    # experimentererConnectionResultParsed = clean_and_parse_json(experimentererConnectionResult)
-    # free_gpu_memory()
 
     cleanedAndParsedJson["experimenterPromptEvidenceExperimentorResult"] = experimenterPromptEvidenceExperimentorResultParsed
     cleanedAndParsedJson["experimenterPromptAnswerExperimentorResult"] = experimenterPromptAnswerExperimentorResultParsed
     cleanedAndParsedJson["experimenterPromptBothResult"] = experimenterPromptBothResultParsed
     # cleanedAndParsedJson["experimentererConnectionResult"] = experimentererConnectionResultParsed
+    end_time = time.perf_counter()
+    print("time for all requests: " + str(end_time - start_time))
     return cleanedAndParsedJson
 
 def main():
     questionsWithoutJudgement = 0
-    # judgingAgent = LLMAgent(JUDGING_MODEL)
     alreadyJudgedQuestions = []
     with open(OUTPUT_FILE, "r") as in_file:
         for j, lineAlready in enumerate(in_file):
@@ -332,5 +302,4 @@ def main():
     print("-----------------------------")        
 
 if __name__ == "__main__":
-    free_gpu_memory()
     main()
