@@ -14,9 +14,8 @@ SCADS_API_KEY = os.getenv("SCADS_API_KEY")
 
 # --- CONFIGURATION ---
 SCADS_API_MODEL = "openai/gpt-oss-120b"
-
-INPUT_FILE = "./generatedUnjudged.jsonl"
-OUTPUT_FILE = "./generatedJudged.jsonl"
+INPUT_FILE = "./generatedUnjudged5.jsonl"
+OUTPUT_FILE = "./generatedJudged5.jsonl"
 
 JUDGING_PROMPT_TEMPLATE ="""
 You are evaluating a scientific question-answer (Q-A) example.
