@@ -727,14 +727,19 @@ def addJudgementToQuestion(question):
 
     print("asking scads api - multihopResult")
     multihopResult = askScadsApiLLM(multihopPrompt)
-    multihopResultParsed = clean_and_parse_json(multihopResult) 
+    multihopResultParsed = clean_and_parse_json(multihopResult)
+    if not multihopResultParsed: 
+        return None
     cleanedAndParsedJson["judgementResult"]["multiHopValidity"] = multihopResultParsed
+
     print("multihopResult: " + multihopResultParsed["judgement"])
 
     time.sleep(1)
     print("asking scads api - dependencyStrengtResult")
     dependencyStrengtResult = askScadsApiLLM(dependencyStrengthPrompt)
     dependencyStrengtResultParsed = clean_and_parse_json(dependencyStrengtResult) 
+    if not dependencyStrengtResultParsed: 
+        return None
     cleanedAndParsedJson["judgementResult"]["dependencyStrength"] = dependencyStrengtResultParsed
     print("dependencyStrengtResult: " + dependencyStrengtResultParsed["judgement"])
 
@@ -742,6 +747,8 @@ def addJudgementToQuestion(question):
     print("asking scads api - nonDecomposabilityResult")
     nonDecomposabilityResult = askScadsApiLLM(nonDecomposabilityPrompt)
     nonDecomposabilityResultParsed = clean_and_parse_json(nonDecomposabilityResult) 
+    if not nonDecomposabilityResultParsed: 
+        return None
     cleanedAndParsedJson["judgementResult"]["nonDecomposability"] = nonDecomposabilityResultParsed
     print("nonDecomposabilityResult: " + nonDecomposabilityResultParsed["judgement"])
 
@@ -749,6 +756,8 @@ def addJudgementToQuestion(question):
     print("asking scads api - evidenceDistributionResult")
     evidenceDistributionResult = askScadsApiLLM(evidenceDistributionPrompt)
     evidenceDistributionResultParsed = clean_and_parse_json(evidenceDistributionResult) 
+    if not evidenceDistributionResultParsed: 
+        return None
     cleanedAndParsedJson["judgementResult"]["evidenceDistribution"] = evidenceDistributionResultParsed
     print("evidenceDistributionResult: " + evidenceDistributionResultParsed["judgement"])
 
@@ -756,6 +765,8 @@ def addJudgementToQuestion(question):
     print("asking scads api - answerabilityResult")
     answerabilityResult = askScadsApiLLM(answerabilityPrompt)
     answerabilityResultParsed = clean_and_parse_json(answerabilityResult) 
+    if not answerabilityResultParsed: 
+        return None
     cleanedAndParsedJson["judgementResult"]["answerability"] = answerabilityResultParsed
     print("answerabilityResult: " + answerabilityResultParsed["judgement"])
 
@@ -763,6 +774,8 @@ def addJudgementToQuestion(question):
     print("asking scads api - decontextualizationResult")
     decontextualizationResult = askScadsApiLLM(decontextualizationPrompt)
     decontextualizationResultParsed = clean_and_parse_json(decontextualizationResult) 
+    if not decontextualizationResultParsed: 
+        return None
     cleanedAndParsedJson["judgementResult"]["decontextualization"] = decontextualizationResultParsed
     print("decontextualizationResult: " + decontextualizationResultParsed["judgement"])
     time.sleep(1)
@@ -777,15 +790,21 @@ def addJudgementToQuestion(question):
     experimenterPromptEvidence = buildExperimentererPromps("paper1: " + cleanedAndParsedJson["question"], bridgeEvidencePaperText)
     experimenterPromptEvidenceExperimentorResult = askScadsApiLLM(experimenterPromptEvidence)
     experimenterPromptEvidenceExperimentorResultParsed = clean_and_parse_json(experimenterPromptEvidenceExperimentorResult) 
+    if not experimenterPromptEvidenceExperimentorResultParsed: 
+        return None
 
     experimenterPromptAnswer = buildExperimentererPromps("paper1: " + cleanedAndParsedJson["question"], bridgeAnswerPaperText)
     experimenterPromptAnswerExperimentorResult = askScadsApiLLM(experimenterPromptAnswer)
     experimenterPromptAnswerExperimentorResultParsed = clean_and_parse_json(experimenterPromptAnswerExperimentorResult) 
+    if not experimenterPromptAnswerExperimentorResultParsed: 
+        return None
 
     bothPaperTexts = "EvidencePaperText:\n" + bridgeEvidencePaperText + "\n" + "BridgeAnswerText" + "\n" + bridgeAnswerPaperText
     experimenterPromptBoth = buildExperimentererPromps(cleanedAndParsedJson["question"], bothPaperTexts)
     experimenterPromptBothResult = askScadsApiLLM(experimenterPromptBoth)
     experimenterPromptBothResultParsed = clean_and_parse_json(experimenterPromptBothResult) 
+    if not experimenterPromptBothResultParsed: 
+        return None
 
     cleanedAndParsedJson["experimenterPromptEvidenceExperimentorResult"] = experimenterPromptEvidenceExperimentorResultParsed
     cleanedAndParsedJson["experimenterPromptAnswerExperimentorResult"] = experimenterPromptAnswerExperimentorResultParsed
@@ -824,11 +843,11 @@ def main():
                 questionsWithoutJudgement += 1
                 finishedQuestionWithJudgement = addJudgementToQuestion(question)
                 print("Questions for anchor paper not judged yet: " + questionAnchorPaper)
-                                                                
-            with open(OUTPUT_FILE, "a") as file: # Using "a" to append each new question
-                # json.dump automatically formats your dictionary and writes it to the file
-                json.dump(finishedQuestionWithJudgement, file)
-                file.write("\n") # Add a newline so the next JSON object starts on a new line
+            if (finishedQuestionWithJudgement):                                                    
+                with open(OUTPUT_FILE, "a") as file: # Using "a" to append each new question
+                    # json.dump automatically formats your dictionary and writes it to the file
+                    json.dump(finishedQuestionWithJudgement, file)
+                    file.write("\n") # Add a newline so the next JSON object starts on a new line
     print("-----------------------------")
     print("already judged:  " + str(judgedQuestion))
     print("added judgement: " + str(questionsWithoutJudgement))
