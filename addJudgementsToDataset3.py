@@ -690,12 +690,18 @@ def askScadsApiLLM(prompt):
     # 4. Send the request and print the answer
     response = requests.post(url, headers=headers, json=payload)
     # Convert the response to JSON and extract the text
-    data = response.json()
+    try:
+        data = response.json()
+    except:
+        return None
+
     time.sleep(2)
     return (data["choices"][0]["message"]["content"])
 
 
 def clean_and_parse_json(text):
+    if text is None:
+        return None
     start_idx = text.find('{')
     end_idx = text.rfind('}')
     if start_idx != -1 and end_idx != -1 and start_idx < end_idx:
