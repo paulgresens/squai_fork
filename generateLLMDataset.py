@@ -34,7 +34,7 @@ DB_LOCK_FILE = "dbLock.txt"
 
 # MODEL = "unsloth/Qwen3-Next-80B-A3B-Instruct-bnb-4bit"
 # JUDGING_MODEL = "mistralai/Mixtral-8x7B-Instruct-v0.1"
-PAPER_CHARACTER_LIMIT=30000
+PAPER_CHARACTER_LIMIT=20000
 QUESTIONS_TO_GENERATE = 200
 
 
@@ -441,7 +441,7 @@ def askScadsApiLLM(prompt):
             }
         ],
         "temperature": 0.0,
-        "max_tokens": 16000,
+        "max_tokens": 5000,
         "stream": True
     }
 
@@ -663,7 +663,7 @@ def generateQuestion(arxivId, allSquaiArxivIds): #, judgingAgent
         "text":  startingPaperFullText, 
         "untruncatedTextLength": len(startingPaperFullText),
     }]
-    while len(final_papers) < 5 and len(papersInThreshold ) > 0:
+    while len(final_papers) < 4 and len(papersInThreshold ) > 0:
         potentialPaper = random.choice(papersInThreshold)
         arxivId = potentialPaper["paperId"]
         paperFullText = getPaperFullText(arxivId)
@@ -676,7 +676,7 @@ def generateQuestion(arxivId, allSquaiArxivIds): #, judgingAgent
             })
         papersInThreshold.remove(potentialPaper)
 
-    if len(final_papers) < 5: 
+    if len(final_papers) < 4: 
         return None
     
     papersWithLessThanCharacterLimit = [p for p in final_papers if len(p["text"]) <= PAPER_CHARACTER_LIMIT]
