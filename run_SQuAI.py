@@ -738,7 +738,7 @@ class Enhanced4AgentRAG:
         contexts["meanJudgement"] = totals
         return contexts
 
-    def _process_single_question(self, query: str, db=None) -> Tuple[List[Tuple], List]:
+    def _process_single_question(self, query: str, goldGroundTruthPapers = None,db=None) -> Tuple[List[Tuple], List]:
         """Process a single question and return (abstracts, filtered_documents)"""
 
         # PHASE 1: Retrieve ABSTRACTS for Agent2 & Agent3 filtering
@@ -798,9 +798,15 @@ class Enhanced4AgentRAG:
             if scores[i] >= adjusted_tau_q:
                 filtered_doc_ids.append(doc_id)
                 filtered_abstracts.append((abstract_text, doc_id, scores[i]))
+        
+        #also append gold ground truth
+        if (goldGroundTruthPapers):
+            filtered_doc_ids.extend(goldGroundTruthPapers)
+            filtered_doc_ids = random.sample(filtered_doc_ids, len(filtered_doc_ids))
 
         filtered_abstracts.sort(key=lambda x: x[2], reverse=True)
-        
+        print ("these are the doc_ids: " + json.dumps(filtered_doc_ids))       
+
         print("agent3 result-----------------------------------")
         a = {
             "tau_q": tau_q,
@@ -852,6 +858,8 @@ class Enhanced4AgentRAG:
             # PHASE 2: Parallel Processing of Questions
             all_filtered_doc_ids = []
 
+            goldGroundTruthPapers = [item["usedPapers"][0]["arXiv"],item["usedPapers"][1]["arXiv"]]
+
             if len(questions_to_process) > 1:
                 # Parallel processing using thread pool
                 with time_block("parallel_question_processing"):
@@ -863,7 +871,7 @@ class Enhanced4AgentRAG:
                     future_to_question = {}
                     for sub_query in questions_to_process:
                         future = self.executor.submit(
-                            self._process_single_question, sub_query, db
+                            self._process_single_question, sub_query,goldGroundTruthPapers, db
                         )
                         future_to_question[future] = sub_query
 
@@ -883,7 +891,7 @@ class Enhanced4AgentRAG:
             else:
                 # Single question processing
                 retrieved_abstracts, filtered_doc_ids = self._process_single_question(
-                    questions_to_process[0], db
+                    questions_to_process[0],goldGroundTruthPapers, db
                 )
                 all_filtered_doc_ids = filtered_doc_ids
 
