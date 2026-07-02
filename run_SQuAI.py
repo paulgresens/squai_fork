@@ -1006,6 +1006,7 @@ class Enhanced4AgentRAG:
             '''
             
             #variant 1 - native squai context extraction
+
             references, referencesDuration = citation_handler.format_references(raw_answer,cleanFullDocumentTexts)
 
             #variant 2 - Biencoder (selects top 1) out of floating windows of up to 5 sentences
