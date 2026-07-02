@@ -2,10 +2,9 @@
 #SBATCH --nodes=1
 #SBATCH --tasks-per-node=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=100G
-#SBATCH --gres=gpu:1
-#SBATCH --partition=capella
-#SBATCH --time=40:00:00
+#SBATCH --mem=160G
+#SBATCH --partition=barnard
+#SBATCH --time=44:00:00
 #SBATCH --mail-type=start,end,fail
 #SBATCH --mail-user=tpgresens@gmail.com
 
