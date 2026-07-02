@@ -628,7 +628,7 @@ def generateQuestion(arxivId, allSquaiArxivIds): #, judgingAgent
     print(f"References: {len(paper_data['references'])}")
     print(f"References in squai dataset: {len(valid_refs)}")
 
-    if len(valid_refs) < 4:
+    if len(valid_refs) < 3:
         return None
 
     selected_refs = random.sample(valid_refs, min(10, len(valid_refs)))
@@ -650,7 +650,7 @@ def generateQuestion(arxivId, allSquaiArxivIds): #, judgingAgent
             "cosineSimilarity": cosineSimilarity
         })
 
-    if len(paperCosineSimilarity) < 4:
+    if len(paperCosineSimilarity) < 3:
         return None
     
     papersInThreshold = [ ref for ref in paperCosineSimilarity if 0.70 <= ref["cosineSimilarity"] <= 0.9]
