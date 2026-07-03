@@ -1,6 +1,7 @@
 import requests
 import time
 import os
+import json
 import re
 from dotenv import load_dotenv
 
@@ -8,11 +9,11 @@ load_dotenv()
 
 PUBLIC_SCADS_KEY = os.getenv("PUBLIC_SCADS_KEY")
 
-class MinimaxAgent:
-    def __init__(self,max_tokens):
+class ScadsApiAgent:
+    def __init__(self,model):
         self.api_key = PUBLIC_SCADS_KEY
         self.api_url = "https://llm.scads.ai/v1/chat/completions"
-        self.max_tokens = max_tokens
+        self.model = model
 
 
     def generate(self, prompt, getYesNoLogProbs = False):
@@ -26,7 +27,7 @@ class MinimaxAgent:
     
         # Option 1: Try formatting as messages
         payload = {
-            "model": "zai-org/GLM-5.2-FP8",
+            "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
             "logprobs": True,
             "top_logprobs": 20,
@@ -62,6 +63,7 @@ class MinimaxAgent:
                     return "I don't have enough information to provide a specific answer."
                 
                 if (getYesNoLogProbs):
+                    text_response = json.loads(text_response)["verdict"] 
                     yesPropabilty = None
                     noPropability = None
                     logprobs = data["choices"][0]["logprobs"]["content"]
@@ -69,7 +71,7 @@ class MinimaxAgent:
                     text_response_cleaned = normalize_yes_no_token(text_response)
 
                     if text_response_cleaned != "Yes" and text_response_cleaned != "No":
-                        raise Exception("Invalid yes/no answer")
+                        raise Exception("Invalid yes/no answer", text_response)
 
                     last_text_response_index = next(
                         (i for i in range(len(logprobs) - 1, -1, -1)

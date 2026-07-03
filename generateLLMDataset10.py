@@ -30,6 +30,7 @@ ERROR_CACHE_FILE = "errorAtTheseArxivIds10.txt"
 # SCADS_API_MODEL = "openai/gpt-oss-120b"
 SCADS_API_MODEL = "moonshotai/Kimi-K2.6"
 SEMANTIC_SCHOLAR_API_BLOCK_FILE = "semanticScholarApiLock.txt"
+ARXIV_BLOCK_FILE = "arxivLock.txt"
 DB_LOCK_FILE = "dbLock.txt"
 
 # MODEL = "unsloth/Qwen3-Next-80B-A3B-Instruct-bnb-4bit"
@@ -65,6 +66,7 @@ class APILockManager:
 
 # Instantiate your lock manager once at the top of your script
 api_lock = APILockManager(SEMANTIC_SCHOLAR_API_BLOCK_FILE)
+arxiv_lock = APILockManager(ARXIV_BLOCK_FILE)
 db_lock = APILockManager(DB_LOCK_FILE)
 
 if not os.path.exists(SEMANTIC_SCHOLAR_API_BLOCK_FILE):
@@ -73,6 +75,10 @@ if not os.path.exists(SEMANTIC_SCHOLAR_API_BLOCK_FILE):
 if not os.path.exists(DB_LOCK_FILE):
     with open(DB_LOCK_FILE, "a", encoding="utf-8") as f:
         f.write("lock")
+if not os.path.exists(ARXIV_BLOCK_FILE):
+    with open(ARXIV_BLOCK_FILE, "a", encoding="utf-8") as f:
+        f.write("lock")
+
 
 PROMPT_TEMPLATE = """
 You are generating a scientific 2-hop question-answer-evidence (Q-A) Tuple.
@@ -354,44 +360,6 @@ def get_all_squai_arxiv_ids():
     
 # TODO ADD DELAY OR STRIKED BY ARXIV
 
-def getCategoryFromArxiv(arxiv_id):
-    base_url = "https://export.arxiv.org/api/query"
-    params = {
-        "id_list": arxiv_id,
-        "max_results": 1
-    }
-    headers = {
-        "User-Agent": "ResearchScript/1.0",
-        "x-api-key": SEMANTIC_SCHOLAR_API_KEY,
-    }
-    
-    try:
-        response = requests.get(base_url, params=params, headers=headers)
-        response.raise_for_status()
-        xml_text = response.text
-
-        # Regex to find the primary category (e.g., term="cs.LG")
-        match = re.search(r'<arxiv:primary_category\s+term="([^"]+)"', xml_text)
-        category = match.group(1)
-        #check if this is really correct, maybe take secondary category
-        time.sleep(10)
-        return category
-    
-    except requests.exceptions.HTTPError as e:
-        print(f"Error fetching metadata for {arxiv_id}: {e}")
-        status_code = e.response.status_code
-        if (status_code == 429):
-            print("429 - sleeping for 5min")
-            time.sleep(300)
-        else:
-            print("errorCode: " + str(status_code))
-            time.sleep(10)
-        return None
-    except Exception as e:
-        time.sleep(10)
-        return None
-
-
 # def askScadsApiLLM(prompt):
 #     start_time = time.perf_counter()
 #     url = "https://llm.scads.ai/v1/chat/completions"
@@ -567,6 +535,48 @@ def getPaperReferencesAndEmbeddingFromSemanticScholar(arxiv_id):
         api_lock.unlock()
 
 
+def getCategoryFromArxiv(arxiv_id):
+    base_url = "https://export.arxiv.org/api/query"
+    params = {
+        "id_list": arxiv_id,
+        "max_results": 1
+    }
+    headers = {
+        "User-Agent": "ResearchScript/1.0",
+    }
+    
+    arxiv_lock.lock()
+    print("getting category for : " + arxiv_id)
+
+    try:
+        response = requests.get(base_url, params=params, headers=headers)
+        response.raise_for_status()
+        xml_text = response.text
+
+        # Regex to find the primary category (e.g., term="cs.LG")
+        match = re.search(r'<arxiv:primary_category\s+term="([^"]+)"', xml_text)
+        category = match.group(1)
+        #check if this is really correct, maybe take secondary category
+        time.sleep(10)
+        return category
+    
+    except requests.exceptions.HTTPError as e:
+        print(f"Error fetching metadata for {arxiv_id}: {e}")
+        status_code = e.response.status_code
+        if (status_code == 429):
+            print("429 - sleeping for 5min")
+            time.sleep(300)
+        else:
+            print("errorCode: " + str(status_code))
+            time.sleep(10)
+        return None
+    except Exception as e:
+        time.sleep(10)
+        return 
+    finally:
+        time.sleep(5)
+        arxiv_lock.unlock()
+
 
 
 def getPaperFullText(arxivId):
@@ -633,9 +643,9 @@ def generateQuestion(arxivId, allSquaiArxivIds): #, judgingAgent
         return None
 
     selected_refs = random.sample(valid_refs, min(10, len(valid_refs)))
-
     paperCosineSimilarity = []
 
+    # here select 10 random refs if they are more
     for ref in selected_refs:
         paperId = ref["externalIds"]["ArXiv"]
         paperMeta = getPaperReferencesAndEmbeddingFromSemanticScholar(paperId)
@@ -663,7 +673,7 @@ def generateQuestion(arxivId, allSquaiArxivIds): #, judgingAgent
         "text":  startingPaperFullText, 
         "untruncatedTextLength": len(startingPaperFullText),
     }]
-    while len(final_papers) < 4 and len(papersInThreshold ) > 0:
+    while len(final_papers) < 5 and len(papersInThreshold ) > 0:
         potentialPaper = random.choice(papersInThreshold)
         arxivId = potentialPaper["paperId"]
         paperFullText = getPaperFullText(arxivId)
@@ -676,7 +686,7 @@ def generateQuestion(arxivId, allSquaiArxivIds): #, judgingAgent
             })
         papersInThreshold.remove(potentialPaper)
 
-    if len(final_papers) < 4: 
+    if len(final_papers) < 5: 
         return None
     
     papersWithLessThanCharacterLimit = [p for p in final_papers if len(p["text"]) <= PAPER_CHARACTER_LIMIT]
