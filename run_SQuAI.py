@@ -221,18 +221,19 @@ class Enhanced4AgentRAG:
         docs_with_citations = []
         total_chars = 0
         documents_used = 0
-
+        paperCount = len(full_texts)
+        maxPerPaper = 250000 / paperCount
         # Dynamic context allocation - top + bottom extraction approach
         if was_split:
             # Conservative: Target ~4K total per paper
-            top_chars = 2500  # Top of paper (title, abstract, intro start)
-            bottom_chars = 1500  # Bottom of paper (conclusion, results)
+            top_chars = int(maxPerPaper*0.66)  # Top of paper (title, abstract, intro start)
+            bottom_chars = int(maxPerPaper*0.33)  # Bottom of paper (conclusion, results)
             strategy = "CONSERVATIVE (split questions)"
             target_per_paper = "~4K"
         else:
             # Generous: Target ~8K total per paper
-            top_chars = 5000  # More from top (title, abstract, intro)
-            bottom_chars = 3000  # More from bottom (conclusion, results)
+            top_chars = int(maxPerPaper*0.5)  # More from top (title, abstract, intro)
+            bottom_chars = int(maxPerPaper*0.5)  # More from bottom (conclusion, results)
             strategy = "GENEROUS (single question)"
             target_per_paper = "~8K"
 

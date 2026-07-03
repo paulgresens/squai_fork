@@ -1,6 +1,7 @@
 import requests
 import time
 import os
+import re
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -19,21 +20,32 @@ class MinimaxAgent:
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}",
         }
-        print("with api token: ", self.api_key)
         # Format as a chat message compatible with Falcon API
         # The API may have a different format than the local model
         # so we'll need to check their documentation
     
         # Option 1: Try formatting as messages
         payload = {
-            "model": "openai/gpt-oss-120b",
+            "model": "zai-org/GLM-5.2-FP8",
             "messages": [{"role": "user", "content": prompt}],
             "logprobs": True,
             "top_logprobs": 20,
             "temperature": 0.0
 
         }
-    
+
+
+        def normalize_yes_no_token(text):
+            if text is None:
+                return None
+
+            match = re.fullmatch(r"\s*(yes|no)[\.\!\?]?\s*", text, re.IGNORECASE)
+
+            if not match:
+                return None
+
+            return "Yes" if match.group(1).lower() == "yes" else "No"
+
         # Add retry logic for robustness
         max_retries = 3
         for attempt in range(max_retries):
@@ -53,38 +65,55 @@ class MinimaxAgent:
                     yesPropabilty = None
                     noPropability = None
                     logprobs = data["choices"][0]["logprobs"]["content"]
-                    final_idx = next(
-                        (i for i, entry in enumerate(logprobs) if entry.get("token") == "final"),
+                    
+                    text_response_cleaned = normalize_yes_no_token(text_response)
+
+                    if text_response_cleaned != "Yes" and text_response_cleaned != "No":
+                        raise Exception("Invalid yes/no answer")
+
+                    last_text_response_index = next(
+                        (i for i in range(len(logprobs) - 1, -1, -1)
+                         if normalize_yes_no_token(logprobs[i].get("token")) == text_response_cleaned),
                         -1
                     )
-                    final_idx +=2
-                
-                    if logprobs[final_idx]["token"] == "Yes":
-                        yesPropabilty = logprobs[final_idx]["logprob"]
 
-                        noIndex = next(
-                            (i for i, entry in enumerate(logprobs[final_idx]["top_logprobs"]) if entry.get("token") == "No"),
-                            -1
+                    if last_text_response_index == -1:
+                        raise Exception("No log probs found")
+                    
+                    if text_response_cleaned == "Yes":
+                        yesPropabilty = logprobs[last_text_response_index]["logprob"]
+
+                        noEntry = next(
+                            (
+                                alt
+                                for alt in logprobs[last_text_response_index].get("top_logprobs", [])
+                                if normalize_yes_no_token(alt.get("token")) == "No"
+                            ),
+                            None
                         )
-                        if (noIndex != -1): 
-                            noPropability = logprobs[final_idx]["top_logprobs"][noIndex]["logprob"]
+                        if (noEntry != None):
+                            noPropability = noEntry["logprob"]
 
-                    if logprobs[final_idx]["token"] == "No": 
-                        noPropability = logprobs[final_idx]["logprob"]
+                    else:
+                        noPropability = logprobs[last_text_response_index]["logprob"]
 
-                        yesIndex = next(
-                            (i for i, entry in enumerate(logprobs[final_idx]["top_logprobs"]) if entry.get("token") == "Yes"),
-                            -1
+                        yesEntry = next(
+                            (
+                                alt
+                                for alt in logprobs[last_text_response_index].get("top_logprobs", [])
+                                if normalize_yes_no_token(alt.get("token")) == "Yes"
+                            ),
+                            None
                         )
-                        if (yesIndex != -1):
-                            yesPropabilty = logprobs[final_idx]["top_logprobs"][yesIndex]["logprob"]
+                        if (yesEntry != None):
+                            yesPropabilty = yesEntry["logprob"]
 
-                    if  (yesPropabilty is None or noPropability is None):
-                        raise Exception("Error getting yes/no log propabilities")
+                    if (yesPropabilty is None or noPropability is None):
+                        raise Exception("could not find yes/no log probs")
 
                     print("yesPropabilty: ", yesPropabilty, "\n")
                     print("noPropability: ", noPropability, "\n")
-                    return text_response, {"Yes": yesPropabilty, "No": noPropability}
+                    return text_response_cleaned, {"Yes": yesPropabilty, "No": noPropability}
                     
                 return text_response
             except Exception as e:
