@@ -844,6 +844,13 @@ def main():
         if (randomArxiv in allUsedArxivIds):
             continue
         print("trying: " + randomArxiv)
+        
+        arxivCategory = getCategoryFromArxiv(randomArxiv)
+        physicsCategories = ["astro-ph","cond-mat","gr-qc","hep-ex","hep-lat","hep-ph","hep-th","math-ph","nlin.","nucl-ex","nucl-th","physics","quant-ph"]
+
+        if arxivCategory is not None and arxivCategory.startswith(tuple(physicsCategories)):
+            continue
+                
 
         # category = getCategoryFromArxiv(randomArxiv)
         # physicsCategories = ["astro-ph", "cond-mat","gr-qc", "hep-ex", "hep-lat", "hep-ph",  "hep-th", "math-ph", "nlin.", "nucl-ex", "nucl-th",  "physics",  "quant-ph"]
