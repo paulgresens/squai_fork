@@ -36,8 +36,8 @@ import time
 
 logger = logging.getLogger("Enhanced_4Agent_RAG")
 SCADS_API_KEY = os.getenv("SCADS_API_KEY")
-# OUTPUT_FILE = "contextExtractionResult.jsonl"
-OUTPUT_FILE = "contextExtractionResultWithoutGoldGroundTruth.jsonl"
+OUTPUT_FILE = "contextExtractionResult.jsonl"
+# OUTPUT_FILE = "contextExtractionResultWithoutGoldGroundTruth.jsonl"
 
 
 # Import configuration
@@ -414,12 +414,9 @@ class Enhanced4AgentRAG:
           }}
         ]
         Do not add anything else to your response, stricly follow the json schema. Do not add a reference section, comments or further explanations. Also do not add "Answer: " or similar before providing your answer. Your only answer should be the json.
-        <DOCUMENTS>
-        {docs_text}
-        </DOCUMENTS>
-        <QUESTION>
-        {original_query}
-        </QUESTION>
+        
+        Documents: {docs_text}
+        Question: {original_query}
         """,cleanFullDocumentTexts
     
     def _log_retrieved_papers(
@@ -794,9 +791,9 @@ class Enhanced4AgentRAG:
                 filtered_abstracts.append((abstract_text, doc_id, scores[i]))
         
         #also append gold ground truth
-        # if (goldGroundTruthPapers):
-        #     filtered_doc_ids.extend(goldGroundTruthPapers)
-        #     filtered_doc_ids = random.sample(filtered_doc_ids, len(filtered_doc_ids))
+        if (goldGroundTruthPapers):
+            filtered_doc_ids.extend(goldGroundTruthPapers)
+            filtered_doc_ids = random.sample(filtered_doc_ids, len(filtered_doc_ids))
 
         filtered_abstracts.sort(key=lambda x: x[2], reverse=True)
         print ("these are the doc_ids: " + json.dumps(filtered_doc_ids))       
@@ -977,12 +974,20 @@ class Enhanced4AgentRAG:
                     query, full_texts, citation_handler, should_split
                 )
                 answerGenerationStart = time.time()
-                unsafe_answer = self.gptOssAgent.generate(prompt)       
+                unsafe_answer = self.gptOssAgent.generate(prompt)    
+
+
+
+                  
                 print("##########")
                 print(unsafe_answer)
                 print("##########")
-                
-                answerWithoutIllegalBackslashes = re.sub(r'\\(?![nrt"\\u])', r'\\\\', unsafe_answer)
+                answerWithoutIllegalBackslashes = re.sub(
+                    r'(?<!\\)((?:\\\\)*)\\(?!["\\/bfnrtu])',
+                    lambda m: m.group(1) + r'\\',
+                    unsafe_answer,
+                )
+                # answerWithoutIllegalBackslashes = re.sub(r'\\(?![nrt"\\u])', r'\\\\', unsafe_answer)
                 print(answerWithoutIllegalBackslashes)
                 print("##########")
 
