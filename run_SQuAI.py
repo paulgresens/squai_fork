@@ -36,7 +36,8 @@ import time
 
 logger = logging.getLogger("Enhanced_4Agent_RAG")
 SCADS_API_KEY = os.getenv("SCADS_API_KEY")
-OUTPUT_FILE = "contextExtractionResult.jsonl"
+# OUTPUT_FILE = "contextExtractionResult.jsonl"
+OUTPUT_FILE="contextRecallAndRetention.jsonl"
 # OUTPUT_FILE = "contextExtractionResultWithoutGoldGroundTruth.jsonl"
 
 
@@ -746,12 +747,13 @@ class Enhanced4AgentRAG:
                 f"Agent-2 generating answers from abstracts for: {query[:50]}..."
             )
             doc_answers = []
+            top_10_docs_retrieved = []
             for abstract_text, doc_id in tqdm(retrieved_abstracts):
                 prompt = self.createAnswerGeneratorPrompt(query, abstract_text)
                 answer = self.gptOssAgent.generate(prompt)
                 # answer = self.agent1.generate(prompt)
                 doc_answers.append((abstract_text, doc_id, answer))
-
+                top_10_docs_retrieved.append(doc_id)
             print("agent2 generation result-----------------------------------")
             a = {
                 "retrieved abstracts:": retrieved_abstracts,
@@ -791,9 +793,9 @@ class Enhanced4AgentRAG:
                 filtered_abstracts.append((abstract_text, doc_id, scores[i]))
         
         #also append gold ground truth
-        if (goldGroundTruthPapers):
-            filtered_doc_ids.extend(goldGroundTruthPapers)
-            filtered_doc_ids = random.sample(filtered_doc_ids, len(filtered_doc_ids))
+        # if (goldGroundTruthPapers):
+        #     filtered_doc_ids.extend(goldGroundTruthPapers)
+        #     filtered_doc_ids = random.sample(filtered_doc_ids, len(filtered_doc_ids))
 
         filtered_abstracts.sort(key=lambda x: x[2], reverse=True)
         print ("these are the doc_ids: " + json.dumps(filtered_doc_ids))       
@@ -815,7 +817,7 @@ class Enhanced4AgentRAG:
             query, filtered_abstracts, [x[2] for x in filtered_abstracts]
         )
 
-        return retrieved_abstracts, filtered_doc_ids
+        return retrieved_abstracts, filtered_doc_ids, top_10_docs_retrieved
 
     def answer_query(self, item, db=None, choices=None, should_split=None, sub_questions=None):
         """
@@ -848,6 +850,7 @@ class Enhanced4AgentRAG:
 
             # PHASE 2: Parallel Processing of Questions
             all_filtered_doc_ids = []
+            docs_retrieved_pre_filtering = []
 
             goldGroundTruthPapers = [item["usedPapers"][0]["arXiv"],item["usedPapers"][1]["arXiv"]]
 
@@ -870,8 +873,9 @@ class Enhanced4AgentRAG:
                     for future in as_completed(future_to_question):
                         sub_query = future_to_question[future]
                         try:
-                            retrieved_abstracts, filtered_doc_ids = future.result()
+                            retrieved_abstracts, filtered_doc_ids, top_10_docs_retrieved = future.result()
                             all_filtered_doc_ids.extend(filtered_doc_ids)
+                            docs_retrieved_pre_filtering.extend(top_10_docs_retrieved)
                             logger.info(
                                 f"Completed processing: {sub_query[:50]}... -> {len(filtered_doc_ids)} docs"
                             )
@@ -881,10 +885,11 @@ class Enhanced4AgentRAG:
                             )
             else:
                 # Single question processing
-                retrieved_abstracts, filtered_doc_ids = self._process_single_question(
+                retrieved_abstracts, filtered_doc_ids, top_10_docs_retrieved = self._process_single_question(
                     questions_to_process[0],goldGroundTruthPapers, db
                 )
                 all_filtered_doc_ids = filtered_doc_ids
+                docs_retrieved_pre_filtering = top_10_docs_retrieved
 
             # Remove duplicates while preserving order
             seen = set()
@@ -991,11 +996,11 @@ class Enhanced4AgentRAG:
                 print(answerWithoutIllegalBackslashes)
                 print("##########")
 
-                raw_answer = json.loads(answerWithoutIllegalBackslashes)
+                # raw_answer = json.loads(answerWithoutIllegalBackslashes)
                 answerGenerationEnd = time.time()
             # metrics
 
-            paperInformationUsedForAnswering = citation_handler._get_papers_used_in_answer(raw_answer)
+            # paperInformationUsedForAnswering = citation_handler._get_papers_used_in_answer(raw_answer)
             # recallAt1 = float(arxivId in unique_filtered_doc_ids[:1])
             # recallAtMaxK = 1 if (arxivId in unique_filtered_doc_ids[:10]) else 0.0
             # reciprocalRank = 1/ ((unique_filtered_doc_ids.index(arxivId) + 1)) if arxivId in unique_filtered_doc_ids else 0
@@ -1013,66 +1018,67 @@ class Enhanced4AgentRAG:
             
             #variant 1 - native squai context extraction
 
-            references, referencesDuration = citation_handler.format_references(raw_answer,cleanFullDocumentTexts)
+            # references, referencesDuration = citation_handler.format_references(raw_answer,cleanFullDocumentTexts)
 
-            #variant 2 - Biencoder (selects top 1) out of floating windows of up to 5 sentences
-            referencesBiencoderTop1, referencesBiencoderTop1Duration = citation_handler.referencesBiencoderTop1(raw_answer,cleanFullDocumentTexts)
+            # #variant 2 - Biencoder (selects top 1) out of floating windows of up to 5 sentences
+            # referencesBiencoderTop1, referencesBiencoderTop1Duration = citation_handler.referencesBiencoderTop1(raw_answer,cleanFullDocumentTexts)
             
-            #variant 3 - BM25 selects top 1 out of floating window up to 5 sentences
-            referencesBM25Top1, referencesBM25Top1Duration = citation_handler.referencesBM25Top1(raw_answer,cleanFullDocumentTexts)
+            # #variant 3 - BM25 selects top 1 out of floating window up to 5 sentences
+            # referencesBM25Top1, referencesBM25Top1Duration = citation_handler.referencesBM25Top1(raw_answer,cleanFullDocumentTexts)
 
-            #variant 4 - Biencoder selects top 10 (out of floating windows), then BM25 selects top 1   
-            referencesBiencoderTop10Bm25Top1, referencesBiencoderTop10Bm25Top1Duration = citation_handler.referencesBiencoderTop10Bm25Top1(raw_answer,cleanFullDocumentTexts)
+            # #variant 4 - Biencoder selects top 10 (out of floating windows), then BM25 selects top 1   
+            # referencesBiencoderTop10Bm25Top1, referencesBiencoderTop10Bm25Top1Duration = citation_handler.referencesBiencoderTop10Bm25Top1(raw_answer,cleanFullDocumentTexts)
 
-            #variant 5 - BM25 selects top 10 (out of floating windows), then Biencoder selects top 1
-            referencesBM25Top10BiencoderTop1,referencesBM25Top10BiencoderTop1Duration = citation_handler.referencesBM25Top10BiencoderTop1(raw_answer,cleanFullDocumentTexts)
+            # #variant 5 - BM25 selects top 10 (out of floating windows), then Biencoder selects top 1
+            # referencesBM25Top10BiencoderTop1,referencesBM25Top10BiencoderTop1Duration = citation_handler.referencesBM25Top10BiencoderTop1(raw_answer,cleanFullDocumentTexts)
 
-            #variant 6 - Biencoder and bm25 select top 1 (using RRF)
-            referencesBiencoderAndBm25Top1, referencesBiencoderAndBm25Top1Duration = citation_handler.referencesBiencoderAndBm25Top1(raw_answer,cleanFullDocumentTexts)
+            # #variant 6 - Biencoder and bm25 select top 1 (using RRF)
+            # referencesBiencoderAndBm25Top1, referencesBiencoderAndBm25Top1Duration = citation_handler.referencesBiencoderAndBm25Top1(raw_answer,cleanFullDocumentTexts)
             
-            #variant 7 - Biencoder selects top 10 (out of floating windows) top 10, cross encoder selects top 1
-            referencesBiencoderTop10CrossEncoderTop1, referencesBiencoderTop10CrossEncoderTop1Duration = citation_handler.referencesBiencoderTop10CrossEncoderTop1(raw_answer,cleanFullDocumentTexts)
+            # #variant 7 - Biencoder selects top 10 (out of floating windows) top 10, cross encoder selects top 1
+            # referencesBiencoderTop10CrossEncoderTop1, referencesBiencoderTop10CrossEncoderTop1Duration = citation_handler.referencesBiencoderTop10CrossEncoderTop1(raw_answer,cleanFullDocumentTexts)
 
-            #variant 8 - BM25 selects top 10 (out of floating windows) top 10, cross encoder selects top 1
-            referencesBM25Top10CrossEncoderTop1, referencesBM25Top10CrossEncoderTop1Duration = citation_handler.referencesBM25Top10CrossEncoderTop1(raw_answer,cleanFullDocumentTexts)
+            # #variant 8 - BM25 selects top 10 (out of floating windows) top 10, cross encoder selects top 1
+            # referencesBM25Top10CrossEncoderTop1, referencesBM25Top10CrossEncoderTop1Duration = citation_handler.referencesBM25Top10CrossEncoderTop1(raw_answer,cleanFullDocumentTexts)
 
-            #variant 9 - BiEncoder and keyword bm25 select top 10 together, cross encoder selects top 1
-            referencesBiencoderAndBm25Top10CrossEncoderTop1, referencesBiencoderAndBm25Top10CrossEncoderTop1Duration = citation_handler.referencesBiencoderAndBm25Top10CrossEncoderTop1(raw_answer,cleanFullDocumentTexts)
+            # #variant 9 - BiEncoder and keyword bm25 select top 10 together, cross encoder selects top 1
+            # referencesBiencoderAndBm25Top10CrossEncoderTop1, referencesBiencoderAndBm25Top10CrossEncoderTop1Duration = citation_handler.referencesBiencoderAndBm25Top10CrossEncoderTop1(raw_answer,cleanFullDocumentTexts)
 
-            # variant 10 - extract the context using LLM (prompt to extract the best fit)
-            referencesWithLLM, referencesWithLLMDuration = citation_handler._extract_context_passages_using_llm(raw_answer,cleanFullDocumentTexts)
+            # # variant 10 - extract the context using LLM (prompt to extract the best fit)
+            # referencesWithLLM, referencesWithLLMDuration = citation_handler._extract_context_passages_using_llm(raw_answer,cleanFullDocumentTexts)
 
 
             contexts = {
-                "referencesNative": references,
-                "referencesBiencoderTop1": referencesBiencoderTop1,
-                "referencesBM25Top1": referencesBM25Top1,
-                "referencesBiencoderTop10Bm25Top1": referencesBiencoderTop10Bm25Top1,
-                "referencesBM25Top10BiencoderTop1": referencesBM25Top10BiencoderTop1,
-                "referencesBiencoderTop10CrossEncoderTop1": referencesBiencoderTop10CrossEncoderTop1,
-                "referencesBM25Top10CrossEncoderTop1": referencesBM25Top10CrossEncoderTop1,
-                "referencesBiencoderAndBm25Top1": referencesBiencoderAndBm25Top1,
-                "referencesBiencoderAndBm25Top10CrossEncoderTop1": referencesBiencoderAndBm25Top10CrossEncoderTop1,
-                "referencesWithLLM": referencesWithLLM,
+                # "referencesNative": references,
+                # "referencesBiencoderTop1": referencesBiencoderTop1,
+                # "referencesBM25Top1": referencesBM25Top1,
+                # "referencesBiencoderTop10Bm25Top1": referencesBiencoderTop10Bm25Top1,
+                # "referencesBM25Top10BiencoderTop1": referencesBM25Top10BiencoderTop1,
+                # "referencesBiencoderTop10CrossEncoderTop1": referencesBiencoderTop10CrossEncoderTop1,
+                # "referencesBM25Top10CrossEncoderTop1": referencesBM25Top10CrossEncoderTop1,
+                # "referencesBiencoderAndBm25Top1": referencesBiencoderAndBm25Top1,
+                # "referencesBiencoderAndBm25Top10CrossEncoderTop1": referencesBiencoderAndBm25Top10CrossEncoderTop1,
+                # "referencesWithLLM": referencesWithLLM,
                 "generationMeta": generationMeta,
                 "answerMeta": {
                     "papersRetrievedBySQuAI": unique_filtered_doc_ids,
-                    "paperInformationUsedForAnswering": paperInformationUsedForAnswering,
-                    "modelAnswer" : raw_answer,
+                    "docs_retrieved_pre_filtering": docs_retrieved_pre_filtering,
+                    # "paperInformationUsedForAnswering": paperInformationUsedForAnswering,
+                    # "modelAnswer" : raw_answer,
                     "paperFullTextLength": {key: len(text) for key, text in cleanFullDocumentTexts.items()},
-                    "duration": {
-                        "answerGeneration": answerGenerationEnd - answerGenerationStart,
-                        "referencesNativeDuration": referencesDuration,
-                        "referencesBiencoderTop1Duration": referencesBiencoderTop1Duration,
-                        "referencesBM25Top1Duration": referencesBM25Top1Duration,
-                        "referencesBiencoderTop10Bm25Top1Duration": referencesBiencoderTop10Bm25Top1Duration,
-                        "referencesBM25Top10BiencoderTop1Duration": referencesBM25Top10BiencoderTop1Duration,
-                        "referencesBiencoderTop10CrossEncoderTop1Duration": referencesBiencoderTop10CrossEncoderTop1Duration,
-                        "referencesBM25Top10CrossEncoderTop1Duration": referencesBM25Top10CrossEncoderTop1Duration,
-                        "referencesBiencoderAndBm25Top1Duration": referencesBiencoderAndBm25Top1Duration,
-                        "referencesBiencoderAndBm25Top10CrossEncoderTop1Duration": referencesBiencoderAndBm25Top10CrossEncoderTop1Duration,
-                        "referencesWithLLMDuration": referencesWithLLMDuration,
-                    }
+                    # "duration": {
+                    #     "answerGeneration": answerGenerationEnd - answerGenerationStart,
+                    #     "referencesNativeDuration": referencesDuration,
+                    #     "referencesBiencoderTop1Duration": referencesBiencoderTop1Duration,
+                    #     "referencesBM25Top1Duration": referencesBM25Top1Duration,
+                    #     "referencesBiencoderTop10Bm25Top1Duration": referencesBiencoderTop10Bm25Top1Duration,
+                    #     "referencesBM25Top10BiencoderTop1Duration": referencesBM25Top10BiencoderTop1Duration,
+                    #     "referencesBiencoderTop10CrossEncoderTop1Duration": referencesBiencoderTop10CrossEncoderTop1Duration,
+                    #     "referencesBM25Top10CrossEncoderTop1Duration": referencesBM25Top10CrossEncoderTop1Duration,
+                    #     "referencesBiencoderAndBm25Top1Duration": referencesBiencoderAndBm25Top1Duration,
+                    #     "referencesBiencoderAndBm25Top10CrossEncoderTop1Duration": referencesBiencoderAndBm25Top10CrossEncoderTop1Duration,
+                    #     "referencesWithLLMDuration": referencesWithLLMDuration,
+                    # }
                 }
             }
 
@@ -1093,44 +1099,45 @@ class Enhanced4AgentRAG:
             citation_map = citation_handler.get_citation_map()
 
             # Enhanced debug info
-            debug_info = {
-                "original_query": query,
-                "was_split": should_split,
-                "sub_questions": sub_questions if should_split else [],
-                "questions_processed": len(questions_to_process),
-                "total_filtered_docs": len(unique_filtered_doc_ids),
-                "full_texts_retrieved": len(full_texts),
-                "total_citations": len(citation_map),
-                "citation_map": citation_map,
-                "passages_used": self._extract_passages_used(
-                    raw_answer, citation_handler
-                ),
-                "document_metadata": self._extract_document_metadata(citation_handler),
-                "context_stats": {
-                    "max_context_chars": self.max_context_chars,
-                    "total_chars_available": sum(len(text) for text, _ in full_texts),
-                    "docs_available": len(full_texts),
-                    "estimated_docs_used": min(
-                        len(full_texts),
-                        self.max_context_chars // (4000 if should_split else 8000),
-                    ),
-                    "strategy": (
-                        "CONSERVATIVE (split questions)"
-                        if should_split
-                        else "GENEROUS (single question)"
-                    ),
-                    "chars_per_paper_limit": (
-                        "TOP(2.5K)+BOTTOM(1.5K)"
-                        if should_split
-                        else "TOP(5K)+BOTTOM(3K)"
-                    ),
-                },
-                "performance_stats": (
-                    monitor.get_stats() if hasattr(monitor, "get_stats") else {}
-                ),
-            }
+            # debug_info = {
+            #     "original_query": query,
+            #     "was_split": should_split,
+            #     "sub_questions": sub_questions if should_split else [],
+            #     "questions_processed": len(questions_to_process),
+            #     "total_filtered_docs": len(unique_filtered_doc_ids),
+            #     "full_texts_retrieved": len(full_texts),
+            #     "total_citations": len(citation_map),
+            #     "citation_map": citation_map,
+            #     "passages_used": self._extract_passages_used(
+            #         raw_answer, citation_handler
+            #     ),
+            #     "document_metadata": self._extract_document_metadata(citation_handler),
+            #     "context_stats": {
+            #         "max_context_chars": self.max_context_chars,
+            #         "total_chars_available": sum(len(text) for text, _ in full_texts),
+            #         "docs_available": len(full_texts),
+            #         "estimated_docs_used": min(
+            #             len(full_texts),
+            #             self.max_context_chars // (4000 if should_split else 8000),
+            #         ),
+            #         "strategy": (
+            #             "CONSERVATIVE (split questions)"
+            #             if should_split
+            #             else "GENEROUS (single question)"
+            #         ),
+            #         "chars_per_paper_limit": (
+            #             "TOP(2.5K)+BOTTOM(1.5K)"
+            #             if should_split
+            #             else "TOP(5K)+BOTTOM(3K)"
+            #         ),
+            #     },
+            #     "performance_stats": (
+            #         monitor.get_stats() if hasattr(monitor, "get_stats") else {}
+            #     ),
+            # }
 
-        return raw_answer, debug_info
+        # return raw_answer, debug_info
+        return "", ""
 
     def _extract_passages_used(
         self, answerObject: GeneratedAnswerFormat, citation_handler: EnhancedCitationHandler
@@ -1348,19 +1355,19 @@ def main():
             process_time = time.time() - start_time
 
             result = {
-                "id": f"single_question_4agent_{args.retriever_type}",
-                "question": args.single_question,
-                "model_answer": cited_answer,
-                "was_split": debug_info["was_split"],
-                "sub_questions": debug_info["sub_questions"],
-                "questions_processed": debug_info["questions_processed"],
-                "total_citations": debug_info["total_citations"],
-                "total_filtered_docs": debug_info["total_filtered_docs"],
-                "full_texts_retrieved": debug_info["full_texts_retrieved"],
-                "passages_used": debug_info["passages_used"],
-                "document_metadata": debug_info["document_metadata"],
-                "process_time": process_time,
-                "retriever_type": args.retriever_type,
+                # "id": f"single_question_4agent_{args.retriever_type}",
+                # "question": args.single_question,
+                # "model_answer": cited_answer,
+                # "was_split": debug_info["was_split"],
+                # "sub_questions": debug_info["sub_questions"],
+                # "questions_processed": debug_info["questions_processed"],
+                # "total_citations": debug_info["total_citations"],
+                # "total_filtered_docs": debug_info["total_filtered_docs"],
+                # "full_texts_retrieved": debug_info["full_texts_retrieved"],
+                # "passages_used": debug_info["passages_used"],
+                # "document_metadata": debug_info["document_metadata"],
+                # "process_time": process_time,
+                # "retriever_type": args.retriever_type,
             }
 
             logger.info(f"Cited Answer: {cited_answer}")
@@ -1436,29 +1443,29 @@ def main():
             process_time = time.time() - start_time
 
             result = {
-                "id": question_id,
-                "question": item["question"],
-                "model_answer": cited_answer,
-                "was_split": debug_info["was_split"],
-                "sub_questions": debug_info["sub_questions"],
-                "questions_processed": debug_info["questions_processed"],
-                "total_citations": debug_info["total_citations"],
-                "total_filtered_docs": debug_info["total_filtered_docs"],
-                "full_texts_retrieved": debug_info["full_texts_retrieved"],
-                "passages_used": debug_info["passages_used"],
-                "document_metadata": debug_info["document_metadata"],
-                "process_time": process_time,
-                "retriever_type": args.retriever_type,
+                # "id": question_id,
+                # "question": item["question"],
+                # "model_answer": cited_answer,
+                # # "was_split": debug_info["was_split"],
+                # # "sub_questions": debug_info["sub_questions"],
+                # # "questions_processed": debug_info["questions_processed"],
+                # "total_citations": debug_info["total_citations"],
+                # "total_filtered_docs": debug_info["total_filtered_docs"],
+                # "full_texts_retrieved": debug_info["full_texts_retrieved"],
+                # "passages_used": debug_info["passages_used"],
+                # "document_metadata": debug_info["document_metadata"],
+                # "process_time": process_time,
+                # "retriever_type": args.retriever_type,
             }
             results.append(result)
 
-            logger.info(f"Cited Answer: {cited_answer[:200]}...")
-            # logger.info(f"References: {references}")
-            logger.info(f"Was Split: {debug_info['was_split']}")
-            if debug_info["was_split"]:
-                logger.info(f"Sub-questions: {debug_info['sub_questions']}")
-            logger.info(f"Processing time: {process_time:.2f} seconds")
-            logger.info(f"Citations used: {debug_info['total_citations']}")
+            # logger.info(f"Cited Answer: {cited_answer[:200]}...")
+            # # logger.info(f"References: {references}")
+            # logger.info(f"Was Split: {debug_info['was_split']}")
+            # if debug_info["was_split"]:
+            #     logger.info(f"Sub-questions: {debug_info['sub_questions']}")
+            # logger.info(f"Processing time: {process_time:.2f} seconds")
+            # logger.info(f"Citations used: {debug_info['total_citations']}")
 
 
             # passages = {citation_num: [data["contextPassage"]] for citation_num, data in references.items()}
