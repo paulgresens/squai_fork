@@ -37,7 +37,10 @@ import time
 logger = logging.getLogger("Enhanced_4Agent_RAG")
 SCADS_API_KEY = os.getenv("SCADS_API_KEY")
 # OUTPUT_FILE = "contextExtractionResult.jsonl"
-OUTPUT_FILE="contextRecallAndRetention.jsonl"
+OUTPUT_FILE="contextWithAndWithoutGold.jsonl"
+# OUTPUT_FILE_WITHOUT_GOLD="contextWithoutGold.jsonl"
+# OUTPUT_FILE_WITH_GOLD="contextWithGold.jsonl"
+# OUTPUT_FILE_SUCCESS="outputDone.jsonl"
 # OUTPUT_FILE = "contextExtractionResultWithoutGoldGroundTruth.jsonl"
 
 
@@ -76,7 +79,17 @@ def clean_and_parse_json(text):
     else:
         return None
 
+# alreadyAnsweredQuestion = []
+# with open(OUTPUT_FILE_SUCCESS, "r") as in_file:
+#         for j, lineAlready in enumerate(in_file):
+#             lineAlready = lineAlready.strip()
+#             if not lineAlready:
+#                 continue # Skip empty lines
+#             done = clean_and_parse_json(lineAlready)
+#             alreadyAnsweredQuestion.append(done["anchor"])
+#             # alreadyAnsweredQuestion.append(question["generationMeta"]["anchorPaper"])
 alreadyAnsweredQuestion = []
+
 with open(OUTPUT_FILE, "r") as in_file:
         for j, lineAlready in enumerate(in_file):
             lineAlready = lineAlready.strip()
@@ -84,6 +97,7 @@ with open(OUTPUT_FILE, "r") as in_file:
                 continue # Skip empty lines
             question = clean_and_parse_json(lineAlready)
             alreadyAnsweredQuestion.append(question["generationMeta"]["anchorPaper"])
+
 
 
 logger.info("Already answered questions: " + str(len(alreadyAnsweredQuestion)))
@@ -195,6 +209,8 @@ class Enhanced4AgentRAG:
         full_texts: List[Tuple[str, str]],
         citation_handler,
         was_split: bool = False,
+        with_gold: bool = False,
+        countOfAdditionalPapers = 0
     ) -> List[str]:
         """
         Prepare documents for Agent 4 with dynamic context length management
@@ -207,11 +223,15 @@ class Enhanced4AgentRAG:
         Returns:
             List of formatted document strings ready for the prompt
         """
+        paperCount = len(full_texts)
+        paperCountDivider = paperCount
+        if (with_gold):
+            paperCountDivider -= countOfAdditionalPapers
+
         docs_with_citations = []
         total_chars = 0
         documents_used = 0
-        paperCount = len(full_texts)
-        maxPerPaper = 256000 / paperCount
+        maxPerPaper = 256000 / paperCountDivider
         logger.info("For this question max length per paper is at: " + str(maxPerPaper) + "(" + str(paperCount) +")")
 
         # Dynamic context allocation - top + bottom extraction approach
@@ -305,6 +325,7 @@ class Enhanced4AgentRAG:
             citation_num = citation_handler.add_document(condensed_text, doc_id)
 
             cleanFullDocumentTexts[int(citation_num)] = clean_text
+
             # Get paper info for better document labeling
             paper_info = citation_handler.citation_to_doc[citation_num]["paper_info"]
             doc_title = (
@@ -335,13 +356,13 @@ class Enhanced4AgentRAG:
         return docs_with_citations, cleanFullDocumentTexts
 
     def createFinalAnswerGeneratorPrompt(
-        self, original_query, full_texts, citation_handler, was_split: bool = False
+        self, original_query, full_texts, citation_handler, was_split: bool = False, with_gold = False, countOfAdditionalPapers = 0
     ):
         """Agent-4 prompt with context-aware document preparation"""
 
         # Prepare documents with dynamic context management based on question splitting
         docs_with_citations,cleanFullDocumentTexts = self.prepareDocumentsForFinalAnswerGenerator(
-            full_texts, citation_handler, was_split
+            full_texts, citation_handler, was_split, with_gold, countOfAdditionalPapers
         )
 
         docs_text = "\n\n" + "=" * 50 + "\n\n".join(docs_with_citations)
@@ -730,7 +751,7 @@ class Enhanced4AgentRAG:
         contexts["meanJudgement"] = totals
         return contexts
 
-    def _process_single_question(self, query: str, goldGroundTruthPapers = None,db=None) -> Tuple[List[Tuple], List]:
+    def _process_single_question(self, query: str, db=None) -> Tuple[List[Tuple], List]:
         """Process a single question and return (abstracts, filtered_documents)"""
 
         # PHASE 1: Retrieve ABSTRACTS for Agent2 & Agent3 filtering
@@ -791,11 +812,6 @@ class Enhanced4AgentRAG:
             if scores[i] >= adjusted_tau_q:
                 filtered_doc_ids.append(doc_id)
                 filtered_abstracts.append((abstract_text, doc_id, scores[i]))
-        
-        #also append gold ground truth
-        # if (goldGroundTruthPapers):
-        #     filtered_doc_ids.extend(goldGroundTruthPapers)
-        #     filtered_doc_ids = random.sample(filtered_doc_ids, len(filtered_doc_ids))
 
         filtered_abstracts.sort(key=lambda x: x[2], reverse=True)
         print ("these are the doc_ids: " + json.dumps(filtered_doc_ids))       
@@ -835,6 +851,7 @@ class Enhanced4AgentRAG:
 
             # Initialize enhanced citation handler
             citation_handler = EnhancedCitationHandler(self.gptOssAgent, logger, self.index_dir)
+            citation_handler_with_gold = EnhancedCitationHandler(self.gptOssAgent, logger, self.index_dir)
             
             # If should_split and sub_questions are not provided, analyze the query
             if should_split is None or sub_questions is None:
@@ -865,7 +882,7 @@ class Enhanced4AgentRAG:
                     future_to_question = {}
                     for sub_query in questions_to_process:
                         future = self.executor.submit(
-                            self._process_single_question, sub_query,goldGroundTruthPapers, db
+                            self._process_single_question, sub_query, db
                         )
                         future_to_question[future] = sub_query
 
@@ -886,7 +903,7 @@ class Enhanced4AgentRAG:
             else:
                 # Single question processing
                 retrieved_abstracts, filtered_doc_ids, top_10_docs_retrieved = self._process_single_question(
-                    questions_to_process[0],goldGroundTruthPapers, db
+                    questions_to_process[0], db
                 )
                 all_filtered_doc_ids = filtered_doc_ids
                 docs_retrieved_pre_filtering = top_10_docs_retrieved
@@ -912,58 +929,95 @@ class Enhanced4AgentRAG:
                         unique_filtered_doc_ids, db=db
                     )
 
-                    # Enhanced logging with context awareness
-                    logger.info(
-                        f"FINAL ANSWER GENERATION: Retrieved {len(full_texts)} papers:"
-                    )
-                    logger.info("=" * 80)
-                    for i, (doc_text, doc_id) in enumerate(full_texts, 1):
-                        title = PaperTitleExtractor.extract_title_from_text(
-                            doc_text, doc_id
-                        )
-                        formatted_title = PaperTitleExtractor.format_title_for_log(
-                            title, max_length=70
-                        )
-                        char_count = len(doc_text)
-                        logger.info(
-                            f"[{i:2d}] {formatted_title} ({char_count:,} chars)"
-                        )
-                        logger.info(f"Doc ID: {doc_id}")
-                    logger.info("=" * 80)
 
-                    # Log context usage
-                    estimated_docs_used = min(
-                        len(full_texts),
-                        self.max_context_chars // (4000 if should_split else 8000),
-                    )
-                    self._log_context_usage(
-                        full_texts, estimated_docs_used, should_split
-                    )
-
-                else:
-                    logger.warning("No documents passed the filter, using fallback")
-                    # Fallback to some documents from the original query
-                    fallback_abstracts, fallback_ids = self._process_single_question(
-                        query, db
-                    )
-                    full_texts = self.retriever.get_full_texts(fallback_ids[:3], db=db)
-                    if not full_texts:
-                        # Last resort: use abstracts
-                        full_texts = [
-                            (abstract_text, doc_id)
-                            for abstract_text, doc_id in fallback_abstracts[:3]
-                        ]
-
-                    # Log fallback papers
-                    logger.info(f"FALLBACK: Using {len(full_texts)} papers:")
-                    for i, (doc_text, doc_id) in enumerate(full_texts, 1):
-                        title = PaperTitleExtractor.extract_title_from_text(
-                            doc_text, doc_id
+                    unique_filtered_doc_ids_with_gold =    list(unique_filtered_doc_ids )
+                    if (not (goldGroundTruthPapers[0] in unique_filtered_doc_ids_with_gold)):
+                        random_position = random.randint(
+                            0,
+                            len(unique_filtered_doc_ids_with_gold),
                         )
-                        formatted_title = PaperTitleExtractor.format_title_for_log(
-                            title, max_length=70
+                        unique_filtered_doc_ids_with_gold.insert(
+                          random_position,
+                          goldGroundTruthPapers[0],
                         )
-                        logger.info(f"[{i:2d}] {formatted_title}")
+
+
+                    if (not (goldGroundTruthPapers[1] in unique_filtered_doc_ids_with_gold)):
+                        random_position = random.randint(
+                            0,
+                            len(unique_filtered_doc_ids_with_gold),
+                        )
+                        unique_filtered_doc_ids_with_gold.insert(
+                          random_position,
+                          goldGroundTruthPapers[1],
+                        )
+
+
+
+                    full_texts_with_gold = self.retriever.get_full_texts(
+                        unique_filtered_doc_ids_with_gold, db=db
+                    )
+                    print("###############################################")
+                    print("without:")
+                    print(json.dumps(full_texts))
+
+                    print("with:")
+                    print(json.dumps(full_texts_with_gold))
+                    print("###############################################")
+
+
+                    # # Enhanced logging with context awareness
+                    # logger.info(
+                    #     f"FINAL ANSWER GENERATION: Retrieved {len(full_texts)} papers:"
+                    # )
+                    # logger.info("=" * 80)
+                    # for i, (doc_text, doc_id) in enumerate(full_texts, 1):
+                    #     title = PaperTitleExtractor.extract_title_from_text(
+                    #         doc_text, doc_id
+                    #     )
+                    #     formatted_title = PaperTitleExtractor.format_title_for_log(
+                    #         title, max_length=70
+                    #     )
+                    #     char_count = len(doc_text)
+                    #     logger.info(
+                    #         f"[{i:2d}] {formatted_title} ({char_count:,} chars)"
+                    #     )
+                    #     logger.info(f"Doc ID: {doc_id}")
+                    # logger.info("=" * 80)
+
+                    # # Log context usage
+                    # estimated_docs_used = min(
+                    #     len(full_texts),
+                    #     self.max_context_chars // (4000 if should_split else 8000),
+                    # )
+                    # self._log_context_usage(
+                    #     full_texts, estimated_docs_used, should_split
+                    # )
+
+                # else:
+                #     logger.warning("No documents passed the filter, using fallback")
+                #     # Fallback to some documents from the original query
+                #     fallback_abstracts, fallback_ids = self._process_single_question(
+                #         query, db
+                #     )
+                #     full_texts = self.retriever.get_full_texts(fallback_ids[:3], db=db)
+                #     if not full_texts:
+                #         # Last resort: use abstracts
+                #         full_texts = [
+                #             (abstract_text, doc_id)
+                #             for abstract_text, doc_id in fallback_abstracts[:3]
+                #         ]
+
+                #     # Log fallback papers
+                #     logger.info(f"FALLBACK: Using {len(full_texts)} papers:")
+                #     for i, (doc_text, doc_id) in enumerate(full_texts, 1):
+                #         title = PaperTitleExtractor.extract_title_from_text(
+                #             doc_text, doc_id
+                #         )
+                #         formatted_title = PaperTitleExtractor.format_title_for_log(
+                #             title, max_length=70
+                #         )
+                #         logger.info(f"[{i:2d}] {formatted_title}")
 
             # PHASE 4: Agent-4 generates final answer with context management
             with time_block("finalAnswerGeneration"):
@@ -978,29 +1032,39 @@ class Enhanced4AgentRAG:
                 prompt,cleanFullDocumentTexts = self.createFinalAnswerGeneratorPrompt(
                     query, full_texts, citation_handler, should_split
                 )
+
                 answerGenerationStart = time.time()
                 unsafe_answer = self.gptOssAgent.generate(prompt)    
 
-
-
-                  
-                print("##########")
-                print(unsafe_answer)
-                print("##########")
                 answerWithoutIllegalBackslashes = re.sub(
                     r'(?<!\\)((?:\\\\)*)\\(?!["\\/bfnrtu])',
                     lambda m: m.group(1) + r'\\',
                     unsafe_answer,
                 )
                 # answerWithoutIllegalBackslashes = re.sub(r'\\(?![nrt"\\u])', r'\\\\', unsafe_answer)
-                print(answerWithoutIllegalBackslashes)
-                print("##########")
 
-                # raw_answer = json.loads(answerWithoutIllegalBackslashes)
+                raw_answer = json.loads(answerWithoutIllegalBackslashes)
                 answerGenerationEnd = time.time()
-            # metrics
 
-            # paperInformationUsedForAnswering = citation_handler._get_papers_used_in_answer(raw_answer)
+
+                promptWithGold,cleanFullDocumentTextsWithGold = self.createFinalAnswerGeneratorPrompt(
+                    query, full_texts_with_gold, citation_handler_with_gold, should_split, True, len(full_texts_with_gold) - len(full_texts)
+                )
+                answerGenerationStartWithGold = time.time()
+
+                unsafe_answer_with_gold = self.gptOssAgent.generate(promptWithGold)
+                answerWithGoldWithoutIllegalBackslashes = re.sub(
+                    r'(?<!\\)((?:\\\\)*)\\(?!["\\/bfnrtu])',
+                    lambda m: m.group(1) + r'\\',
+                    unsafe_answer_with_gold,
+                )
+                raw_answer_with_gold = json.loads(answerWithGoldWithoutIllegalBackslashes)
+                answerGenerationEndWithGold = time.time()
+
+
+            # metrics
+            paperInformationWithoutGold = citation_handler._get_papers_used_in_answer(raw_answer)
+            paperInformationUsedForAnswering = citation_handler_with_gold._get_papers_used_in_answer(raw_answer_with_gold)
             # recallAt1 = float(arxivId in unique_filtered_doc_ids[:1])
             # recallAtMaxK = 1 if (arxivId in unique_filtered_doc_ids[:10]) else 0.0
             # reciprocalRank = 1/ ((unique_filtered_doc_ids.index(arxivId) + 1)) if arxivId in unique_filtered_doc_ids else 0
@@ -1015,70 +1079,116 @@ class Enhanced4AgentRAG:
                 6: Biencoder + keyword/BM25  on floating windows (combine score using RRF) to get top 10 --> select top 1 with cross encoder
                 7: llama LLM gets whole paper and extract context (top 1)
             '''
+
+            #non gold case
             
-            #variant 1 - native squai context extraction
+            # variant 1 - native squai context extraction
+            references, referencesDuration = citation_handler.format_references(raw_answer,cleanFullDocumentTexts)
+            #variant 2 - Biencoder (selects top 1) out of floating windows of up to 5 sentences
+            referencesBiencoderTop1, referencesBiencoderTop1Duration = citation_handler.referencesBiencoderTop1(raw_answer,cleanFullDocumentTexts)
+            #variant 3 - BM25 selects top 1 out of floating window up to 5 sentences
+            referencesBM25Top1, referencesBM25Top1Duration = citation_handler.referencesBM25Top1(raw_answer,cleanFullDocumentTexts)
+            #variant 4 - Biencoder selects top 10 (out of floating windows), then BM25 selects top 1   
+            referencesBiencoderTop10Bm25Top1, referencesBiencoderTop10Bm25Top1Duration = citation_handler.referencesBiencoderTop10Bm25Top1(raw_answer,cleanFullDocumentTexts)
+            #variant 5 - BM25 selects top 10 (out of floating windows), then Biencoder selects top 1
+            referencesBM25Top10BiencoderTop1,referencesBM25Top10BiencoderTop1Duration = citation_handler.referencesBM25Top10BiencoderTop1(raw_answer,cleanFullDocumentTexts)
+            #variant 6 - Biencoder and bm25 select top 1 (using RRF)
+            referencesBiencoderAndBm25Top1, referencesBiencoderAndBm25Top1Duration = citation_handler.referencesBiencoderAndBm25Top1(raw_answer,cleanFullDocumentTexts)
+            #variant 7 - Biencoder selects top 10 (out of floating windows) top 10, cross encoder selects top 1
+            referencesBiencoderTop10CrossEncoderTop1, referencesBiencoderTop10CrossEncoderTop1Duration = citation_handler.referencesBiencoderTop10CrossEncoderTop1(raw_answer,cleanFullDocumentTexts)
+            #variant 8 - BM25 selects top 10 (out of floating windows) top 10, cross encoder selects top 1
+            referencesBM25Top10CrossEncoderTop1, referencesBM25Top10CrossEncoderTop1Duration = citation_handler.referencesBM25Top10CrossEncoderTop1(raw_answer,cleanFullDocumentTexts)
+            #variant 9 - BiEncoder and keyword bm25 select top 10 together, cross encoder selects top 1
+            referencesBiencoderAndBm25Top10CrossEncoderTop1, referencesBiencoderAndBm25Top10CrossEncoderTop1Duration = citation_handler.referencesBiencoderAndBm25Top10CrossEncoderTop1(raw_answer,cleanFullDocumentTexts)
+            # variant 10 - extract the context using LLM (prompt to extract the best fit)
+            referencesWithLLM, referencesWithLLMDuration = citation_handler._extract_context_passages_using_llm(raw_answer,cleanFullDocumentTexts)
 
-            # references, referencesDuration = citation_handler.format_references(raw_answer,cleanFullDocumentTexts)
 
-            # #variant 2 - Biencoder (selects top 1) out of floating windows of up to 5 sentences
-            # referencesBiencoderTop1, referencesBiencoderTop1Duration = citation_handler.referencesBiencoderTop1(raw_answer,cleanFullDocumentTexts)
-            
-            # #variant 3 - BM25 selects top 1 out of floating window up to 5 sentences
-            # referencesBM25Top1, referencesBM25Top1Duration = citation_handler.referencesBM25Top1(raw_answer,cleanFullDocumentTexts)
-
-            # #variant 4 - Biencoder selects top 10 (out of floating windows), then BM25 selects top 1   
-            # referencesBiencoderTop10Bm25Top1, referencesBiencoderTop10Bm25Top1Duration = citation_handler.referencesBiencoderTop10Bm25Top1(raw_answer,cleanFullDocumentTexts)
-
-            # #variant 5 - BM25 selects top 10 (out of floating windows), then Biencoder selects top 1
-            # referencesBM25Top10BiencoderTop1,referencesBM25Top10BiencoderTop1Duration = citation_handler.referencesBM25Top10BiencoderTop1(raw_answer,cleanFullDocumentTexts)
-
-            # #variant 6 - Biencoder and bm25 select top 1 (using RRF)
-            # referencesBiencoderAndBm25Top1, referencesBiencoderAndBm25Top1Duration = citation_handler.referencesBiencoderAndBm25Top1(raw_answer,cleanFullDocumentTexts)
-            
-            # #variant 7 - Biencoder selects top 10 (out of floating windows) top 10, cross encoder selects top 1
-            # referencesBiencoderTop10CrossEncoderTop1, referencesBiencoderTop10CrossEncoderTop1Duration = citation_handler.referencesBiencoderTop10CrossEncoderTop1(raw_answer,cleanFullDocumentTexts)
-
-            # #variant 8 - BM25 selects top 10 (out of floating windows) top 10, cross encoder selects top 1
-            # referencesBM25Top10CrossEncoderTop1, referencesBM25Top10CrossEncoderTop1Duration = citation_handler.referencesBM25Top10CrossEncoderTop1(raw_answer,cleanFullDocumentTexts)
-
-            # #variant 9 - BiEncoder and keyword bm25 select top 10 together, cross encoder selects top 1
-            # referencesBiencoderAndBm25Top10CrossEncoderTop1, referencesBiencoderAndBm25Top10CrossEncoderTop1Duration = citation_handler.referencesBiencoderAndBm25Top10CrossEncoderTop1(raw_answer,cleanFullDocumentTexts)
-
-            # # variant 10 - extract the context using LLM (prompt to extract the best fit)
-            # referencesWithLLM, referencesWithLLMDuration = citation_handler._extract_context_passages_using_llm(raw_answer,cleanFullDocumentTexts)
+            #gold case
+                        # variant 1 - native squai context extraction
+            referencesWithGold, referencesDurationWithGold = citation_handler_with_gold.format_references(raw_answer_with_gold,cleanFullDocumentTextsWithGold)
+            #variant 2 - Biencoder (selects top 1) out of floating windows of up to 5 sentences
+            referencesBiencoderTop1WithGold, referencesBiencoderTop1DurationWithGold = citation_handler_with_gold.referencesBiencoderTop1(raw_answer_with_gold,cleanFullDocumentTextsWithGold)
+            #variant 3 - BM25 selects top 1 out of floating window up to 5 sentences
+            referencesBM25Top1WithGold, referencesBM25Top1DurationWithGold = citation_handler_with_gold.referencesBM25Top1(raw_answer_with_gold,cleanFullDocumentTextsWithGold)
+            #variant 4 - Biencoder selects top 10 (out of floating windows), then BM25 selects top 1   
+            referencesBiencoderTop10Bm25Top1WithGold, referencesBiencoderTop10Bm25Top1DurationWithGold = citation_handler_with_gold.referencesBiencoderTop10Bm25Top1(raw_answer_with_gold,cleanFullDocumentTextsWithGold)
+            #variant 5 - BM25 selects top 10 (out of floating windows), then Biencoder selects top 1
+            referencesBM25Top10BiencoderTop1WithGold,referencesBM25Top10BiencoderTop1DurationWithGold = citation_handler_with_gold.referencesBM25Top10BiencoderTop1(raw_answer_with_gold,cleanFullDocumentTextsWithGold)
+            #variant 6 - Biencoder and bm25 select top 1 (using RRF)
+            referencesBiencoderAndBm25Top1WithGold, referencesBiencoderAndBm25Top1DurationWithGold = citation_handler_with_gold.referencesBiencoderAndBm25Top1(raw_answer_with_gold,cleanFullDocumentTextsWithGold)
+            #variant 7 - Biencoder selects top 10 (out of floating windows) top 10, cross encoder selects top 1
+            referencesBiencoderTop10CrossEncoderTop1WithGold, referencesBiencoderTop10CrossEncoderTop1DurationWithGold = citation_handler_with_gold.referencesBiencoderTop10CrossEncoderTop1(raw_answer_with_gold,cleanFullDocumentTextsWithGold)
+            #variant 8 - BM25 selects top 10 (out of floating windows) top 10, cross encoder selects top 1
+            referencesBM25Top10CrossEncoderTop1WithGold, referencesBM25Top10CrossEncoderTop1DurationWithGold = citation_handler_with_gold.referencesBM25Top10CrossEncoderTop1(raw_answer_with_gold,cleanFullDocumentTextsWithGold)
+            #variant 9 - BiEncoder and keyword bm25 select top 10 together, cross encoder selects top 1
+            referencesBiencoderAndBm25Top10CrossEncoderTop1WithGold, referencesBiencoderAndBm25Top10CrossEncoderTop1DurationWithGold = citation_handler_with_gold.referencesBiencoderAndBm25Top10CrossEncoderTop1(raw_answer_with_gold,cleanFullDocumentTextsWithGold)
+            # variant 10 - extract the context using LLM (prompt to extract the best fit)
+            referencesWithLLMWithGold, referencesWithLLMDurationWithGold = citation_handler_with_gold._extract_context_passages_using_llm(raw_answer_with_gold,cleanFullDocumentTextsWithGold)
 
 
             contexts = {
-                # "referencesNative": references,
-                # "referencesBiencoderTop1": referencesBiencoderTop1,
-                # "referencesBM25Top1": referencesBM25Top1,
-                # "referencesBiencoderTop10Bm25Top1": referencesBiencoderTop10Bm25Top1,
-                # "referencesBM25Top10BiencoderTop1": referencesBM25Top10BiencoderTop1,
-                # "referencesBiencoderTop10CrossEncoderTop1": referencesBiencoderTop10CrossEncoderTop1,
-                # "referencesBM25Top10CrossEncoderTop1": referencesBM25Top10CrossEncoderTop1,
-                # "referencesBiencoderAndBm25Top1": referencesBiencoderAndBm25Top1,
-                # "referencesBiencoderAndBm25Top10CrossEncoderTop1": referencesBiencoderAndBm25Top10CrossEncoderTop1,
-                # "referencesWithLLM": referencesWithLLM,
                 "generationMeta": generationMeta,
+                "withoutGold": {
+                    "referencesNative": references,
+                    "referencesBiencoderTop1": referencesBiencoderTop1,
+                    "referencesBM25Top1": referencesBM25Top1,
+                    "referencesBiencoderTop10Bm25Top1": referencesBiencoderTop10Bm25Top1,
+                    "referencesBM25Top10BiencoderTop1": referencesBM25Top10BiencoderTop1,
+                    "referencesBiencoderTop10CrossEncoderTop1": referencesBiencoderTop10CrossEncoderTop1,
+                    "referencesBM25Top10CrossEncoderTop1": referencesBM25Top10CrossEncoderTop1,
+                    "referencesBiencoderAndBm25Top1": referencesBiencoderAndBm25Top1,
+                    "referencesBiencoderAndBm25Top10CrossEncoderTop1": referencesBiencoderAndBm25Top10CrossEncoderTop1,
+                    "referencesWithLLM": referencesWithLLM,
+                },
+                "withGold": {
+                    "referencesNative": referencesWithGold,
+                    "referencesBiencoderTop1": referencesBiencoderTop1WithGold,
+                    "referencesBM25Top1": referencesBM25Top1WithGold,
+                    "referencesBiencoderTop10Bm25Top1": referencesBiencoderTop10Bm25Top1WithGold,
+                    "referencesBM25Top10BiencoderTop1": referencesBM25Top10BiencoderTop1WithGold,
+                    "referencesBiencoderTop10CrossEncoderTop1": referencesBiencoderTop10CrossEncoderTop1WithGold,
+                    "referencesBM25Top10CrossEncoderTop1": referencesBM25Top10CrossEncoderTop1WithGold,
+                    "referencesBiencoderAndBm25Top1": referencesBiencoderAndBm25Top1WithGold,
+                    "referencesBiencoderAndBm25Top10CrossEncoderTop1": referencesBiencoderAndBm25Top10CrossEncoderTop1WithGold,
+                    "referencesWithLLM": referencesWithLLMWithGold,
+                },
                 "answerMeta": {
                     "papersRetrievedBySQuAI": unique_filtered_doc_ids,
                     "docs_retrieved_pre_filtering": docs_retrieved_pre_filtering,
-                    # "paperInformationUsedForAnswering": paperInformationUsedForAnswering,
-                    # "modelAnswer" : raw_answer,
+                    "paperInformationWithoutGold": paperInformationWithoutGold,
+                    "papersInformationGoldAnswer": paperInformationUsedForAnswering,
+                    "modelAnswer" : raw_answer,
+                    "mddelAnswerWithGold": raw_answer_with_gold,
                     "paperFullTextLength": {key: len(text) for key, text in cleanFullDocumentTexts.items()},
-                    # "duration": {
-                    #     "answerGeneration": answerGenerationEnd - answerGenerationStart,
-                    #     "referencesNativeDuration": referencesDuration,
-                    #     "referencesBiencoderTop1Duration": referencesBiencoderTop1Duration,
-                    #     "referencesBM25Top1Duration": referencesBM25Top1Duration,
-                    #     "referencesBiencoderTop10Bm25Top1Duration": referencesBiencoderTop10Bm25Top1Duration,
-                    #     "referencesBM25Top10BiencoderTop1Duration": referencesBM25Top10BiencoderTop1Duration,
-                    #     "referencesBiencoderTop10CrossEncoderTop1Duration": referencesBiencoderTop10CrossEncoderTop1Duration,
-                    #     "referencesBM25Top10CrossEncoderTop1Duration": referencesBM25Top10CrossEncoderTop1Duration,
-                    #     "referencesBiencoderAndBm25Top1Duration": referencesBiencoderAndBm25Top1Duration,
-                    #     "referencesBiencoderAndBm25Top10CrossEncoderTop1Duration": referencesBiencoderAndBm25Top10CrossEncoderTop1Duration,
-                    #     "referencesWithLLMDuration": referencesWithLLMDuration,
-                    # }
+                    "duration": {
+                        "withoutGold": {
+                            "answerGeneration": answerGenerationEnd - answerGenerationStart,
+                            "referencesNativeDuration": referencesDuration,
+                            "referencesBiencoderTop1Duration": referencesBiencoderTop1Duration,
+                            "referencesBM25Top1Duration": referencesBM25Top1Duration,
+                            "referencesBiencoderTop10Bm25Top1Duration": referencesBiencoderTop10Bm25Top1Duration,
+                            "referencesBM25Top10BiencoderTop1Duration": referencesBM25Top10BiencoderTop1Duration,
+                            "referencesBiencoderTop10CrossEncoderTop1Duration": referencesBiencoderTop10CrossEncoderTop1Duration,
+                            "referencesBM25Top10CrossEncoderTop1Duration": referencesBM25Top10CrossEncoderTop1Duration,
+                            "referencesBiencoderAndBm25Top1Duration": referencesBiencoderAndBm25Top1Duration,
+                            "referencesBiencoderAndBm25Top10CrossEncoderTop1Duration": referencesBiencoderAndBm25Top10CrossEncoderTop1Duration,
+                            "referencesWithLLMDuration": referencesWithLLMDuration,
+                        },
+                        "withGold": {
+                            "answerGeneration": answerGenerationEndWithGold - answerGenerationStartWithGold,
+                            "referencesNativeDuration": referencesDurationWithGold,
+                            "referencesBiencoderTop1Duration": referencesBiencoderTop1DurationWithGold,
+                            "referencesBM25Top1Duration": referencesBM25Top1DurationWithGold,
+                            "referencesBiencoderTop10Bm25Top1Duration": referencesBiencoderTop10Bm25Top1DurationWithGold,
+                            "referencesBM25Top10BiencoderTop1Duration": referencesBM25Top10BiencoderTop1DurationWithGold,
+                            "referencesBiencoderTop10CrossEncoderTop1Duration": referencesBiencoderTop10CrossEncoderTop1DurationWithGold,
+                            "referencesBM25Top10CrossEncoderTop1Duration": referencesBM25Top10CrossEncoderTop1DurationWithGold,
+                            "referencesBiencoderAndBm25Top1Duration": referencesBiencoderAndBm25Top1DurationWithGold,
+                            "referencesBiencoderAndBm25Top10CrossEncoderTop1Duration": referencesBiencoderAndBm25Top10CrossEncoderTop1DurationWithGold,
+                            "referencesWithLLMDuration": referencesWithLLMDurationWithGold,
+                        },
+                    }
                 }
             }
 
