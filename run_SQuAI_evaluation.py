@@ -114,6 +114,22 @@ for question in questions:
         entry["docId"]: entry["paperId"]
         for entry in question["answerMeta"]["papersInformationGoldAnswer"]
     }
+
+    ###built in squai extraction
+    for sentence in question["answerMeta"]["mddelAnswerWithGold"]:
+        documentId = sentence["documentId"]
+        extractedSourceSentence = question["withGold"]["referencesNative"][str(documentId)]["contextPassage"]
+        if "contextJudgementsWithGold" not in question:
+            question["contextJudgementsWithGold"] = {}
+        if "referencesNative" not in question["contextJudgementsWithGold"]:
+            question["contextJudgementsWithcontextJudgementsWithGoldoutGold"]["referencesNative"] = {}
+        if (documentId not in question["contextJudgementsWithGold"]["referencesNative"]):
+            question["contextJudgementsWithGold"]["referencesNative"][documentId] = []
+        judgement = judgeClaim()
+        question["contextJudgementsWithGold"]["referencesNative"][documentId].append(judgement)   
+
+
+
     ### go over every of my extractions
     for refKey in referencesKeys:
         # print("judging extraction method with gold " + refKey)
