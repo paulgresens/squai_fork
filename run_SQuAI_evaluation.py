@@ -105,8 +105,12 @@ for question in questions:
     paperTextsNonGold = retriever.get_full_texts(
         list(nonGoldPaperMapping.values()), db=db
     )
+    paper_texts_by_id_non_gold = {
+        paper_id: text
+        for text, paper_id in paperTextsNonGold
+    }
 
-    print(json.dumps(paperTextsNonGold))
+    print(json.dumps(paper_texts_by_id_non_gold))
     modelAnswerWithoutGold = question["answerMeta"]["modelAnswer"]
 
     print("Paper: " + str(counter) + "    (" + question["generationMeta"]["anchorPaper"] + ")")
