@@ -74,7 +74,7 @@ for question in questions:
         }
         for sentence in question["answerMeta"]["modelAnswer"]:
             documentId = sentence["documentId"]
-            extractedSource = question["withoutGold"][refKey][str(quoteCounter[documentId])][quoteCounter[documentId]]
+            extractedSource = question["withoutGold"][refKey][str(documentId)][quoteCounter[documentId]]
             print(extractedSource)
             quoteCounter[documentId] += 1
         print("-----------------")
