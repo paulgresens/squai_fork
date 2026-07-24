@@ -122,7 +122,7 @@ for question in questions:
         if "contextJudgementsWithGold" not in question:
             question["contextJudgementsWithGold"] = {}
         if "referencesNative" not in question["contextJudgementsWithGold"]:
-            question["contextJudgementsWithcontextJudgementsWithGoldoutGold"]["referencesNative"] = {}
+            question["contextJudgementsWithGold"]["referencesNative"] = {}
         if (documentId not in question["contextJudgementsWithGold"]["referencesNative"]):
             question["contextJudgementsWithGold"]["referencesNative"][documentId] = []
         judgement = judgeClaim()
