@@ -30,7 +30,7 @@ import time
 logger = logging.getLogger("Enhanced_4Agent_RAG")
 SCADS_API_KEY = os.getenv("SCADS_API_KEY")
 # OUTPUT_FILE = "contextExtractionResult.jsonl"
-INPUT_FILE="contextWithAndWithoutGold.jsonl"
+INPUT_FILE="contextResultsToJudge.jsonl"
 # OUTPUT_FILE_WITHOUT_GOLD="contextWithoutGold.jsonl"
 # OUTPUT_FILE_WITH_GOLD="contextWithGold.jsonl"
 # OUTPUT_FILE_SUCCESS="outputDone.jsonl"
