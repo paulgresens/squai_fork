@@ -19,6 +19,10 @@ from scadsApiAgent import ScadsApiAgent
 zaiAgent = ScadsApiAgent("zai-org/GLM-5.2-FP8")
 gptOssAgent = ScadsApiAgent("openai/gpt-oss-120b")
 
+
+
+referencesKeys = ["referencesNative","referencesBiencoderTop1","referencesBM25Top1","referencesBiencoderTop10Bm25Top1","referencesBM25Top10BiencoderTop1","referencesBiencoderTop10CrossEncoderTop1","referencesBM25Top10CrossEncoderTop1","referencesBiencoderAndBm25Top1","referencesBiencoderAndBm25Top10CrossEncoderTop1","referencesWithLLM"]
+
 def clean_and_parse_json(text):
     if text is None:
         return None
@@ -43,25 +47,43 @@ with open(INPUT_FILE, "r") as in_file:
                 continue # Skip empty lines
             q = clean_and_parse_json(lineAlready)
             questions.append(q)
-counter = 0
+counter = 1
 for question in questions:
-    print("Paper: " + str(counter) + "(" + question["generationMeta"]["anchorPaper"] + ")")
+    print("Paper: " + str(counter) + "    (" + question["generationMeta"]["anchorPaper"] + ")")
 
+
+    ### without gold papers case
     modelAnswerWithoutGold = question["answerMeta"]["modelAnswer"]
 
     nonGoldPaperMapping = {
         entry["docId"]: entry["paperId"]
         for entry in question["answerMeta"]["paperInformationWithoutGold"]
     }
+    quoteCounter = {
+        item["documentId"]: 0
+    for item in question["answerMeta"]["modelAnswer"]
+    }
+
+
+
+
+
+    ### with gold papers case
     modelAnswerWithGold = question["answerMeta"]["mddelAnswerWithGold"]
 
     goldPaperMapping = {
         entry["docId"]: entry["paperId"]
         for entry in question["answerMeta"]["papersInformationGoldAnswer"]
     }
+    quoteCounterGold = {
+        item["documentId"]: 0
+        for item in question["answerMeta"]["mddelAnswerWithGold"]
+    }
     print(json.dumps(nonGoldPaperMapping))
+    print(json.dumps(quoteCounter))
     print("-----------------")
     print(json.dumps(goldPaperMapping))
+    print(json.dumps(quoteCounterGold))
     print('####################')
     counter+=1
 
