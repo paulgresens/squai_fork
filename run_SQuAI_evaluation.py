@@ -100,15 +100,38 @@ for question in questions:
         entry["docId"]: entry["paperId"]
         for entry in question["answerMeta"]["papersInformationGoldAnswer"]
     }
-    quoteCounterGold = {
-        item["documentId"]: 0
-        for item in question["answerMeta"]["mddelAnswerWithGold"]
-    }
+    for refKey in referencesKeys:
+        print("judging extraction method with gold " + refKey)
+        quoteCounter = {
+            item["documentId"]: 0
+            for item in question["answerMeta"]["mddelAnswerWithGold"]
+        }
+        for sentence in question["answerMeta"]["mddelAnswerWithGold"]:
+            documentId = sentence["documentId"]
+            extractedSourceSentence = question["withGold"][refKey][str(documentId)][quoteCounter[documentId]]["contextPassage"]
+            print(extractedSourceSentence)
+            quoteCounter[documentId] += 1
+
+            if "contextJudgementsWithGold" not in question:
+                question["contextJudgementsWithGold"] = {}
+            if refKey not in question["contextJudgementsWithGold"]:
+                question["contextJudgementsWithGold"][refKey] = {}
+            if (documentId not in question["contextJudgementsWithGold"][refKey]):
+                question["contextJudgementsWithGold"][refKey][documentId] = []
+            # todo replace placeholder function
+            judgement = judgeClaim()
+            question["contextJudgementsWithGold"][refKey][documentId].append(judgement)                        
+        print("-----------------")
+
+
+    print(json.dumps(question["contextJudgementsWithGold"])) 
+
+
+    
     print(json.dumps(nonGoldPaperMapping))
     print(json.dumps(quoteCounter))
     print("-----------------")
     print(json.dumps(goldPaperMapping))
-    print(json.dumps(quoteCounterGold))
     print('####################')
     counter+=1
 
