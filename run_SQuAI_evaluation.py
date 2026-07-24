@@ -90,7 +90,6 @@ for question in questions:
         print("-----------------")
 
 
-    print(json.dumps(question["contextJudgementsWithoutGold"])) 
 
 
     ### with gold papers case
@@ -124,7 +123,12 @@ for question in questions:
         print("-----------------")
 
 
+    print("#############################################################################################################################")
+    print("without: ")
+    print(json.dumps(question["contextJudgementsWithoutGold"])) 
+    print("with: ")
     print(json.dumps(question["contextJudgementsWithGold"])) 
+    print("#############################################################################################################################")
 
 
     
