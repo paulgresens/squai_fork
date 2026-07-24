@@ -20,8 +20,12 @@ zaiAgent = ScadsApiAgent("zai-org/GLM-5.2-FP8")
 gptOssAgent = ScadsApiAgent("openai/gpt-oss-120b")
 
 
+referencesNativeKey = "referencesNative"
+referencesKeys = ["referencesBiencoderTop1","referencesBM25Top1","referencesBiencoderTop10Bm25Top1","referencesBM25Top10BiencoderTop1","referencesBiencoderTop10CrossEncoderTop1","referencesBM25Top10CrossEncoderTop1","referencesBiencoderAndBm25Top1","referencesBiencoderAndBm25Top10CrossEncoderTop1","referencesWithLLM"]
 
-referencesKeys = ["referencesNative","referencesBiencoderTop1","referencesBM25Top1","referencesBiencoderTop10Bm25Top1","referencesBM25Top10BiencoderTop1","referencesBiencoderTop10CrossEncoderTop1","referencesBM25Top10CrossEncoderTop1","referencesBiencoderAndBm25Top1","referencesBiencoderAndBm25Top10CrossEncoderTop1","referencesWithLLM"]
+
+def judgeClaim():
+    return {}
 
 def clean_and_parse_json(text):
     if text is None:
@@ -59,13 +63,22 @@ for question in questions:
         entry["docId"]: entry["paperId"]
         for entry in question["answerMeta"]["paperInformationWithoutGold"]
     }
-    quoteCounter = {
-        item["documentId"]: 0
-    for item in question["answerMeta"]["modelAnswer"]
-    }
 
 
 
+    for refKey in referencesKeys:
+        print("judging extraction method " + refKey)
+        quoteCounter = {
+            item["documentId"]: 0
+            for item in question["answerMeta"]["modelAnswer"]
+        }
+        for sentence in question["modelAnswer"]:
+            documentId = sentence["documentId"]
+            extractedSource = question["withoutGold"][refKey][quoteCounter[documentId]]
+            print(extractedSource)
+            quoteCounter[documentId] += 1
+        print("-----------------")
+        
 
 
     ### with gold papers case
