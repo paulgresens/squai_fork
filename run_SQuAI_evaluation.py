@@ -41,8 +41,8 @@ with open(INPUT_FILE, "r") as in_file:
             lineAlready = lineAlready.strip()
             if not lineAlready:
                 continue # Skip empty lines
-            question = clean_and_parse_json(lineAlready)
-            questions.append(question["generationMeta"]["anchorPaper"])
+            q = clean_and_parse_json(lineAlready)
+            questions.append(q)
 
 for question in questions:
     print(question["anchorPaper"])
