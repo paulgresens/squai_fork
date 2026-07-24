@@ -80,12 +80,13 @@ for question in questions:
 
             if "contextJudgementsWithoutGold" not in question:
                 question["contextJudgementsWithoutGold"] = {}
-            if (documentId not in question["contextJudgementsWithoutGold"]):
-                question["contextJudgementsWithoutGold"][documentId] = []
-
+            if refKey not in question["contextJudgementsWithoutGold"]:
+                question["contextJudgementsWithoutGold"][refKey] = {}
+            if (documentId not in question["contextJudgementsWithoutGold"][refKey]):
+                question["contextJudgementsWithoutGold"][refKey][documentId] = []
             # todo replace placeholder function
             judgement = judgeClaim()
-            question["contextJudgementsWithoutGold"][documentId].append(judgement)                        
+            question["contextJudgementsWithoutGold"][refKey][documentId].append(judgement)                        
         print("-----------------")
 
 
