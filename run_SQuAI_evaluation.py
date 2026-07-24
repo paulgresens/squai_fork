@@ -106,8 +106,9 @@ for question in questions:
 
 
     paperTextsNonGold = retriever.get_full_texts(
-        list(nonGoldPaperMapping.keys()), db=db
+        list(nonGoldPaperMapping.values()), db=db
     )
+    
     print(json.dumps(paperTextsNonGold))
 
 
