@@ -2,10 +2,28 @@
 import json
 import os
 import logging
+import plyvel
+
 import multiprocessing as mp
+from hybrid_retriever import Retriever
 
 
-logger = logging.getLogger("Enhanced_4Agent_RAG")
+
+######retriever config for gettimg the full texts
+from get_paths import get_main_data_dir
+# Configuration paths
+MAIN_DATA_DIR = get_main_data_dir()
+DATA_DIR = f"{MAIN_DATA_DIR}_extended_data"
+E5_INDEX_DIR = f"{MAIN_DATA_DIR}/faiss_index"
+BM25_INDEX_DIR = f"{MAIN_DATA_DIR}/bm25_retriever"
+DB_PATH = f"{MAIN_DATA_DIR}/full_text_db"
+DEFAULT_RETRIEVER = "hybrid"
+alt_db_path = os.path.join(os.path.dirname(__file__), "local_db")
+db = plyvel.DB(alt_db_path, create_if_missing=True)
+
+
+DEFAULT_TOP_K = 5
+DEFAULT_ALPHA = 0.65
 SCADS_API_KEY = os.getenv("SCADS_API_KEY")
 # OUTPUT_FILE = "contextExtractionResult.jsonl"
 INPUT_FILE="contextResultsToJudge.jsonl"
@@ -14,7 +32,29 @@ INPUT_FILE="contextResultsToJudge.jsonl"
 # OUTPUT_FILE_SUCCESS="outputDone.jsonl"
 # OUTPUT_FILE = "contextExtractionResultWithoutGoldGroundTruth.jsonl"
 
+def initialize_retriever(
+    retriever_type: str,
+    e5_index_dir: str,
+    bm25_index_dir: str,
+    db_path: str,
+    top_k: int,
+    alpha: float = 0.65,
+    db=None,
+):
+    """Initialize the retriever with strategy and alpha support"""
+    print(f"Initializing {retriever_type} retriever with alpha={alpha}...")
+    return Retriever(
+        e5_index_dir, bm25_index_dir, top_k=top_k, strategy=retriever_type, alpha=alpha
+    )
 
+retriever = initialize_retriever(
+    retriever_type=DEFAULT_RETRIEVER,
+    e5_index_dir=E5_INDEX_DIR,
+    bm25_index_dir=BM25_INDEX_DIR,
+    db_path=DB_PATH,
+    top_k=DEFAULT_TOP_K,
+    alpha=DEFAULT_ALPHA,
+)
 from scadsApiAgent import ScadsApiAgent
 zaiAgent = ScadsApiAgent("zai-org/GLM-5.2-FP8")
 gptOssAgent = ScadsApiAgent("openai/gpt-oss-120b")
@@ -65,6 +105,11 @@ for question in questions:
     }
 
 
+    paperTextsNonGold = retriever.get_full_texts(
+        list(nonGoldPaperMapping.keys()), db=db
+    )
+    print(json.dumps(paperTextsNonGold))
+
 
     ###built in squai extraction
     for sentence in question["answerMeta"]["modelAnswer"]:
@@ -114,6 +159,7 @@ for question in questions:
         entry["docId"]: entry["paperId"]
         for entry in question["answerMeta"]["papersInformationGoldAnswer"]
     }
+
 
     ###built in squai extraction
     for sentence in question["answerMeta"]["mddelAnswerWithGold"]:
