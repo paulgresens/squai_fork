@@ -74,11 +74,22 @@ for question in questions:
         }
         for sentence in question["answerMeta"]["modelAnswer"]:
             documentId = sentence["documentId"]
-            extractedSource = question["withoutGold"][refKey][str(documentId)][quoteCounter[documentId]]
-            print(extractedSource)
+            extractedSourceSentence = question["withoutGold"][refKey][str(documentId)][quoteCounter[documentId]]["contextPassage"]
+            print(extractedSourceSentence)
             quoteCounter[documentId] += 1
+
+            if "contextJudgementsWithoutGold" not in question:
+                question["contextJudgementsWithoutGold"] = {}
+            if (documentId not in question["contextJudgementsWithoutGold"]):
+                question["contextJudgementsWithoutGold"][documentId] = []
+
+            # todo replace placeholder function
+            judgement = judgeClaim()
+            question["contextJudgementsWithoutGold"][documentId].append(judgement)                        
         print("-----------------")
-        
+
+
+    print(json.dumps(question["contextJudgementsWithoutGold"])) 
 
 
     ### with gold papers case
