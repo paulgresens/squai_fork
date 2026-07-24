@@ -18,8 +18,10 @@ E5_INDEX_DIR = f"{MAIN_DATA_DIR}/faiss_index"
 BM25_INDEX_DIR = f"{MAIN_DATA_DIR}/bm25_retriever"
 DB_PATH = f"{MAIN_DATA_DIR}/full_text_db"
 DEFAULT_RETRIEVER = "hybrid"
+db_path_to_use = DB_PATH
+
 alt_db_path = os.path.join(os.path.dirname(__file__), "local_db")
-db = plyvel.DB(alt_db_path, create_if_missing=True)
+db = plyvel.DB(alt_db_path, create_if_missing=False)
 
 
 DEFAULT_TOP_K = 5
@@ -98,7 +100,7 @@ for question in questions:
         for entry in question["answerMeta"]["paperInformationWithoutGold"]
     }
     print(json.dumps(list(nonGoldPaperMapping.values())))
-    
+
     paperTextsNonGold = retriever.get_full_texts(
         list(nonGoldPaperMapping.values()), db=db
     )
@@ -110,10 +112,6 @@ for question in questions:
 
 
     ### without gold papers case
-
-
-
-
     ###built in squai extraction
     for sentence in question["answerMeta"]["modelAnswer"]:
         documentId = sentence["documentId"]
