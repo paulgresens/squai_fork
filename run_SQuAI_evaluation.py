@@ -66,8 +66,16 @@ for question in questions:
 
 
 
+    ###built in squai extraction
+    for sentence in question["answerMeta"]["modelAnswer"]:
+        documentId = sentence["documentId"]
+        extractedSourceSentence = question["withoutGold"]["referencesNative"][str(documentId)]["contextPassage"]
+        print(extractedSourceSentence)
+        
+
+    ### go over every of my extractions
     for refKey in referencesKeys:
-        print("judging extraction method " + refKey)
+        # print("judging extraction method " + refKey)
         quoteCounter = {
             item["documentId"]: 0
             for item in question["answerMeta"]["modelAnswer"]
@@ -75,7 +83,7 @@ for question in questions:
         for sentence in question["answerMeta"]["modelAnswer"]:
             documentId = sentence["documentId"]
             extractedSourceSentence = question["withoutGold"][refKey][str(documentId)][quoteCounter[documentId]]["contextPassage"]
-            print(extractedSourceSentence)
+            # print(extractedSourceSentence)
             quoteCounter[documentId] += 1
 
             if "contextJudgementsWithoutGold" not in question:
@@ -87,7 +95,7 @@ for question in questions:
             # todo replace placeholder function
             judgement = judgeClaim()
             question["contextJudgementsWithoutGold"][refKey][documentId].append(judgement)                        
-        print("-----------------")
+        # print("-----------------")
 
 
 
@@ -99,8 +107,9 @@ for question in questions:
         entry["docId"]: entry["paperId"]
         for entry in question["answerMeta"]["papersInformationGoldAnswer"]
     }
+    ### go over every of my extractions
     for refKey in referencesKeys:
-        print("judging extraction method with gold " + refKey)
+        # print("judging extraction method with gold " + refKey)
         quoteCounter = {
             item["documentId"]: 0
             for item in question["answerMeta"]["mddelAnswerWithGold"]
@@ -108,7 +117,7 @@ for question in questions:
         for sentence in question["answerMeta"]["mddelAnswerWithGold"]:
             documentId = sentence["documentId"]
             extractedSourceSentence = question["withGold"][refKey][str(documentId)][quoteCounter[documentId]]["contextPassage"]
-            print(extractedSourceSentence)
+            # print(extractedSourceSentence)
             quoteCounter[documentId] += 1
 
             if "contextJudgementsWithGold" not in question:
@@ -120,7 +129,7 @@ for question in questions:
             # todo replace placeholder function
             judgement = judgeClaim()
             question["contextJudgementsWithGold"][refKey][documentId].append(judgement)                        
-        print("-----------------")
+        # print("-----------------")
 
 
     print("#############################################################################################################################")
