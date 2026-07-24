@@ -159,13 +159,22 @@ for question in questions:
 
 
     ### with gold papers case
-    modelAnswerWithGold = question["answerMeta"]["mddelAnswerWithGold"]
-
     goldPaperMapping = {
         entry["docId"]: entry["paperId"]
         for entry in question["answerMeta"]["papersInformationGoldAnswer"]
     }
 
+    paperTextsGold = retriever.get_full_texts(
+        list(goldPaperMapping.values()), db=db
+    )
+    paper_texts_by_id_gold = {
+        paper_id: text
+        for text, paper_id in paperTextsGold
+    }
+
+    print(json.dumps(paper_texts_by_id_gold))
+
+    modelAnswerWithGold = question["answerMeta"]["mddelAnswerWithGold"]
 
     ###built in squai extraction
     for sentence in question["answerMeta"]["mddelAnswerWithGold"]:
