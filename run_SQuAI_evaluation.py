@@ -43,9 +43,9 @@ with open(INPUT_FILE, "r") as in_file:
                 continue # Skip empty lines
             q = clean_and_parse_json(lineAlready)
             questions.append(q)
-
+counter = 0
 for question in questions:
-    print(question["generationMeta"]["anchorPaper"])
+    print("Paper: " + str(counter) + "(" + question["generationMeta"]["anchorPaper"] + ")")
 
     modelAnswerWithoutGold = question["answerMeta"]["modelAnswer"]
 
@@ -63,6 +63,7 @@ for question in questions:
     print("-----------------")
     print(json.dumps(goldPaperMapping))
     print('####################')
+    counter+=1
 
 
 
