@@ -11,7 +11,7 @@ from hybrid_retriever import Retriever
 
 
 #this needs to be changed for every instance
-OUTPUT_FILE = "evaluationResult.jsonl"
+OUTPUT_FILE = "evaluationResult9.jsonl"
 
 class APILockManager:
     def __init__(self, lock_file):
