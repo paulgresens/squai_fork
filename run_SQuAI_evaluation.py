@@ -46,18 +46,18 @@ with open(INPUT_FILE, "r") as in_file:
 
 for question in questions:
     print(question["generationMeta"]["anchorPaper"])
-    
+
     modelAnswerWithoutGold = question["answerMeta"]["modelAnswer"]
 
     nonGoldPaperMapping = {
         entry["docId"]: entry["paperId"]
-        for entry in question["paperInformationWithoutGold"]
+        for entry in question["answerMeta"]["paperInformationWithoutGold"]
     }
     modelAnswerWithGold = question["answerMeta"]["mddelAnswerWithGold"]
 
     goldPaperMapping = {
         entry["docId"]: entry["paperId"]
-        for entry in question["papersInformationGoldAnswer"]
+        for entry in question["answerMeta"]["papersInformationGoldAnswer"]
     }
     print(json.dumps(nonGoldPaperMapping))
     print("-----------------")
