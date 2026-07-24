@@ -70,8 +70,15 @@ for question in questions:
     for sentence in question["answerMeta"]["modelAnswer"]:
         documentId = sentence["documentId"]
         extractedSourceSentence = question["withoutGold"]["referencesNative"][str(documentId)]["contextPassage"]
-        print(extractedSourceSentence)
-        
+        if "contextJudgementsWithoutGold" not in question:
+            question["contextJudgementsWithoutGold"] = {}
+        if "referencesNative" not in question["contextJudgementsWithoutGold"]:
+            question["contextJudgementsWithoutGold"]["referencesNative"] = {}
+        if (documentId not in question["contextJudgementsWithoutGold"]["referencesNative"]):
+            question["contextJudgementsWithoutGold"]["referencesNative"][documentId] = []
+        judgement = judgeClaim()
+        question["contextJudgementsWithoutGold"]["referencesNative"][documentId].append(judgement)                        
+
 
     ### go over every of my extractions
     for refKey in referencesKeys:
