@@ -93,23 +93,25 @@ with open(INPUT_FILE, "r") as in_file:
             questions.append(q)
 counter = 1
 for question in questions:
-    print("Paper: " + str(counter) + "    (" + question["generationMeta"]["anchorPaper"] + ")")
-
-
-    ### without gold papers case
-    modelAnswerWithoutGold = question["answerMeta"]["modelAnswer"]
-
     nonGoldPaperMapping = {
         entry["docId"]: entry["paperId"]
         for entry in question["answerMeta"]["paperInformationWithoutGold"]
     }
-
-
+    print(json.dumps(list(nonGoldPaperMapping.values())))
+    
     paperTextsNonGold = retriever.get_full_texts(
         list(nonGoldPaperMapping.values()), db=db
     )
-    
+
     print(json.dumps(paperTextsNonGold))
+    modelAnswerWithoutGold = question["answerMeta"]["modelAnswer"]
+
+    print("Paper: " + str(counter) + "    (" + question["generationMeta"]["anchorPaper"] + ")")
+
+
+    ### without gold papers case
+
+
 
 
     ###built in squai extraction
