@@ -45,15 +45,14 @@ with open(INPUT_FILE, "r") as in_file:
             questions.append(q)
 
 for question in questions:
-    print(question["anchorPaper"])
+    print(question["generationMeta"]["anchorPaper"])
+    
     modelAnswerWithoutGold = question["answerMeta"]["modelAnswer"]
 
     nonGoldPaperMapping = {
         entry["docId"]: entry["paperId"]
         for entry in question["paperInformationWithoutGold"]
     }
-
-
     modelAnswerWithGold = question["answerMeta"]["mddelAnswerWithGold"]
 
     goldPaperMapping = {
