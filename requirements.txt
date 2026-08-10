@@ -17,7 +17,8 @@ plyvel
 uvicorn
 streamlit
 fastapi
-llama-index
+#llama-index
+llama-index==0.14.0
 llama-index-retrievers-bm25
 python-dotenv
 
@@ -37,6 +38,12 @@ rank_bm25
 
 #dataset generation
 requests
+
+#for answer correctness evaluation (ragas)
+ragas
+openai
+banks<2.4.4
+
 
 #cleaning
 rapidfuzz 

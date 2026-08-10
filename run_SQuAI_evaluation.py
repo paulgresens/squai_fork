@@ -4,12 +4,18 @@ import os
 import logging
 import plyvel
 import fcntl
+from dotenv import load_dotenv
+
+from openai import AsyncOpenAI
+from ragas.llms import llm_factory
+from ragas.embeddings.base import embedding_factory
+from ragas.metrics.collections import AnswerCorrectness, AnswerRelevancy
 
 
 import multiprocessing as mp
 from hybrid_retriever import Retriever
 
-
+load_dotenv()
 #this needs to be changed for every instance
 OUTPUT_FILE = "evaluationResult.jsonl"
 
@@ -64,7 +70,7 @@ if not os.path.exists(DB_LOCK_FILE):
 
 DEFAULT_TOP_K = 5
 DEFAULT_ALPHA = 0.65
-SCADS_API_KEY = os.getenv("SCADS_API_KEY")
+SCADS_API_KEY = os.getenv("PUBLIC_SCADS_KEY")
 INPUT_FILE="contextResultsToJudge.jsonl"
 
 lock.lock()
@@ -100,6 +106,16 @@ retriever = initialize_retriever(
 from scadsApiAgent import ScadsApiAgent
 zaiAgent = ScadsApiAgent("zai-org/GLM-5.2-FP8")
 gptOssAgent = ScadsApiAgent("openai/gpt-oss-120b")
+
+
+ragasClient = AsyncOpenAI(
+    base_url = "https://llm.scads.ai/v1",
+    api_key = SCADS_API_KEY
+)
+ragasLLM = llm_factory("meta-llama/Llama-3.3-70B-Instruct", client=ragasClient, max_tokens=16000)
+ragasEmbeddings = embedding_factory("openai", model="Qwen/Qwen3-Embedding-4B", client=ragasClient)
+answerCorrectnessScorer = AnswerCorrectness(llm=ragasLLM, embeddings=ragasEmbeddings)
+answerRelevancyScorer = AnswerRelevancy(llm=ragasLLM, embeddings=ragasEmbeddings)
 
 
 referencesNativeKey = "referencesNative"
@@ -155,8 +171,6 @@ for question in questions:
             entry["docId"]: entry["paperId"]
             for entry in question["answerMeta"]["paperInformationWithoutGold"]
         }
-        print(json.dumps(list(nonGoldPaperMapping.values())))
-
 
         db_lock.lock()
         try:
@@ -174,13 +188,43 @@ for question in questions:
             for text, paper_id in paperTextsNonGold
         }
 
-        print(json.dumps(paper_texts_by_id_non_gold))
         modelAnswerWithoutGold = question["answerMeta"]["modelAnswer"]
+        question["quoteJudgement"] = {}
+        question["quoteJudgement"]["withoutGold"] = {}
+        question["quoteJudgement"]["withGold"] = {}
 
-        print("Paper: " + str(counter) + "    (" + question["generationMeta"]["anchorPaper"] + ")")
+
+        ################################################## without gold papers case
+        #scope whole answer - ground truth answer
+
+        modelAnswerWithoutQuotation =  " ".join(
+            item["sentence"] for item in question["answerMeta"]["modelAnswer"]
+        )
+        goldGroundTruthAnswer = question["generationMeta"]["answerWithoutPaperReferences"]
+        questionText = question["generationMeta"]["question"]
+
+        ####### WITHOUT GOLD - ANSWER CORRECTNESS - ANSWER RELEVANCE
+        withoutGoldPaperAnswerCorrectness = answerCorrectnessScorer.score(
+                user_input=questionText,
+                response=modelAnswerWithoutQuotation,
+                reference=goldGroundTruthAnswer
+        )
+        question["quoteJudgement"]["withoutGold"]["answerCorrectness"] = withoutGoldPaperAnswerCorrectness.to_dict()
+
+        withoutGoldPaperAnswerRelevancy = answerRelevancyScorer.score(
+                user_input=questionText,
+                response=modelAnswerWithoutQuotation,
+        )
+        question["quoteJudgement"]["withoutGold"]["answerRelevancy"] = withoutGoldPaperAnswerRelevancy.to_dict()
+        print("without gold: ")
+        print('answer correctness' + str(withoutGoldPaperAnswerCorrectness))
+        print('answer relevancy' + str(withoutGoldPaperAnswerRelevancy))
+        print("---------")
+        ####### WITHOUT GOLD - ANSWER CORRECTNESS - ANSWER RELEVANCE
 
 
-        ### without gold papers case
+
+
         ###built in squai extraction
         for sentence in question["answerMeta"]["modelAnswer"]:
             documentId = sentence["documentId"]
@@ -197,7 +241,6 @@ for question in questions:
 
         ### go over every of my extractions
         for refKey in referencesKeys:
-            # print("judging extraction method " + refKey)
             quoteCounter = {
                 item["documentId"]: 0
                 for item in question["answerMeta"]["modelAnswer"]
@@ -205,7 +248,6 @@ for question in questions:
             for sentence in question["answerMeta"]["modelAnswer"]:
                 documentId = sentence["documentId"]
                 extractedSourceSentence = question["withoutGold"][refKey][str(documentId)][quoteCounter[documentId]]["contextPassage"]
-                # print(extractedSourceSentence)
                 quoteCounter[documentId] += 1
 
                 if "contextJudgementsWithoutGold" not in question:
@@ -217,12 +259,11 @@ for question in questions:
                 # todo replace placeholder function
                 judgement = judgeClaim()
                 question["contextJudgementsWithoutGold"][refKey][documentId].append(judgement)                        
-            # print("-----------------")
+
+        ##################################################
 
 
-
-
-        ### with gold papers case
+        ################################################## with gold papers case
         goldPaperMapping = {
             entry["docId"]: entry["paperId"]
             for entry in question["answerMeta"]["papersInformationGoldAnswer"]
@@ -243,9 +284,33 @@ for question in questions:
             for text, paper_id in paperTextsGold
         }
 
-        print(json.dumps(paper_texts_by_id_gold))
+        modelAnswerWithoutQuotation =  " ".join(
+            item["sentence"] for item in question["answerMeta"]["mddelAnswerWithGold"]
+        )
+        goldGroundTruthAnswer = question["generationMeta"]["answerWithoutPaperReferences"]
+        questionText = question["generationMeta"]["question"]
 
-        modelAnswerWithGold = question["answerMeta"]["mddelAnswerWithGold"]
+        ####### WITH GOLD - ANSWER CORRECTNESS - ANSWER RELEVANCE
+        withGoldPaperAnswerCorrectness = answerCorrectnessScorer.score(
+                user_input=questionText,
+                response=modelAnswerWithoutQuotation,
+                reference=goldGroundTruthAnswer
+        )
+        question["quoteJudgement"]["withGold"]["answerCorrectness"] = withGoldPaperAnswerCorrectness.to_dict()
+
+        withGoldPaperAnswerRelevancy = answerRelevancyScorer.score(
+                user_input=questionText,
+                response=modelAnswerWithoutQuotation,
+        )
+        question["quoteJudgement"]["withGold"]["answerRelevancy"] = withGoldPaperAnswerRelevancy.to_dict()
+        print("with gold: ")
+        print('answer correctness' + str(withGoldPaperAnswerCorrectness))
+        print('answer relevancy' + str(withGoldPaperAnswerRelevancy))
+        print("---------")
+        ####### WITH GOLD - ANSWER CORRECTNESS - ANSWER RELEVANCE
+
+
+
 
         ###built in squai extraction
         for sentence in question["answerMeta"]["mddelAnswerWithGold"]:
@@ -264,7 +329,6 @@ for question in questions:
 
         ### go over every of my extractions
         for refKey in referencesKeys:
-            # print("judging extraction method with gold " + refKey)
             quoteCounter = {
                 item["documentId"]: 0
                 for item in question["answerMeta"]["mddelAnswerWithGold"]
@@ -272,7 +336,6 @@ for question in questions:
             for sentence in question["answerMeta"]["mddelAnswerWithGold"]:
                 documentId = sentence["documentId"]
                 extractedSourceSentence = question["withGold"][refKey][str(documentId)][quoteCounter[documentId]]["contextPassage"]
-                # print(extractedSourceSentence)
                 quoteCounter[documentId] += 1
 
                 if "contextJudgementsWithGold" not in question:
@@ -284,23 +347,7 @@ for question in questions:
                 # todo replace placeholder function
                 judgement = judgeClaim()
                 question["contextJudgementsWithGold"][refKey][documentId].append(judgement)                        
-            # print("-----------------")
-
-
-        print("#############################################################################################################################")
-        print("without: ")
-        print(json.dumps(question["contextJudgementsWithoutGold"])) 
-        print("with: ")
-        print(json.dumps(question["contextJudgementsWithGold"])) 
-        print("#############################################################################################################################")
-
-
-
-        print(json.dumps(nonGoldPaperMapping))
-        print(json.dumps(quoteCounter))
-        print("-----------------")
-        print(json.dumps(goldPaperMapping))
-        print('####################')
+        ##################################################
         counter+=1
 
 
@@ -317,7 +364,10 @@ for question in questions:
         
         lock.unlock()
 
-    except: 
+    except Exception as e : 
+        print("EXCEPTION: ")
+        print(e)
+
         lock.lock()
         with open(STATE_TRACKING_FILE, "r", encoding="utf-8") as f:
             lockContent = json.load(f)
