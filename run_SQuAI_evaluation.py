@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from openai import AsyncOpenAI
 from ragas.llms import llm_factory
 from ragas.embeddings.base import embedding_factory
-from ragas.metrics.collections import AnswerCorrectness, AnswerRelevancy
+from ragas.metrics.collections import AnswerCorrectness, AnswerRelevancy, Faithfulness
 
 
 import multiprocessing as mp
@@ -116,14 +116,17 @@ ragasLLM = llm_factory("meta-llama/Llama-3.3-70B-Instruct", client=ragasClient, 
 ragasEmbeddings = embedding_factory("openai", model="Qwen/Qwen3-Embedding-4B", client=ragasClient)
 answerCorrectnessScorer = AnswerCorrectness(llm=ragasLLM, embeddings=ragasEmbeddings)
 answerRelevancyScorer = AnswerRelevancy(llm=ragasLLM, embeddings=ragasEmbeddings)
+faithfulnessScorer = Faithfulness(llm=ragasLLM)
 
 
 referencesNativeKey = "referencesNative"
 referencesKeys = ["referencesBiencoderTop1","referencesBM25Top1","referencesBiencoderTop10Bm25Top1","referencesBM25Top10BiencoderTop1","referencesBiencoderTop10CrossEncoderTop1","referencesBM25Top10CrossEncoderTop1","referencesBiencoderAndBm25Top1","referencesBiencoderAndBm25Top10CrossEncoderTop1","referencesWithLLM"]
 
 
-def judgeClaim():
-    return {}
+def judgeClaim(sentence,extractedSourceSentences,query):
+    faithfulness = faithfulnessScorer.score(user_input=query, response=sentence, retrieved_contexts=[extractedSourceSentences])
+    print(json.dumps(faithfulness))
+    return {"faithfulness": faithfulness }
 
 def clean_and_parse_json(text):
     if text is None:
@@ -228,7 +231,7 @@ for question in questions:
         ###built in squai extraction
         for sentence in question["answerMeta"]["modelAnswer"]:
             documentId = sentence["documentId"]
-            extractedSourceSentence = question["withoutGold"]["referencesNative"][str(documentId)]["contextPassage"]
+            extractedSourceSentences = question["withoutGold"]["referencesNative"][str(documentId)]["contextPassage"]
             if "contextJudgementsWithoutGold" not in question:
                 question["contextJudgementsWithoutGold"] = {}
             if "referencesNative" not in question["contextJudgementsWithoutGold"]:
@@ -247,7 +250,7 @@ for question in questions:
             }
             for sentence in question["answerMeta"]["modelAnswer"]:
                 documentId = sentence["documentId"]
-                extractedSourceSentence = question["withoutGold"][refKey][str(documentId)][quoteCounter[documentId]]["contextPassage"]
+                extractedSourceSentences = question["withoutGold"][refKey][str(documentId)][quoteCounter[documentId]]["contextPassage"]
                 quoteCounter[documentId] += 1
 
                 if "contextJudgementsWithoutGold" not in question:
@@ -257,7 +260,8 @@ for question in questions:
                 if (documentId not in question["contextJudgementsWithoutGold"][refKey]):
                     question["contextJudgementsWithoutGold"][refKey][documentId] = []
                 # todo replace placeholder function
-                judgement = judgeClaim()
+                judgement = judgeClaim(sentence=sentence, context=extractedSourceSentences, query=questionText)
+
                 question["contextJudgementsWithoutGold"][refKey][documentId].append(judgement)                        
 
         ##################################################
@@ -315,14 +319,15 @@ for question in questions:
         ###built in squai extraction
         for sentence in question["answerMeta"]["mddelAnswerWithGold"]:
             documentId = sentence["documentId"]
-            extractedSourceSentence = question["withGold"]["referencesNative"][str(documentId)]["contextPassage"]
+            extractedSourceSentences = question["withGold"]["referencesNative"][str(documentId)]["contextPassage"]
             if "contextJudgementsWithGold" not in question:
                 question["contextJudgementsWithGold"] = {}
             if "referencesNative" not in question["contextJudgementsWithGold"]:
                 question["contextJudgementsWithGold"]["referencesNative"] = {}
             if (documentId not in question["contextJudgementsWithGold"]["referencesNative"]):
                 question["contextJudgementsWithGold"]["referencesNative"][documentId] = []
-            judgement = judgeClaim()
+            judgement = judgeClaim(sentence=sentence, context=extractedSourceSentences, query=questionText)
+
             question["contextJudgementsWithGold"]["referencesNative"][documentId].append(judgement)   
 
 
@@ -335,7 +340,7 @@ for question in questions:
             }
             for sentence in question["answerMeta"]["mddelAnswerWithGold"]:
                 documentId = sentence["documentId"]
-                extractedSourceSentence = question["withGold"][refKey][str(documentId)][quoteCounter[documentId]]["contextPassage"]
+                extractedSourceSentences = question["withGold"][refKey][str(documentId)][quoteCounter[documentId]]["contextPassage"]
                 quoteCounter[documentId] += 1
 
                 if "contextJudgementsWithGold" not in question:
