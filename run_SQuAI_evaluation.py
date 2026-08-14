@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from openai import AsyncOpenAI
 from ragas.llms import llm_factory
 from ragas.embeddings.base import embedding_factory
-from ragas.metrics.collections import AnswerCorrectness, AnswerRelevancy, Faithfulness
+from ragas.metrics.collections import AnswerCorrectness, AnswerRelevancy, Faithfulness, ContextRelevance
 
 
 import multiprocessing as mp
@@ -80,29 +80,29 @@ if not os.path.exists(STATE_TRACKING_FILE):
 
 lock.unlock()
 
-def initialize_retriever(
-    retriever_type: str,
-    e5_index_dir: str,
-    bm25_index_dir: str,
-    db_path: str,
-    top_k: int,
-    alpha: float = 0.65,
-    db=None,
-):
-    """Initialize the retriever with strategy and alpha support"""
-    print(f"Initializing {retriever_type} retriever with alpha={alpha}...")
-    return Retriever(
-        e5_index_dir, bm25_index_dir, top_k=top_k, strategy=retriever_type, alpha=alpha
-    )
+# def initialize_retriever(
+#     retriever_type: str,
+#     e5_index_dir: str,
+#     bm25_index_dir: str,
+#     db_path: str,
+#     top_k: int,
+#     alpha: float = 0.65,
+#     db=None,
+# ):
+#     """Initialize the retriever with strategy and alpha support"""
+#     print(f"Initializing {retriever_type} retriever with alpha={alpha}...")
+#     return Retriever(
+#         e5_index_dir, bm25_index_dir, top_k=top_k, strategy=retriever_type, alpha=alpha
+#     )
 
-retriever = initialize_retriever(
-    retriever_type=DEFAULT_RETRIEVER,
-    e5_index_dir=E5_INDEX_DIR,
-    bm25_index_dir=BM25_INDEX_DIR,
-    db_path=DB_PATH,
-    top_k=DEFAULT_TOP_K,
-    alpha=DEFAULT_ALPHA,
-)
+# retriever = initialize_retriever(
+#     retriever_type=DEFAULT_RETRIEVER,
+#     e5_index_dir=E5_INDEX_DIR,
+#     bm25_index_dir=BM25_INDEX_DIR,
+#     db_path=DB_PATH,
+#     top_k=DEFAULT_TOP_K,
+#     alpha=DEFAULT_ALPHA,
+# )
 from scadsApiAgent import ScadsApiAgent
 zaiAgent = ScadsApiAgent("zai-org/GLM-5.2-FP8")
 gptOssAgent = ScadsApiAgent("openai/gpt-oss-120b")
@@ -117,6 +117,7 @@ ragasEmbeddings = embedding_factory("openai", model="Qwen/Qwen3-Embedding-4B", c
 answerCorrectnessScorer = AnswerCorrectness(llm=ragasLLM, embeddings=ragasEmbeddings)
 answerRelevancyScorer = AnswerRelevancy(llm=ragasLLM, embeddings=ragasEmbeddings)
 faithfulnessScorer = Faithfulness(llm=ragasLLM)
+contextRelevanceScorer = ContextRelevance(llm=ragasLLM)
 
 
 referencesNativeKey = "referencesNative"
@@ -124,9 +125,17 @@ referencesKeys = ["referencesBiencoderTop1","referencesBM25Top1","referencesBien
 
 
 def judgeClaim(sentence,context,query):
+    print("------------JUDGING THIS-----------")
+    print("sentence: " + json.dumps(sentence))
+    print("context: " + extractedSourceSentences)
+    print("original question: " + questionText)
+    print("-----------------------------------")
+
     faithfulness = faithfulnessScorer.score(user_input=query, response=sentence["sentence"], retrieved_contexts=[context]).to_dict()
-    print(json.dumps(faithfulness))
-    return {"faithfulness": faithfulness }
+    contextRelevance = contextRelevanceScorer.score(user_input=query,retrieved_contexts=[context]).to_dict()
+    result = {"faithfulness": faithfulness, "contextRelevance": contextRelevance }
+    print(json.dumps(result))
+    return result
 
 def clean_and_parse_json(text):
     if text is None:
@@ -179,18 +188,18 @@ for question in questions:
         db_lock.lock()
         try:
             db = plyvel.DB(db_path_to_use, create_if_missing=False)
-            paperTextsNonGold = retriever.get_full_texts(
-                list(nonGoldPaperMapping.values()), db=db
-            )
+            # paperTextsNonGold = retriever.get_full_texts(
+            #     list(nonGoldPaperMapping.values()), db=db
+            # )
         finally:
             db.close()
             db_lock.unlock()
 
 
-        paper_texts_by_id_non_gold = {
-            paper_id: text
-            for text, paper_id in paperTextsNonGold
-        }
+        # paper_texts_by_id_non_gold = {
+        #     paper_id: text
+        #     for text, paper_id in paperTextsNonGold
+        # }
 
         modelAnswerWithoutGold = question["answerMeta"]["modelAnswer"]
         question["quoteJudgement"] = {}
@@ -228,6 +237,7 @@ for question in questions:
 
 
 
+        print("STARTING - JUDGING WITHOUT GOLD")
 
         ###built in squai extraction
         for sentence in question["answerMeta"]["modelAnswer"]:
@@ -241,11 +251,6 @@ for question in questions:
             #     question["contextJudgementsWithoutGold"]["referencesNative"][documentId] = []
 
 
-            print("-----------------------")
-            print("sentence: " + json.dumps(sentence))
-            print("context: " + extractedSourceSentences)
-            print("original question: " + questionText)
-            print("-----------------------")
 
             judgement = judgeClaim(sentence=sentence, context=extractedSourceSentences, query=questionText)
 
@@ -262,7 +267,6 @@ for question in questions:
             for sentence in question["answerMeta"]["modelAnswer"]:
                 documentId = sentence["documentId"]
                 extractedSourceSentences = question["withoutGold"][refKey][str(documentId)][quoteCounter[documentId]]["contextPassage"]
-                quoteCounter[documentId] += 1
 
                 # if "contextJudgementsWithoutGold" not in question:
                 #     question["contextJudgementsWithoutGold"] = {}
@@ -272,9 +276,10 @@ for question in questions:
                 #     question["contextJudgementsWithoutGold"][refKey][documentId] = []
                 # todo replace placeholder function
                 judgement = judgeClaim(sentence=sentence, context=extractedSourceSentences, query=questionText)
-                question["withoutGold"][refKey][str(documentId)][quoteCounter[documentId]].judgement = judgement
+                question["withoutGold"][refKey][str(documentId)][quoteCounter[documentId]]["judgement"] = judgement
                 
-                question["contextJudgementsWithoutGold"][refKey][documentId].append(judgement)                        
+                quoteCounter[documentId] += 1
+        print("FINISHED - JUDGING WITHOUT GOLD")
 
         ##################################################
 
@@ -288,17 +293,17 @@ for question in questions:
         db_lock.lock()
         try:
             db = plyvel.DB(db_path_to_use, create_if_missing=False)
-            paperTextsGold = retriever.get_full_texts(
-                list(goldPaperMapping.values()), db=db
-            )
+            # paperTextsGold = retriever.get_full_texts(
+            #     list(goldPaperMapping.values()), db=db
+            # )
         finally:
             db.close()
             db_lock.unlock()
 
-        paper_texts_by_id_gold = {
-            paper_id: text
-            for text, paper_id in paperTextsGold
-        }
+        # paper_texts_by_id_gold = {
+        #     paper_id: text
+        #     for text, paper_id in paperTextsGold
+        # }
 
         modelAnswerWithoutQuotation =  " ".join(
             item["sentence"] for item in question["answerMeta"]["mddelAnswerWithGold"]
@@ -319,16 +324,13 @@ for question in questions:
                 response=modelAnswerWithoutQuotation,
         )
         question["quoteJudgement"]["withGold"]["answerRelevancy"] = withGoldPaperAnswerRelevancy.to_dict()
-        print("with gold: ")
-        print('answer correctness' + str(withGoldPaperAnswerCorrectness))
-        print('answer relevancy' + str(withGoldPaperAnswerRelevancy))
-        print("---------")
         ####### WITH GOLD - ANSWER CORRECTNESS - ANSWER RELEVANCE
 
 
 
 
         ###built in squai extraction
+        print("STARTING - JUDGING WITH GOLD")
         for sentence in question["answerMeta"]["mddelAnswerWithGold"]:
             documentId = sentence["documentId"]
             extractedSourceSentences = question["withGold"]["referencesNative"][str(documentId)]["contextPassage"]
@@ -342,7 +344,7 @@ for question in questions:
 
             question["withGold"]["referencesNative"][str(documentId)].setdefault("judgement", []) .append(judgement)
 
-            question["contextJudgementsWithGold"]["referencesNative"][documentId].append(judgement)   
+            # question["contextJudgementsWithGold"]["referencesNative"][documentId].append(judgement)   
 
 
 
@@ -355,7 +357,6 @@ for question in questions:
             for sentence in question["answerMeta"]["mddelAnswerWithGold"]:
                 documentId = sentence["documentId"]
                 extractedSourceSentences = question["withGold"][refKey][str(documentId)][quoteCounter[documentId]]["contextPassage"]
-                quoteCounter[documentId] += 1
 
                 # if "contextJudgementsWithGold" not in question:
                 #     question["contextJudgementsWithGold"] = {}
@@ -365,9 +366,12 @@ for question in questions:
                 #     question["contextJudgementsWithGold"][refKey][documentId] = []
                 # todo replace placeholder function
                 judgement = judgeClaim(sentence=sentence, context=extractedSourceSentences, query=questionText)
-                question["witGold"][refKey][str(documentId)][quoteCounter[documentId]].judgement = judgement
+                question["withGold"][refKey][str(documentId)][quoteCounter[documentId]]["judgement"] = judgement
 
-                question["contextJudgementsWithGold"][refKey][documentId].append(judgement)                        
+                # question["contextJudgementsWithGold"][refKey][documentId].append(judgement)                        
+                quoteCounter[documentId] += 1
+        print("FINISHED - JUDGING WITH GOLD")
+        
         ##################################################
         counter+=1
 
