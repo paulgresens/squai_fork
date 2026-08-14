@@ -126,7 +126,7 @@ referencesKeys = ["referencesBiencoderTop1","referencesBM25Top1","referencesBien
 def judgeClaim(sentence,context,query):
     faithfulness = faithfulnessScorer.score(user_input=query, response=sentence["sentence"], retrieved_contexts=[context]).to_dict()
     print(json.dumps(faithfulness))
-    return {"faithfulness": faithfulness.to_dict() }
+    return {"faithfulness": faithfulness }
 
 def clean_and_parse_json(text):
     if text is None:
@@ -233,23 +233,24 @@ for question in questions:
         for sentence in question["answerMeta"]["modelAnswer"]:
             documentId = sentence["documentId"]
             extractedSourceSentences = question["withoutGold"]["referencesNative"][str(documentId)]["contextPassage"]
-            if "contextJudgementsWithoutGold" not in question:
-                question["contextJudgementsWithoutGold"] = {}
-            if "referencesNative" not in question["contextJudgementsWithoutGold"]:
-                question["contextJudgementsWithoutGold"]["referencesNative"] = {}
-            if (documentId not in question["contextJudgementsWithoutGold"]["referencesNative"]):
-                question["contextJudgementsWithoutGold"]["referencesNative"][documentId] = []
+            # if "contextJudgementsWithoutGold" not in question:
+            #     question["contextJudgementsWithoutGold"] = {}
+            # if "referencesNative" not in question["contextJudgementsWithoutGold"]:
+            #     question["contextJudgementsWithoutGold"]["referencesNative"] = {}
+            # if (documentId not in question["contextJudgementsWithoutGold"]["referencesNative"]):
+            #     question["contextJudgementsWithoutGold"]["referencesNative"][documentId] = []
 
 
             print("-----------------------")
-            print(sentence)
-            print(extractedSourceSentences)
-            print(questionText)
+            print("sentence: " + json.dumps(sentence))
+            print("context: " + extractedSourceSentences)
+            print("original question: " + questionText)
             print("-----------------------")
 
             judgement = judgeClaim(sentence=sentence, context=extractedSourceSentences, query=questionText)
 
-            question["contextJudgementsWithoutGold"]["referencesNative"][documentId].append(judgement)                        
+            question["withoutGold"]["referencesNative"][str(documentId)].setdefault("judgement", []).append(judgement)
+            # question["contextJudgementsWithoutGold"]["referencesNative"][documentId].append(judgement)                        
 
 
         ### go over every of my extractions
@@ -263,15 +264,16 @@ for question in questions:
                 extractedSourceSentences = question["withoutGold"][refKey][str(documentId)][quoteCounter[documentId]]["contextPassage"]
                 quoteCounter[documentId] += 1
 
-                if "contextJudgementsWithoutGold" not in question:
-                    question["contextJudgementsWithoutGold"] = {}
-                if refKey not in question["contextJudgementsWithoutGold"]:
-                    question["contextJudgementsWithoutGold"][refKey] = {}
-                if (documentId not in question["contextJudgementsWithoutGold"][refKey]):
-                    question["contextJudgementsWithoutGold"][refKey][documentId] = []
+                # if "contextJudgementsWithoutGold" not in question:
+                #     question["contextJudgementsWithoutGold"] = {}
+                # if refKey not in question["contextJudgementsWithoutGold"]:
+                #     question["contextJudgementsWithoutGold"][refKey] = {}
+                # if (documentId not in question["contextJudgementsWithoutGold"][refKey]):
+                #     question["contextJudgementsWithoutGold"][refKey][documentId] = []
                 # todo replace placeholder function
                 judgement = judgeClaim(sentence=sentence, context=extractedSourceSentences, query=questionText)
-
+                question["withoutGold"][refKey][str(documentId)][quoteCounter[documentId]].judgement = judgement
+                
                 question["contextJudgementsWithoutGold"][refKey][documentId].append(judgement)                        
 
         ##################################################
@@ -330,13 +332,15 @@ for question in questions:
         for sentence in question["answerMeta"]["mddelAnswerWithGold"]:
             documentId = sentence["documentId"]
             extractedSourceSentences = question["withGold"]["referencesNative"][str(documentId)]["contextPassage"]
-            if "contextJudgementsWithGold" not in question:
-                question["contextJudgementsWithGold"] = {}
-            if "referencesNative" not in question["contextJudgementsWithGold"]:
-                question["contextJudgementsWithGold"]["referencesNative"] = {}
-            if (documentId not in question["contextJudgementsWithGold"]["referencesNative"]):
-                question["contextJudgementsWithGold"]["referencesNative"][documentId] = []
+            # if "contextJudgementsWithGold" not in question:
+            #     question["contextJudgementsWithGold"] = {}
+            # if "referencesNative" not in question["contextJudgementsWithGold"]:
+            #     question["contextJudgementsWithGold"]["referencesNative"] = {}
+            # if (documentId not in question["contextJudgementsWithGold"]["referencesNative"]):
+            #     question["contextJudgementsWithGold"]["referencesNative"][documentId] = []
             judgement = judgeClaim(sentence=sentence, context=extractedSourceSentences, query=questionText)
+
+            question["withGold"]["referencesNative"][str(documentId)].setdefault("judgement", []) .append(judgement)
 
             question["contextJudgementsWithGold"]["referencesNative"][documentId].append(judgement)   
 
@@ -353,14 +357,15 @@ for question in questions:
                 extractedSourceSentences = question["withGold"][refKey][str(documentId)][quoteCounter[documentId]]["contextPassage"]
                 quoteCounter[documentId] += 1
 
-                if "contextJudgementsWithGold" not in question:
-                    question["contextJudgementsWithGold"] = {}
-                if refKey not in question["contextJudgementsWithGold"]:
-                    question["contextJudgementsWithGold"][refKey] = {}
-                if (documentId not in question["contextJudgementsWithGold"][refKey]):
-                    question["contextJudgementsWithGold"][refKey][documentId] = []
+                # if "contextJudgementsWithGold" not in question:
+                #     question["contextJudgementsWithGold"] = {}
+                # if refKey not in question["contextJudgementsWithGold"]:
+                #     question["contextJudgementsWithGold"][refKey] = {}
+                # if (documentId not in question["contextJudgementsWithGold"][refKey]):
+                #     question["contextJudgementsWithGold"][refKey][documentId] = []
                 # todo replace placeholder function
                 judgement = judgeClaim(sentence=sentence, context=extractedSourceSentences, query=questionText)
+                question["witGold"][refKey][str(documentId)][quoteCounter[documentId]].judgement = judgement
 
                 question["contextJudgementsWithGold"][refKey][documentId].append(judgement)                        
         ##################################################
