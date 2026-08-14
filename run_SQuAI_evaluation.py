@@ -56,7 +56,7 @@ DB_PATH = f"{MAIN_DATA_DIR}/full_text_db"
 DEFAULT_RETRIEVER = "hybrid"
 db_path_to_use = DB_PATH
 LOCK_FILE = "evaluationLockFile.json"
-STATE_TRACKING_FILE = "evaluationLockFile.jsonl"
+STATE_TRACKING_FILE = "evaluationStateTracking.json"
 DB_LOCK_FILE = "dbLock.txt"
 lock = APILockManager(LOCK_FILE)
 db_lock = APILockManager(DB_LOCK_FILE)
@@ -123,10 +123,10 @@ referencesNativeKey = "referencesNative"
 referencesKeys = ["referencesBiencoderTop1","referencesBM25Top1","referencesBiencoderTop10Bm25Top1","referencesBM25Top10BiencoderTop1","referencesBiencoderTop10CrossEncoderTop1","referencesBM25Top10CrossEncoderTop1","referencesBiencoderAndBm25Top1","referencesBiencoderAndBm25Top10CrossEncoderTop1","referencesWithLLM"]
 
 
-def judgeClaim(sentence,extractedSourceSentences,query):
-    faithfulness = faithfulnessScorer.score(user_input=query, response=sentence, retrieved_contexts=[extractedSourceSentences])
+def judgeClaim(sentence,context,query):
+    faithfulness = faithfulnessScorer.score(user_input=query, response=sentence["sentence"], retrieved_contexts=[context]).to_dict()
     print(json.dumps(faithfulness))
-    return {"faithfulness": faithfulness }
+    return {"faithfulness": faithfulness.to_dict() }
 
 def clean_and_parse_json(text):
     if text is None:
@@ -158,7 +158,8 @@ for question in questions:
     with open(STATE_TRACKING_FILE, "r", encoding="utf-8") as f:
         lockContent = json.load(f)
     currentQuestionAnchor = question["generationMeta"]["anchorPaper"]
-
+    print("LOCK FILE STATE")
+    print(json.dumps(lockContent))
     if currentQuestionAnchor in  lockContent["finished"] or currentQuestionAnchor in lockContent["current"]:
         lock.unlock()
         continue
@@ -238,7 +239,16 @@ for question in questions:
                 question["contextJudgementsWithoutGold"]["referencesNative"] = {}
             if (documentId not in question["contextJudgementsWithoutGold"]["referencesNative"]):
                 question["contextJudgementsWithoutGold"]["referencesNative"][documentId] = []
-            judgement = judgeClaim()
+
+
+            print("-----------------------")
+            print(sentence)
+            print(extractedSourceSentences)
+            print(questionText)
+            print("-----------------------")
+
+            judgement = judgeClaim(sentence=sentence, context=extractedSourceSentences, query=questionText)
+
             question["contextJudgementsWithoutGold"]["referencesNative"][documentId].append(judgement)                        
 
 
@@ -350,7 +360,8 @@ for question in questions:
                 if (documentId not in question["contextJudgementsWithGold"][refKey]):
                     question["contextJudgementsWithGold"][refKey][documentId] = []
                 # todo replace placeholder function
-                judgement = judgeClaim()
+                judgement = judgeClaim(sentence=sentence, context=extractedSourceSentences, query=questionText)
+
                 question["contextJudgementsWithGold"][refKey][documentId].append(judgement)                        
         ##################################################
         counter+=1
