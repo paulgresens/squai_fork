@@ -2,9 +2,11 @@
 import json
 import os
 import re
+import gc
 import logging
 import plyvel
 import fcntl
+import torch
 from dotenv import load_dotenv
 
 from openai import AsyncOpenAI
@@ -106,6 +108,10 @@ retriever = initialize_retriever(
 from scadsApiAgent import ScadsApiAgent
 zaiAgent = ScadsApiAgent("zai-org/GLM-5.2-FP8")
 gptOssAgent = ScadsApiAgent("openai/gpt-oss-120b")
+
+gc.collect()
+if torch.cuda.is_available():
+    torch.cuda.empty_cache()
 
 
 ragasClient = AsyncOpenAI(
@@ -441,9 +447,9 @@ for question in questions:
         lockContent["current"].remove(currentQuestionAnchor)
         with open(STATE_TRACKING_FILE, "w", encoding="utf-8") as file:
             file.write(json.dumps(lockContent))
-        
+
         lock.unlock()
 
-
-
-    
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
