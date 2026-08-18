@@ -99,4 +99,128 @@ class EntailmentChecker:
             **scores
         }
 
-
+    def get_top_entailments_per_paper(
+        self,
+        papers: dict[str, list[str]],
+        generated_claim: str,
+        top_k: int = 3,
+    ):
+        """
+        Scores all candidate spans for each paper against a generated claim
+        and returns the top-k spans per paper by entailment probability.
+    
+        Input:
+            {
+                "paper1Spans": [
+                    "span 1 ...",
+                    "span 2 ...",
+                    "span 3 ..."
+                ],
+                "paper2Spans": [
+                    "span 1 ...",
+                    "span 2 ..."
+                ]
+            }
+    
+        Output:
+            {
+                "paper1Spans": [
+                    {
+                        "span": "...",
+                        "label": "entailment",
+                        "contradiction": 0.01,
+                        "entailment": 0.95,
+                        "neutral": 0.04
+                    },
+                    ...
+                ],
+                ...
+            }
+        """
+    
+        flat_spans = []
+        metadata = []
+    
+        # Flatten all spans from all papers
+        for paper_key, spans in papers.items():
+            for span in spans:
+                if not span or not span.strip():
+                    continue
+                
+                flat_spans.append(span)
+    
+                metadata.append({
+                    "paper_key": paper_key,
+                    "span": span
+                })
+    
+        # Preserve paper keys even if there are no valid spans
+        results = {
+            paper_key: []
+            for paper_key in papers
+        }
+    
+        if not flat_spans:
+            return results
+    
+        # Same claim/hypothesis for every candidate span
+        claims = [generated_claim] * len(flat_spans)
+    
+        # Premise = span
+        # Hypothesis = generated claim
+        inputs = self.tokenizer(
+            flat_spans,
+            claims,
+            padding=True,
+            truncation="only_first",
+            max_length=512,
+            return_tensors="pt"
+        ).to(self.device)
+    
+        with torch.inference_mode():
+            logits = self.model(**inputs).logits
+    
+            probabilities = torch.softmax(
+                logits.float(),
+                dim=-1
+            )
+    
+        # Convert model outputs back into per-paper results
+        for i, probs in enumerate(probabilities):
+        
+            scores = {
+                self.id2label[label_id]: probs[label_id].item()
+                for label_id in range(len(probs))
+            }
+    
+            predicted_id = probs.argmax().item()
+            predicted_label = self.id2label[predicted_id]
+    
+            paper_key = metadata[i]["paper_key"]
+    
+            results[paper_key].append({
+                "span": metadata[i]["span"],
+                "label": predicted_label,
+                "contradiction": scores["contradiction"],
+                "entailment": scores["entailment"],
+                "neutral": scores["neutral"]
+            })
+    
+        # Rank spans independently for each paper
+        for paper_key in results:
+        
+            results[paper_key].sort(
+                key=lambda x: x["entailment"],
+                reverse=True
+            )
+    
+            results[paper_key] = results[paper_key][:top_k]
+    
+            # Optional rank field
+            for rank, result in enumerate(
+                results[paper_key],
+                start=1
+            ):
+                result["rank"] = rank
+    
+        return results
