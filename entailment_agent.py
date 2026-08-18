@@ -102,6 +102,7 @@ class EntailmentChecker:
 
         return {
             "label": predicted_label,
+            "span": paper_chunk,
             **scores
         }
 
