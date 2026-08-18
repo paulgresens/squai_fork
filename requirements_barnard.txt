@@ -20,8 +20,12 @@ sentencepiece
 protobuf
 
 #used by unified_arxiv_retriever's BM25 strategy (hybrid retrieval)
+#banks<2.4.4 pin: newer banks uses `Path | None` (PEP 604) syntax, which errors
+#at import time on Python 3.9 (this venv). banks is a transitive dep pulled in by
+#llama_index.core.prompts.rich, not something we import directly.
 llama-index==0.14.0
 llama-index-retrievers-bm25
+banks<2.4.4
 
 #dataset generation / scadsApiAgent
 requests
