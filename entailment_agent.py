@@ -110,6 +110,7 @@ class EntailmentChecker:
         papers: dict[str, list[str]],
         generated_claim: str,
         top_k: int = 3,
+        batch_size: int = 2048,
     ):
         """
         Scores all candidate spans for each paper against a generated claim
@@ -169,28 +170,32 @@ class EntailmentChecker:
         if not flat_spans:
             return results
     
-        # Same claim/hypothesis for every candidate span
-        claims = [generated_claim] * len(flat_spans)
-    
-        # Premise = span
-        # Hypothesis = generated claim
-        inputs = self.tokenizer(
-            flat_spans,
-            claims,
-            padding=True,
-            truncation="only_first",
-            max_length=512,
-            return_tensors="pt"
-        ).to(self.device)
-    
-        with torch.inference_mode():
-            logits = self.model(**inputs).logits
-    
-            probabilities = torch.softmax(
-                logits.float(),
-                dim=-1
-            )
-    
+        # Premise = span, Hypothesis = generated claim.
+        # Chunked into mini-batches: scoring every span across every paper in a
+        # single forward pass can require tens of GB for long papers (thousands
+        # of floating-context-window spans), causing CUDA OOM.
+        batches = []
+        for i in range(0, len(flat_spans), batch_size):
+            span_batch = flat_spans[i:i + batch_size]
+            claim_batch = [generated_claim] * len(span_batch)
+
+            inputs = self.tokenizer(
+                span_batch,
+                claim_batch,
+                padding=True,
+                truncation="only_first",
+                max_length=512,
+                return_tensors="pt"
+            ).to(self.device)
+
+            with torch.inference_mode():
+                logits = self.model(**inputs).logits
+                batch_probabilities = torch.softmax(logits.float(), dim=-1)
+
+            batches.append(batch_probabilities.cpu())
+
+        probabilities = torch.cat(batches, dim=0)
+
         # Convert model outputs back into per-paper results
         for i, probs in enumerate(probabilities):
         
