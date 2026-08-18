@@ -110,7 +110,7 @@ class EntailmentChecker:
         papers: dict[str, list[str]],
         generated_claim: str,
         top_k: int = 3,
-        batch_size: int = 2048,
+        batch_size: int = 128,
     ):
         """
         Scores all candidate spans for each paper against a generated claim
