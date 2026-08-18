@@ -68,9 +68,6 @@ if not os.path.exists(DB_LOCK_FILE):
     with open(DB_LOCK_FILE, "a", encoding="utf-8") as f:
         f.write("lock")
 
-# alt_db_path = os.path.join(os.path.dirname(__file__), "local_db")
-# db = plyvel.DB(alt_db_path, create_if_missing=False)
-
 DEFAULT_TOP_K = 5
 DEFAULT_ALPHA = 0.65
 SCADS_API_KEY = os.getenv("PUBLIC_SCADS_KEY")
@@ -157,12 +154,23 @@ def judgeClaim(sentence,context,query, paperTexts):
 
         paperSpans[paperId] = documentSentences + window_2 + window_3 + window_4 + window_5
 
+    splitContext = re.split(r"([.!?]+)", context)
+    contextWindows = []
+
+    for start in range(len(splitContext)):
+        for end in range(start + 1, len(splitContext) + 1):
+            window = " ".join(splitContext[start:end])
+            contextWindows.append(window)
+
     result = {}
+
     # faithfulness = faithfulnessScorer.score(user_input=query, response=sentence["sentence"], retrieved_contexts=[context]).to_dict()
     # result["faithfulness"] = faithfulness 
+    
     # contextRelevance = contextRelevanceScorer.score(user_input=query,retrieved_contexts=[context]).to_dict()
     # result["contextRelevance"] = contextRelevance
-    entailment = entailmentChecker.check_entailment(context, sentence)
+    
+    entailment = entailmentChecker.check_entailment(context, sentence["sentence"])
     result["entailment"] = entailment
 
     entailmentAlternatives = entailmentChecker.get_top_entailments_per_paper(paperSpans, sentence["sentence"])
