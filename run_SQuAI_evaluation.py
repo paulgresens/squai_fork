@@ -10,6 +10,8 @@ from openai import AsyncOpenAI
 from ragas.llms import llm_factory
 from ragas.embeddings.base import embedding_factory
 from ragas.metrics.collections import AnswerCorrectness, AnswerRelevancy, Faithfulness, ContextRelevance
+from entailment_agent import EntailmentChecker
+
 
 
 import multiprocessing as mp
@@ -118,7 +120,7 @@ answerCorrectnessScorer = AnswerCorrectness(llm=ragasLLM, embeddings=ragasEmbedd
 answerRelevancyScorer = AnswerRelevancy(llm=ragasLLM, embeddings=ragasEmbeddings)
 faithfulnessScorer = Faithfulness(llm=ragasLLM)
 contextRelevanceScorer = ContextRelevance(llm=ragasLLM)
-
+entailmentChecker = EntailmentChecker()
 
 referencesNativeKey = "referencesNative"
 referencesKeys = ["referencesBiencoderTop1","referencesBM25Top1","referencesBiencoderTop10Bm25Top1","referencesBM25Top10BiencoderTop1","referencesBiencoderTop10CrossEncoderTop1","referencesBM25Top10CrossEncoderTop1","referencesBiencoderAndBm25Top1","referencesBiencoderAndBm25Top10CrossEncoderTop1","referencesWithLLM"]
@@ -131,9 +133,13 @@ def judgeClaim(sentence,context,query):
     print("original question: " + questionText)
     print("-----------------------------------")
 
-    faithfulness = faithfulnessScorer.score(user_input=query, response=sentence["sentence"], retrieved_contexts=[context]).to_dict()
-    contextRelevance = contextRelevanceScorer.score(user_input=query,retrieved_contexts=[context]).to_dict()
-    result = {"faithfulness": faithfulness, "contextRelevance": contextRelevance }
+    result = {}
+    # faithfulness = faithfulnessScorer.score(user_input=query, response=sentence["sentence"], retrieved_contexts=[context]).to_dict()
+    # result["faithfulness"] = faithfulness 
+    # contextRelevance = contextRelevanceScorer.score(user_input=query,retrieved_contexts=[context]).to_dict()
+    # result["contextRelevance"] = contextRelevance
+    entailment = entailmentChecker.check_entailment(context, sentence)
+    result["entailment"] = entailment
     print(json.dumps(result))
     return result
 
