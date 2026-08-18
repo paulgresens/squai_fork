@@ -12,7 +12,6 @@ boto3==1.35.88
 opensearch-py==2.8.0
 nltk
 accelerate
-plyvel
 # farm-haystack
 uvicorn
 streamlit
@@ -62,3 +61,7 @@ rapidfuzz
 # ninja
 # packaging
 requests
+
+
+#test if this fixes the plyvel issues
+plyvel-ci
