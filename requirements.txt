@@ -17,7 +17,12 @@ uvicorn
 streamlit
 fastapi
 #llama-index
+#llama-index-core<0.14.15 pin: llama-index==0.14.0 doesn't pin core tightly, so pip
+#resolves the latest 0.14.x core. 0.14.15 introduced `llm: LLM | None = None` as a
+#real (non-deferred) annotation in prompt_helper.py, which is PEP 604 syntax and
+#errors on Python 3.9. 0.14.0-0.14.14 don't have it.
 llama-index==0.14.0
+llama-index-core<0.14.15
 llama-index-retrievers-bm25
 python-dotenv
 
