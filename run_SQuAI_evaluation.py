@@ -138,7 +138,7 @@ def judgeClaim(sentence,context,query):
     # result["faithfulness"] = faithfulness 
     # contextRelevance = contextRelevanceScorer.score(user_input=query,retrieved_contexts=[context]).to_dict()
     # result["contextRelevance"] = contextRelevance
-    entailment = entailmentChecker.check_entailment(context, sentence)
+    entailment = entailmentChecker.check_entailment(context, sentence["sentence"])
     result["entailment"] = entailment
     print(json.dumps(result))
     return result
