@@ -20,9 +20,15 @@ class EntailmentChecker:
     def __init__(
         self,
         model_name="cross-encoder/nli-deberta-v3-large",
-        device="cuda"
+        device=None
     ):
-        print(f"Initializing NLI checker with model: {model_name}")
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        elif device == "cuda" and not torch.cuda.is_available():
+            print("CUDA requested but not available, falling back to CPU")
+            device = "cpu"
+
+        print(f"Initializing NLI checker with model: {model_name} on device: {device}")
 
         self.device = torch.device(device)
 
