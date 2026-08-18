@@ -1,0 +1,38 @@
+wheel
+
+# torch is intentionally NOT listed here: on the Barnard CPU cluster, install the
+# CPU-only build first with its own index, then install this file, e.g.:
+#   pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+#   pip install --no-cache-dir -r requirements_barnard.txt
+# Listing torch here (even unpinned) makes pip resolve the default CUDA build from
+# PyPI, pulling several GB of nvidia-* wheels that blow the home-directory quota.
+transformers>=4.30.0
+numpy>=1.24.0
+tqdm>=4.65.0
+faiss-cpu>=1.7.4
+sentence-transformers>=3.0.0
+
+nltk
+python-dotenv
+
+#for other models (tokenizer backends used by transformers)
+sentencepiece
+protobuf
+
+#used by unified_arxiv_retriever's BM25 strategy (hybrid retrieval)
+llama-index==0.14.0
+llama-index-retrievers-bm25
+
+#dataset generation / scadsApiAgent
+requests
+
+#for answer correctness evaluation (ragas)
+#ragas>=0.4.0 unconditionally imports langchain_community.chat_models.vertexai,
+#which was removed from langchain-community>=0.4. Pin both until ragas fixes this upstream.
+#https://github.com/vibrantlabsai/ragas/issues/2745
+ragas==0.3.9
+langchain-community<0.4
+openai
+
+#test if this fixes the plyvel issues
+plyvel-ci
