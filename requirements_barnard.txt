@@ -35,4 +35,4 @@ langchain-community<0.4
 openai
 
 #test if this fixes the plyvel issues
-plyvel-ci
+plyvel
