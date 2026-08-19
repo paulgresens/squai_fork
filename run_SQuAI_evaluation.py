@@ -160,15 +160,29 @@ def judgeClaim(sentence,context,query, paperTexts):
 
         paperSpans[paperId] = documentSentences + window_2 + window_3 + window_4 + window_5
 
-    splitContext = re.split(r"([.!?]+)", context)
-    contextWindows = []
+    raw_context_splits = re.split(r"([.!?]+)", context)
+    contextSentences = []
 
-    for start in range(len(splitContext)):
-        for end in range(start + 1, len(splitContext) + 1):
-            window = " ".join(splitContext[start:end])
-            contextWindows.append(window)
+    # Loop through splits and re-attach punctuation to the previous sentence
+    for i in range(0, len(raw_context_splits) - 1, 2):
+        sent = raw_context_splits[i].strip()
+        punct = raw_context_splits[i+1].strip() if i+1 < len(raw_context_splits) else ""
+        if sent:
+            contextSentences.append(f"{sent}{punct}")
+
+    # All contiguous sub-windows, every length from 1 up to len(contextSentences)
+    # (not capped at 5, unlike paperSpans above - this scales to however many
+    # sentences the extracted context actually has).
+    contextWindows = []
+    for start in range(len(contextSentences)):
+        for end in range(start + 1, len(contextSentences) + 1):
+            contextWindows.append(" ".join(contextSentences[start:end]))
+
 
     result = {}
+
+    noise = entailmentChecker.get_entailments_for_spans(contextWindows, sentence["sentence"])
+    result["noise"] = noise
 
     # faithfulness = faithfulnessScorer.score(user_input=query, response=sentence["sentence"], retrieved_contexts=[context]).to_dict()
     # result["faithfulness"] = faithfulness 
@@ -176,11 +190,11 @@ def judgeClaim(sentence,context,query, paperTexts):
     # contextRelevance = contextRelevanceScorer.score(user_input=query,retrieved_contexts=[context]).to_dict()
     # result["contextRelevance"] = contextRelevance
     
-    entailment = entailmentChecker.check_entailment(context, sentence["sentence"])
-    result["entailment"] = entailment
+    # entailment = entailmentChecker.check_entailment(context, sentence["sentence"])
+    # result["entailment"] = entailment
 
-    entailmentAlternatives = entailmentChecker.get_top_entailments_per_paper(paperSpans, sentence["sentence"])
-    result["entailmentAlternatives"] = entailmentAlternatives
+    # entailmentAlternatives = entailmentChecker.get_top_entailments_per_paper(paperSpans, sentence["sentence"])
+    # result["entailmentAlternatives"] = entailmentAlternatives
 
     print(json.dumps(result))
     return result

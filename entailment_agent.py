@@ -106,7 +106,77 @@ class EntailmentChecker:
             **scores
         }
 
-    def get_top_entailments_per_paper(
+    def _score_spans(self, spans, generated_claim, batch_size):
+        """
+        Premise = span, Hypothesis = generated claim. Scores every span in
+        mini-batches (scoring everything in one forward pass can require tens
+        of GB for long documents, causing CUDA OOM) and returns per-span score
+        dicts in the same order as `spans`.
+        """
+        results = []
+        for i in range(0, len(spans), batch_size):
+            span_batch = spans[i:i + batch_size]
+            claim_batch = [generated_claim] * len(span_batch)
+
+            inputs = self.tokenizer(
+                span_batch,
+                claim_batch,
+                padding=True,
+                truncation="only_first",
+                max_length=512,
+                return_tensors="pt"
+            ).to(self.device)
+
+            with torch.inference_mode():
+                logits = self.model(**inputs).logits
+                batch_probabilities = torch.softmax(logits.float(), dim=-1).cpu()
+
+            for span, probs in zip(span_batch, batch_probabilities):
+                scores = {
+                    self.id2label[label_id]: probs[label_id].item()
+                    for label_id in range(len(probs))
+                }
+                predicted_label = self.id2label[probs.argmax().item()]
+
+                results.append({
+                    "span": span,
+                    "label": predicted_label,
+                    "contradiction": scores["contradiction"],
+                    "entailment": scores["entailment"],
+                    "neutral": scores["neutral"]
+                })
+
+        return results
+
+    def get_entailments_for_spans(
+        self,
+        spans: list[str],
+        generated_claim: str,
+        batch_size: int = 512,
+    ):
+        """
+        Scores each span independently against a generated claim - no paper
+        grouping, no top-k truncation.
+
+        Output:
+            [
+                {
+                    "span": "...",
+                    "label": "entailment",
+                    "contradiction": 0.01,
+                    "entailment": 0.95,
+                    "neutral": 0.04
+                },
+                ...
+            ]
+        """
+        valid_spans = [span for span in spans if span and span.strip()]
+        if not valid_spans:
+            return []
+
+        return self._score_spans(valid_spans, generated_claim, batch_size)
+
+def get_top_entailments_per_paper(
         self,
         papers: dict[str, list[str]],
         generated_claim: str,
