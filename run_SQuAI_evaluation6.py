@@ -62,13 +62,13 @@ DEFAULT_RETRIEVER = "hybrid"
 db_path_to_use = DB_PATH
 LOCK_FILE = "evaluationLockFile.json"
 STATE_TRACKING_FILE = "evaluationStateTracking.json"
-DB_LOCK_FILE = "dbLock.txt"
+# DB_LOCK_FILE = "dbLock.txt"
 lock = APILockManager(LOCK_FILE)
-db_lock = APILockManager(DB_LOCK_FILE)
+# db_lock = APILockManager(DB_LOCK_FILE)
 
-if not os.path.exists(DB_LOCK_FILE):
-    with open(DB_LOCK_FILE, "a", encoding="utf-8") as f:
-        f.write("lock")
+# if not os.path.exists(DB_LOCK_FILE):
+#     with open(DB_LOCK_FILE, "a", encoding="utf-8") as f:
+#         f.write("lock")
 
 DEFAULT_TOP_K = 5
 DEFAULT_ALPHA = 0.65
@@ -220,26 +220,26 @@ for question in questions:
 
     lock.unlock()
     try:
-        nonGoldPaperMapping = {
-            entry["docId"]: entry["paperId"]
-            for entry in question["answerMeta"]["paperInformationWithoutGold"]
-        }
+        # nonGoldPaperMapping = {
+        #     entry["docId"]: entry["paperId"]
+        #     for entry in question["answerMeta"]["paperInformationWithoutGold"]
+        # }
 
-        db_lock.lock()
-        try:
-            db = plyvel.DB(db_path_to_use, create_if_missing=False)
-            paperTextsNonGold = retriever.get_full_texts(
-                list(nonGoldPaperMapping.values()), db=db
-            )
-        finally:
-            db.close()
-            db_lock.unlock()
+        # db_lock.lock()
+        # try:
+            # db = plyvel.DB(db_path_to_use, create_if_missing=False)
+            # paperTextsNonGold = retriever.get_full_texts(
+            #     list(nonGoldPaperMapping.values()), db=db
+            # )
+        # finally:
+        #     db.close()
+        #     db_lock.unlock()
 
 
-        paper_texts_by_id_non_gold = {
-            paper_id: text
-            for text, paper_id in paperTextsNonGold
-        }
+        # paper_texts_by_id_non_gold = {
+        #     paper_id: text
+        #     for text, paper_id in paperTextsNonGold
+        # }
 
         modelAnswerWithoutGold = question["answerMeta"]["modelAnswer"]
         question["quoteJudgement"] = {}
@@ -276,33 +276,33 @@ for question in questions:
         ####### WITHOUT GOLD - ANSWER CORRECTNESS - ANSWER RELEVANCE
 
         # floating context window 1-5 sentences, per paper
-        paperSpansNonGold = {}
-        for paperId, documentText in paper_texts_by_id_non_gold.items():
-            raw_splits = re.split(r"([.!?]+)", documentText)
-            documentSentences = []
+        # paperSpansNonGold = {}
+        # for paperId, documentText in paper_texts_by_id_non_gold.items():
+        #     raw_splits = re.split(r"([.!?]+)", documentText)
+        #     documentSentences = []
 
-            # Loop through splits and re-attach punctuation to the previous sentence
-            for i in range(0, len(raw_splits) - 1, 2):
-                sent = raw_splits[i].strip()
-                # Get the punctuation that follows (if it exists)
-                punct = raw_splits[i+1].strip() if i+1 < len(raw_splits) else ""
-                if sent:
-                    documentSentences.append(f"{sent}{punct}")
+        #     # Loop through splits and re-attach punctuation to the previous sentence
+        #     for i in range(0, len(raw_splits) - 1, 2):
+        #         sent = raw_splits[i].strip()
+        #         # Get the punctuation that follows (if it exists)
+        #         punct = raw_splits[i+1].strip() if i+1 < len(raw_splits) else ""
+        #         if sent:
+        #             documentSentences.append(f"{sent}{punct}")
 
-            window_2 = [" ".join(documentSentences[i : i + 2]) for i in range(len(documentSentences) - 1)]
-            window_3 = [" ".join(documentSentences[i : i + 3]) for i in range(len(documentSentences) - 2)]
-            window_4 = [" ".join(documentSentences[i : i + 4]) for i in range(len(documentSentences) - 3)]
-            window_5 = [" ".join(documentSentences[i : i + 5]) for i in range(len(documentSentences) - 4)]
+        #     window_2 = [" ".join(documentSentences[i : i + 2]) for i in range(len(documentSentences) - 1)]
+        #     window_3 = [" ".join(documentSentences[i : i + 3]) for i in range(len(documentSentences) - 2)]
+        #     window_4 = [" ".join(documentSentences[i : i + 4]) for i in range(len(documentSentences) - 3)]
+        #     window_5 = [" ".join(documentSentences[i : i + 5]) for i in range(len(documentSentences) - 4)]
 
-            paperSpansNonGold[paperId] = documentSentences + window_2 + window_3 + window_4 + window_5
-        nonGoldAlternatives = []
-        for sentence in question["answerMeta"]["modelAnswer"]:
-            entailmentAlternatives = entailmentChecker.get_top_entailments_per_paper(paperSpansNonGold, sentence["sentence"])
-            nonGoldAlternatives.append({
-                "sentence": sentence["sentence"],
-                "highestEntailingSpans": entailmentAlternatives
-            })
-        question["quoteJudgement"]["withoutGold"]["entailmentAlternatives"] = nonGoldAlternatives
+        #     paperSpansNonGold[paperId] = documentSentences + window_2 + window_3 + window_4 + window_5
+        # nonGoldAlternatives = []
+        # for sentence in question["answerMeta"]["modelAnswer"]:
+        #     entailmentAlternatives = entailmentChecker.get_top_entailments_per_paper(paperSpansNonGold, sentence["sentence"])
+        #     nonGoldAlternatives.append({
+        #         "sentence": sentence["sentence"],
+        #         "highestEntailingSpans": entailmentAlternatives
+        #     })
+        # question["quoteJudgement"]["withoutGold"]["entailmentAlternatives"] = nonGoldAlternatives
 
 
         print("STARTING - JUDGING WITHOUT GOLD")
@@ -353,25 +353,25 @@ for question in questions:
 
 
         ################################################## with gold papers case
-        goldPaperMapping = {
-            entry["docId"]: entry["paperId"]
-            for entry in question["answerMeta"]["papersInformationGoldAnswer"]
-        }
+        # goldPaperMapping = {
+        #     entry["docId"]: entry["paperId"]
+        #     for entry in question["answerMeta"]["papersInformationGoldAnswer"]
+        # }
 
-        db_lock.lock()
-        try:
-            db = plyvel.DB(db_path_to_use, create_if_missing=False)
-            paperTextsGold = retriever.get_full_texts(
-                list(goldPaperMapping.values()), db=db
-            )
-        finally:
-            db.close()
-            db_lock.unlock()
+        # db_lock.lock()
+        # try:
+        #     db = plyvel.DB(db_path_to_use, create_if_missing=False)
+            # paperTextsGold = retriever.get_full_texts(
+            #     list(goldPaperMapping.values()), db=db
+            # )
+        # finally:
+        #     db.close()
+        #     db_lock.unlock()
 
-        paper_texts_by_id_gold = {
-            paper_id: text
-            for text, paper_id in paperTextsGold
-        }
+        # paper_texts_by_id_gold = {
+        #     paper_id: text
+        #     for text, paper_id in paperTextsGold
+        # }
 
         modelAnswerWithoutQuotation =  " ".join(
             item["sentence"] for item in question["answerMeta"]["mddelAnswerWithGold"]
@@ -397,33 +397,33 @@ for question in questions:
 
 
         # floating context window 1-5 sentences, per paper
-        paperSpansGold = {}
-        for paperId, documentText in paper_texts_by_id_gold.items():
-            raw_splits = re.split(r"([.!?]+)", documentText)
-            documentSentences = []
+        # paperSpansGold = {}
+        # for paperId, documentText in paper_texts_by_id_gold.items():
+        #     raw_splits = re.split(r"([.!?]+)", documentText)
+        #     documentSentences = []
 
-            # Loop through splits and re-attach punctuation to the previous sentence
-            for i in range(0, len(raw_splits) - 1, 2):
-                sent = raw_splits[i].strip()
-                # Get the punctuation that follows (if it exists)
-                punct = raw_splits[i+1].strip() if i+1 < len(raw_splits) else ""
-                if sent:
-                    documentSentences.append(f"{sent}{punct}")
+        #     # Loop through splits and re-attach punctuation to the previous sentence
+        #     for i in range(0, len(raw_splits) - 1, 2):
+        #         sent = raw_splits[i].strip()
+        #         # Get the punctuation that follows (if it exists)
+        #         punct = raw_splits[i+1].strip() if i+1 < len(raw_splits) else ""
+        #         if sent:
+        #             documentSentences.append(f"{sent}{punct}")
 
-            window_2 = [" ".join(documentSentences[i : i + 2]) for i in range(len(documentSentences) - 1)]
-            window_3 = [" ".join(documentSentences[i : i + 3]) for i in range(len(documentSentences) - 2)]
-            window_4 = [" ".join(documentSentences[i : i + 4]) for i in range(len(documentSentences) - 3)]
-            window_5 = [" ".join(documentSentences[i : i + 5]) for i in range(len(documentSentences) - 4)]
+        #     window_2 = [" ".join(documentSentences[i : i + 2]) for i in range(len(documentSentences) - 1)]
+        #     window_3 = [" ".join(documentSentences[i : i + 3]) for i in range(len(documentSentences) - 2)]
+        #     window_4 = [" ".join(documentSentences[i : i + 4]) for i in range(len(documentSentences) - 3)]
+        #     window_5 = [" ".join(documentSentences[i : i + 5]) for i in range(len(documentSentences) - 4)]
 
-            paperSpansGold[paperId] = documentSentences + window_2 + window_3 + window_4 + window_5
-        goldAlternatives = []
-        for sentence in question["answerMeta"]["mddelAnswerWithGold"]:
-            entailmentAlternatives = entailmentChecker.get_top_entailments_per_paper(paperSpansGold, sentence["sentence"])
-            goldAlternatives.append({
-                "sentence": sentence["sentence"],
-                "highestEntailingSpans": entailmentAlternatives
-            })
-        question["quoteJudgement"]["withGold"]["entailmentAlternatives"] = goldAlternatives
+        #     paperSpansGold[paperId] = documentSentences + window_2 + window_3 + window_4 + window_5
+        # goldAlternatives = []
+        # for sentence in question["answerMeta"]["mddelAnswerWithGold"]:
+        #     entailmentAlternatives = entailmentChecker.get_top_entailments_per_paper(paperSpansGold, sentence["sentence"])
+        #     goldAlternatives.append({
+        #         "sentence": sentence["sentence"],
+        #         "highestEntailingSpans": entailmentAlternatives
+        #     })
+        # question["quoteJudgement"]["withGold"]["entailmentAlternatives"] = goldAlternatives
 
 
 
