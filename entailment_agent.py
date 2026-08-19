@@ -176,7 +176,7 @@ class EntailmentChecker:
 
         return self._score_spans(valid_spans, generated_claim, batch_size)
 
-def get_top_entailments_per_paper(
+    def get_top_entailments_per_paper(
         self,
         papers: dict[str, list[str]],
         generated_claim: str,

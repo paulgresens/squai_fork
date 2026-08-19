@@ -181,20 +181,21 @@ def judgeClaim(sentence,context,query, paperTexts):
 
     result = {}
 
+
+    faithfulness = faithfulnessScorer.score(user_input=query, response=sentence["sentence"], retrieved_contexts=[context]).to_dict()
+    result["faithfulness"] = faithfulness 
+    
+    contextRelevance = contextRelevanceScorer.score(user_input=query,retrieved_contexts=[context]).to_dict()
+    result["contextRelevance"] = contextRelevance
+    
+    entailment = entailmentChecker.check_entailment(context, sentence["sentence"])
+    result["entailment"] = entailment
+
+    entailmentAlternatives = entailmentChecker.get_top_entailments_per_paper(paperSpans, sentence["sentence"])
+    result["entailmentAlternatives"] = entailmentAlternatives
+
     noise = entailmentChecker.get_entailments_for_spans(contextWindows, sentence["sentence"])
     result["noise"] = noise
-
-    # faithfulness = faithfulnessScorer.score(user_input=query, response=sentence["sentence"], retrieved_contexts=[context]).to_dict()
-    # result["faithfulness"] = faithfulness 
-    
-    # contextRelevance = contextRelevanceScorer.score(user_input=query,retrieved_contexts=[context]).to_dict()
-    # result["contextRelevance"] = contextRelevance
-    
-    # entailment = entailmentChecker.check_entailment(context, sentence["sentence"])
-    # result["entailment"] = entailment
-
-    # entailmentAlternatives = entailmentChecker.get_top_entailments_per_paper(paperSpans, sentence["sentence"])
-    # result["entailmentAlternatives"] = entailmentAlternatives
 
     print(json.dumps(result))
     return result
