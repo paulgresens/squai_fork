@@ -130,7 +130,7 @@ referencesNativeKey = "referencesNative"
 referencesKeys = ["referencesBiencoderTop1","referencesBM25Top1","referencesBiencoderTop10Bm25Top1","referencesBM25Top10BiencoderTop1","referencesBiencoderTop10CrossEncoderTop1","referencesBM25Top10CrossEncoderTop1","referencesBiencoderAndBm25Top1","referencesBiencoderAndBm25Top10CrossEncoderTop1","referencesWithLLM"]
 
 
-def judgeClaim(sentence,context,query, paperTexts):
+def judgeClaim(sentence,context,query):
 # paper text looks like this: {paperId: "paperTExtBla"}
 
     print("------------JUDGING THIS-----------")
@@ -138,27 +138,6 @@ def judgeClaim(sentence,context,query, paperTexts):
     print("context: " + extractedSourceSentences)
     print("original question: " + questionText)
     print("-----------------------------------")
-
-    # floating context window 1-5 sentences, per paper
-    paperSpans = {}
-    for paperId, documentText in paperTexts.items():
-        raw_splits = re.split(r"([.!?]+)", documentText)
-        documentSentences = []
-
-        # Loop through splits and re-attach punctuation to the previous sentence
-        for i in range(0, len(raw_splits) - 1, 2):
-            sent = raw_splits[i].strip()
-            # Get the punctuation that follows (if it exists)
-            punct = raw_splits[i+1].strip() if i+1 < len(raw_splits) else ""
-            if sent:
-                documentSentences.append(f"{sent}{punct}")
-
-        window_2 = [" ".join(documentSentences[i : i + 2]) for i in range(len(documentSentences) - 1)]
-        window_3 = [" ".join(documentSentences[i : i + 3]) for i in range(len(documentSentences) - 2)]
-        window_4 = [" ".join(documentSentences[i : i + 4]) for i in range(len(documentSentences) - 3)]
-        window_5 = [" ".join(documentSentences[i : i + 5]) for i in range(len(documentSentences) - 4)]
-
-        paperSpans[paperId] = documentSentences + window_2 + window_3 + window_4 + window_5
 
     raw_context_splits = re.split(r"([.!?]+)", context)
     contextSentences = []
@@ -191,8 +170,6 @@ def judgeClaim(sentence,context,query, paperTexts):
     entailment = entailmentChecker.check_entailment(context, sentence["sentence"])
     result["entailment"] = entailment
 
-    entailmentAlternatives = entailmentChecker.get_top_entailments_per_paper(paperSpans, sentence["sentence"])
-    result["entailmentAlternatives"] = entailmentAlternatives
 
     noise = entailmentChecker.get_entailments_for_spans(contextWindows, sentence["sentence"])
     result["noise"] = noise
@@ -298,6 +275,34 @@ for question in questions:
         print("---------")
         ####### WITHOUT GOLD - ANSWER CORRECTNESS - ANSWER RELEVANCE
 
+        # floating context window 1-5 sentences, per paper
+        paperSpansNonGold = {}
+        for paperId, documentText in paper_texts_by_id_non_gold.items():
+            raw_splits = re.split(r"([.!?]+)", documentText)
+            documentSentences = []
+
+            # Loop through splits and re-attach punctuation to the previous sentence
+            for i in range(0, len(raw_splits) - 1, 2):
+                sent = raw_splits[i].strip()
+                # Get the punctuation that follows (if it exists)
+                punct = raw_splits[i+1].strip() if i+1 < len(raw_splits) else ""
+                if sent:
+                    documentSentences.append(f"{sent}{punct}")
+
+            window_2 = [" ".join(documentSentences[i : i + 2]) for i in range(len(documentSentences) - 1)]
+            window_3 = [" ".join(documentSentences[i : i + 3]) for i in range(len(documentSentences) - 2)]
+            window_4 = [" ".join(documentSentences[i : i + 4]) for i in range(len(documentSentences) - 3)]
+            window_5 = [" ".join(documentSentences[i : i + 5]) for i in range(len(documentSentences) - 4)]
+
+            paperSpansNonGold[paperId] = documentSentences + window_2 + window_3 + window_4 + window_5
+        nonGoldAlternatives = []
+        for sentence in question["answerMeta"]["modelAnswer"]:
+            entailmentAlternatives = entailmentChecker.get_top_entailments_per_paper(paperSpansNonGold, sentence["sentence"])
+            nonGoldAlternatives.append({
+                "sentence": sentence["sentence"],
+                "highestEntailingSpans": entailmentAlternatives
+            })
+        question["quoteJudgement"]["withoutGold"]["entailmentAlternatives"] = nonGoldAlternatives
 
 
         print("STARTING - JUDGING WITHOUT GOLD")
@@ -315,7 +320,7 @@ for question in questions:
 
 
 
-            judgement = judgeClaim(sentence=sentence, context=extractedSourceSentences, query=questionText, paperTexts=paper_texts_by_id_non_gold)
+            judgement = judgeClaim(sentence=sentence, context=extractedSourceSentences, query=questionText)
 
             question["withoutGold"]["referencesNative"][str(documentId)].setdefault("judgement", []).append(judgement)
             # question["contextJudgementsWithoutGold"]["referencesNative"][documentId].append(judgement)                        
@@ -338,7 +343,7 @@ for question in questions:
                 # if (documentId not in question["contextJudgementsWithoutGold"][refKey]):
                 #     question["contextJudgementsWithoutGold"][refKey][documentId] = []
                 # todo replace placeholder function
-                judgement = judgeClaim(sentence=sentence, context=extractedSourceSentences, query=questionText, paperTexts=paper_texts_by_id_non_gold)
+                judgement = judgeClaim(sentence=sentence, context=extractedSourceSentences, query=questionText)
                 question["withoutGold"][refKey][str(documentId)][quoteCounter[documentId]]["judgement"] = judgement
                 
                 quoteCounter[documentId] += 1
@@ -391,6 +396,37 @@ for question in questions:
 
 
 
+        # floating context window 1-5 sentences, per paper
+        paperSpansGold = {}
+        for paperId, documentText in paper_texts_by_id_gold.items():
+            raw_splits = re.split(r"([.!?]+)", documentText)
+            documentSentences = []
+
+            # Loop through splits and re-attach punctuation to the previous sentence
+            for i in range(0, len(raw_splits) - 1, 2):
+                sent = raw_splits[i].strip()
+                # Get the punctuation that follows (if it exists)
+                punct = raw_splits[i+1].strip() if i+1 < len(raw_splits) else ""
+                if sent:
+                    documentSentences.append(f"{sent}{punct}")
+
+            window_2 = [" ".join(documentSentences[i : i + 2]) for i in range(len(documentSentences) - 1)]
+            window_3 = [" ".join(documentSentences[i : i + 3]) for i in range(len(documentSentences) - 2)]
+            window_4 = [" ".join(documentSentences[i : i + 4]) for i in range(len(documentSentences) - 3)]
+            window_5 = [" ".join(documentSentences[i : i + 5]) for i in range(len(documentSentences) - 4)]
+
+            paperSpansGold[paperId] = documentSentences + window_2 + window_3 + window_4 + window_5
+        goldAlternatives = []
+        for sentence in question["answerMeta"]["mddelAnswerWithGold"]:
+            entailmentAlternatives = entailmentChecker.get_top_entailments_per_paper(paperSpansGold, sentence["sentence"])
+            goldAlternatives.append({
+                "sentence": sentence["sentence"],
+                "highestEntailingSpans": entailmentAlternatives
+            })
+        question["quoteJudgement"]["withGold"]["entailmentAlternatives"] = goldAlternatives
+
+
+
 
         ###built in squai extraction
         print("STARTING - JUDGING WITH GOLD")
@@ -403,7 +439,7 @@ for question in questions:
             #     question["contextJudgementsWithGold"]["referencesNative"] = {}
             # if (documentId not in question["contextJudgementsWithGold"]["referencesNative"]):
             #     question["contextJudgementsWithGold"]["referencesNative"][documentId] = []
-            judgement = judgeClaim(sentence=sentence, context=extractedSourceSentences, query=questionText, paperTexts=paper_texts_by_id_gold)
+            judgement = judgeClaim(sentence=sentence, context=extractedSourceSentences, query=questionText)
 
             question["withGold"]["referencesNative"][str(documentId)].setdefault("judgement", []) .append(judgement)
 
@@ -428,7 +464,7 @@ for question in questions:
                 # if (documentId not in question["contextJudgementsWithGold"][refKey]):
                 #     question["contextJudgementsWithGold"][refKey][documentId] = []
                 # todo replace placeholder function
-                judgement = judgeClaim(sentence=sentence, context=extractedSourceSentences, query=questionText, paperTexts=paper_texts_by_id_gold)
+                judgement = judgeClaim(sentence=sentence, context=extractedSourceSentences, query=questionText)
                 question["withGold"][refKey][str(documentId)][quoteCounter[documentId]]["judgement"] = judgement
 
                 # question["contextJudgementsWithGold"][refKey][documentId].append(judgement)                        
