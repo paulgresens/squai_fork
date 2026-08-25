@@ -106,8 +106,6 @@ retriever = initialize_retriever(
     alpha=DEFAULT_ALPHA,
 )
 from scadsApiAgent import ScadsApiAgent
-zaiAgent = ScadsApiAgent("zai-org/GLM-5.2-FP8")
-gptOssAgent = ScadsApiAgent("openai/gpt-oss-120b")
 
 gc.collect()
 if torch.cuda.is_available():
@@ -116,9 +114,11 @@ if torch.cuda.is_available():
 
 ragasClient = AsyncOpenAI(
     base_url = "https://llm.scads.ai/v1",
-    api_key = SCADS_API_KEY
+    api_key = SCADS_API_KEY,
+    max_retries = 8,
+    timeout = 300.0,
 )
-ragasLLM = llm_factory("meta-llama/Llama-3.3-70B-Instruct", client=ragasClient, max_tokens=16000)
+ragasLLM = llm_factory("meta-llama/Llama-3.3-70B-Instruct", client=ragasClient, max_tokens=16000, max_retries=8, timeout=300.0)
 ragasEmbeddings = embedding_factory("openai", model="Qwen/Qwen3-Embedding-4B", client=ragasClient)
 answerCorrectnessScorer = AnswerCorrectness(llm=ragasLLM, embeddings=ragasEmbeddings)
 answerRelevancyScorer = AnswerRelevancy(llm=ragasLLM, embeddings=ragasEmbeddings)
