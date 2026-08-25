@@ -3,6 +3,7 @@ import json
 import os
 import re
 import gc
+import math
 import logging
 import plyvel
 import fcntl
@@ -15,6 +16,9 @@ from ragas.embeddings.base import embedding_factory
 from ragas.metrics.collections import AnswerCorrectness, AnswerRelevancy, Faithfulness, ContextRelevance
 from entailment_agent import EntailmentChecker
 
+
+def missingValue(value):
+    return value is None or (isinstance(value, float) and math.isnan(value))
 
 
 import multiprocessing as mp
@@ -175,6 +179,24 @@ def judgeClaim(sentence,context,query):
     result["noise"] = noise
 
     print(json.dumps(result))
+
+    missingMetrics = []
+    if missingValue(faithfulness.get("result")):
+        missingMetrics.append("faithfulness")
+    if missingValue(contextRelevance.get("result")):
+        missingMetrics.append("contextRelevance")
+    if any(missingValue(entailment.get(k)) for k in ("entailment", "neutral", "contradiction")):
+        missingMetrics.append("entailment")
+    if not noise or any(
+        missingValue(span.get(k))
+        for span in noise
+        for k in ("entailment", "neutral", "contradiction")
+    ):
+        missingMetrics.append("noise")
+
+    if missingMetrics:
+        raise ValueError(f"judgeClaim: missing/invalid value(s) for {', '.join(missingMetrics)}")
+
     return result
 
 def clean_and_parse_json(text):
@@ -273,6 +295,14 @@ for question in questions:
         print('answer correctness' + str(withoutGoldPaperAnswerCorrectness))
         print('answer relevancy' + str(withoutGoldPaperAnswerRelevancy))
         print("---------")
+
+        missingAnswerMetrics = []
+        if missingValue(withoutGoldPaperAnswerCorrectness.to_dict().get("result")):
+            missingAnswerMetrics.append("withoutGold.answerCorrectness")
+        if missingValue(withoutGoldPaperAnswerRelevancy.to_dict().get("result")):
+            missingAnswerMetrics.append("withoutGold.answerRelevancy")
+        if missingAnswerMetrics:
+            raise ValueError(f"missing/invalid value(s) for {', '.join(missingAnswerMetrics)}")
         ####### WITHOUT GOLD - ANSWER CORRECTNESS - ANSWER RELEVANCE
 
         # floating context window 1-5 sentences, per paper
@@ -392,6 +422,14 @@ for question in questions:
                 response=modelAnswerWithoutQuotation,
         )
         question["quoteJudgement"]["withGold"]["answerRelevancy"] = withGoldPaperAnswerRelevancy.to_dict()
+
+        missingAnswerMetricsWithGold = []
+        if missingValue(withGoldPaperAnswerCorrectness.to_dict().get("result")):
+            missingAnswerMetricsWithGold.append("withGold.answerCorrectness")
+        if missingValue(withGoldPaperAnswerRelevancy.to_dict().get("result")):
+            missingAnswerMetricsWithGold.append("withGold.answerRelevancy")
+        if missingAnswerMetricsWithGold:
+            raise ValueError(f"missing/invalid value(s) for {', '.join(missingAnswerMetricsWithGold)}")
         ####### WITH GOLD - ANSWER CORRECTNESS - ANSWER RELEVANCE
 
 
