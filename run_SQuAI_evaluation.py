@@ -9,10 +9,8 @@ import plyvel
 import fcntl
 import torch
 from dotenv import load_dotenv
+from local_agent import LLMAgent, LocalInstructorLLM, LocalHuggingFaceEmbedding
 
-from openai import AsyncOpenAI
-from ragas.llms import llm_factory
-from ragas.embeddings.base import embedding_factory
 from ragas.metrics.collections import AnswerCorrectness, AnswerRelevancy, Faithfulness, ContextRelevance
 from entailment_agent import EntailmentChecker
 
@@ -115,15 +113,9 @@ gc.collect()
 if torch.cuda.is_available():
     torch.cuda.empty_cache()
 
-
-ragasClient = AsyncOpenAI(
-    base_url = "https://llm.scads.ai/v1",
-    api_key = SCADS_API_KEY,
-    max_retries = 8,
-    timeout = 300.0,
-)
-ragasLLM = llm_factory("meta-llama/Llama-3.3-70B-Instruct", client=ragasClient, max_tokens=16000, max_retries=8, timeout=300.0)
-ragasEmbeddings = embedding_factory("openai", model="Qwen/Qwen3-Embedding-4B", client=ragasClient)
+llmAgent = LLMAgent("meta-llama/Llama-3.3-70B-Instruct")
+ragasLLM = LocalInstructorLLM(llmAgent, max_new_tokens=16000)
+ragasEmbeddings = LocalHuggingFaceEmbedding(model_name="Qwen/Qwen3-Embedding-4B")
 answerCorrectnessScorer = AnswerCorrectness(llm=ragasLLM, embeddings=ragasEmbeddings)
 answerRelevancyScorer = AnswerRelevancy(llm=ragasLLM, embeddings=ragasEmbeddings)
 faithfulnessScorer = Faithfulness(llm=ragasLLM)
