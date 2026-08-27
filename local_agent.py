@@ -1,10 +1,7 @@
-import asyncio
 import torch
 import os
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from dotenv import load_dotenv
-from ragas.llms.base import InstructorBaseRagasLLM
-from ragas.embeddings.base import BaseRagasEmbedding
 
 
 class LLMAgent:
@@ -219,67 +216,3 @@ class LLMAgent:
                 results.append(self.get_log_probs(prompt, ["Yes", "No"]))
 
         return results
-
-
-class LocalInstructorLLM(InstructorBaseRagasLLM):
-    """
-    Ragas-compatible structured-output LLM backed by a local LLMAgent.
-
-    Ragas' modern metrics (ragas.metrics.collections) call llm.agenerate(prompt, response_model)
-    and expect a validated pydantic instance back. LLMAgent has no function-calling/JSON-mode
-    support, so structured output is enforced by re-asking the model with the parse error
-    appended until it produces JSON that validates against response_model.
-    """
-
-    def __init__(self, llm_agent, max_new_tokens=4096, max_json_retries=2):
-        self.llm_agent = llm_agent
-        self.max_new_tokens = max_new_tokens
-        self.max_json_retries = max_json_retries
-
-    def _extract_json(self, text):
-        start = text.find("{")
-        end = text.rfind("}")
-        if start == -1 or end == -1 or end < start:
-            raise ValueError(f"No JSON object found in model output: {text!r}")
-        return text[start : end + 1]
-
-    def generate(self, prompt, response_model):
-        current_prompt = prompt
-        last_error = None
-        for _ in range(self.max_json_retries + 1):
-            raw = self.llm_agent.generate(current_prompt, max_new_tokens=self.max_new_tokens)
-            try:
-                return response_model.model_validate_json(self._extract_json(raw))
-            except Exception as e:
-                last_error = e
-                current_prompt = (
-                    f"{prompt}\n\nYour previous response could not be parsed as valid JSON "
-                    f"matching the required schema ({e}). Respond with ONLY the corrected JSON object."
-                )
-        raise ValueError(f"Failed to get valid structured output after retries: {last_error}")
-
-    async def agenerate(self, prompt, response_model):
-        return await asyncio.to_thread(self.generate, prompt, response_model)
-
-
-class LocalHuggingFaceEmbedding(BaseRagasEmbedding):
-    """Ragas-compatible embeddings backed by a local sentence-transformers model."""
-
-    def __init__(self, model_name="Qwen/Qwen3-Embedding-4B", device="cuda", **model_kwargs):
-        from sentence_transformers import SentenceTransformer
-
-        self.model = SentenceTransformer(
-            model_name, device=device, trust_remote_code=True, **model_kwargs
-        )
-
-    def embed_text(self, text, **kwargs):
-        return self.model.encode(text, normalize_embeddings=True).tolist()
-
-    async def aembed_text(self, text, **kwargs):
-        return await asyncio.to_thread(self.embed_text, text, **kwargs)
-
-    def embed_texts(self, texts, **kwargs):
-        return self.model.encode(texts, normalize_embeddings=True).tolist()
-
-    async def aembed_texts(self, texts, **kwargs):
-        return await asyncio.to_thread(self.embed_texts, texts, **kwargs)
