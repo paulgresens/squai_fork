@@ -4,8 +4,7 @@ import os
 import re
 import gc
 import math
-import logging
-import plyvel
+import time
 import fcntl
 import torch
 from dotenv import load_dotenv
@@ -55,24 +54,11 @@ class APILockManager:
 
 
 ######retriever config for gettimg the full texts
-from get_paths import get_main_data_dir
 # Configuration paths
-MAIN_DATA_DIR = get_main_data_dir()
-DATA_DIR = f"{MAIN_DATA_DIR}_extended_data"
-E5_INDEX_DIR = f"{MAIN_DATA_DIR}/faiss_index"
-BM25_INDEX_DIR = f"{MAIN_DATA_DIR}/bm25_retriever"
-DB_PATH = f"{MAIN_DATA_DIR}/full_text_db"
-DEFAULT_RETRIEVER = "hybrid"
-db_path_to_use = DB_PATH
 LOCK_FILE = "evaluationLockFile.json"
 STATE_TRACKING_FILE = "evaluationStateTracking.json"
 # DB_LOCK_FILE = "dbLock.txt"
 lock = APILockManager(LOCK_FILE)
-# db_lock = APILockManager(DB_LOCK_FILE)
-
-# if not os.path.exists(DB_LOCK_FILE):
-#     with open(DB_LOCK_FILE, "a", encoding="utf-8") as f:
-#         f.write("lock")
 
 DEFAULT_TOP_K = 5
 DEFAULT_ALPHA = 0.65
@@ -86,29 +72,6 @@ if not os.path.exists(STATE_TRACKING_FILE):
 
 lock.unlock()
 
-def initialize_retriever(
-    retriever_type: str,
-    e5_index_dir: str,
-    bm25_index_dir: str,
-    db_path: str,
-    top_k: int,
-    alpha: float = 0.65,
-    db=None,
-):
-    """Initialize the retriever with strategy and alpha support"""
-    print(f"Initializing {retriever_type} retriever with alpha={alpha}...")
-    return Retriever(
-        e5_index_dir, bm25_index_dir, top_k=top_k, strategy=retriever_type, alpha=alpha
-    )
-
-retriever = initialize_retriever(
-    retriever_type=DEFAULT_RETRIEVER,
-    e5_index_dir=E5_INDEX_DIR,
-    bm25_index_dir=BM25_INDEX_DIR,
-    db_path=DB_PATH,
-    top_k=DEFAULT_TOP_K,
-    alpha=DEFAULT_ALPHA,
-)
 from scadsApiAgent import ScadsApiAgent
 
 gc.collect()
@@ -164,38 +127,38 @@ def judgeClaim(sentence,context,query):
 
     result = {}
 
+    while True:
+        faithfulness = faithfulnessScorer.score(user_input=query, response=sentence["sentence"], retrieved_contexts=[context]).to_dict()
+        contextRelevance = contextRelevanceScorer.score(user_input=query,retrieved_contexts=[context]).to_dict()
+        entailment = entailmentChecker.check_entailment(context, sentence["sentence"])
+        noise = entailmentChecker.get_entailments_for_spans(contextWindows, sentence["sentence"])
 
-    faithfulness = faithfulnessScorer.score(user_input=query, response=sentence["sentence"], retrieved_contexts=[context]).to_dict()
-    result["faithfulness"] = faithfulness 
-    
-    contextRelevance = contextRelevanceScorer.score(user_input=query,retrieved_contexts=[context]).to_dict()
+        missingMetrics = []
+        if missingValue(faithfulness.get("result")):
+            missingMetrics.append("faithfulness")
+        if missingValue(contextRelevance.get("result")):
+            missingMetrics.append("contextRelevance")
+        if any(missingValue(entailment.get(k)) for k in ("entailment", "neutral", "contradiction")):
+            missingMetrics.append("entailment")
+        if not noise or any(
+            missingValue(span.get(k))
+            for span in noise
+            for k in ("entailment", "neutral", "contradiction")
+        ):
+            missingMetrics.append("noise")
+
+        if not missingMetrics:
+            break
+
+        print(f"judgeClaim: missing/invalid value(s) for {', '.join(missingMetrics)}, retrying in 5 minutes...")
+        time.sleep(300)
+
+    result["faithfulness"] = faithfulness
     result["contextRelevance"] = contextRelevance
-    
-    entailment = entailmentChecker.check_entailment(context, sentence["sentence"])
     result["entailment"] = entailment
-
-
-    noise = entailmentChecker.get_entailments_for_spans(contextWindows, sentence["sentence"])
     result["noise"] = noise
 
     print(json.dumps(result))
-
-    missingMetrics = []
-    if missingValue(faithfulness.get("result")):
-        missingMetrics.append("faithfulness")
-    if missingValue(contextRelevance.get("result")):
-        missingMetrics.append("contextRelevance")
-    if any(missingValue(entailment.get(k)) for k in ("entailment", "neutral", "contradiction")):
-        missingMetrics.append("entailment")
-    if not noise or any(
-        missingValue(span.get(k))
-        for span in noise
-        for k in ("entailment", "neutral", "contradiction")
-    ):
-        missingMetrics.append("noise")
-
-    if missingMetrics:
-        raise ValueError(f"judgeClaim: missing/invalid value(s) for {', '.join(missingMetrics)}")
 
     return result
 
@@ -279,30 +242,34 @@ for question in questions:
         questionText = question["generationMeta"]["question"]
 
         ####### WITHOUT GOLD - ANSWER CORRECTNESS - ANSWER RELEVANCE
-        withoutGoldPaperAnswerCorrectness = answerCorrectnessScorer.score(
-                user_input=questionText,
-                response=modelAnswerWithoutQuotation,
-                reference=goldGroundTruthAnswer
-        )
-        question["quoteJudgement"]["withoutGold"]["answerCorrectness"] = withoutGoldPaperAnswerCorrectness.to_dict()
+        while True:
+            withoutGoldPaperAnswerCorrectness = answerCorrectnessScorer.score(
+                    user_input=questionText,
+                    response=modelAnswerWithoutQuotation,
+                    reference=goldGroundTruthAnswer
+            )
+            withoutGoldPaperAnswerRelevancy = answerRelevancyScorer.score(
+                    user_input=questionText,
+                    response=modelAnswerWithoutQuotation,
+            )
 
-        withoutGoldPaperAnswerRelevancy = answerRelevancyScorer.score(
-                user_input=questionText,
-                response=modelAnswerWithoutQuotation,
-        )
+            missingAnswerMetrics = []
+            if missingValue(withoutGoldPaperAnswerCorrectness.to_dict().get("result")):
+                missingAnswerMetrics.append("withoutGold.answerCorrectness")
+            if missingValue(withoutGoldPaperAnswerRelevancy.to_dict().get("result")):
+                missingAnswerMetrics.append("withoutGold.answerRelevancy")
+            if not missingAnswerMetrics:
+                break
+
+            print(f"missing/invalid value(s) for {', '.join(missingAnswerMetrics)}, retrying in 5 minutes...")
+            time.sleep(300)
+
+        question["quoteJudgement"]["withoutGold"]["answerCorrectness"] = withoutGoldPaperAnswerCorrectness.to_dict()
         question["quoteJudgement"]["withoutGold"]["answerRelevancy"] = withoutGoldPaperAnswerRelevancy.to_dict()
         print("without gold: ")
         print('answer correctness' + str(withoutGoldPaperAnswerCorrectness))
         print('answer relevancy' + str(withoutGoldPaperAnswerRelevancy))
         print("---------")
-
-        missingAnswerMetrics = []
-        if missingValue(withoutGoldPaperAnswerCorrectness.to_dict().get("result")):
-            missingAnswerMetrics.append("withoutGold.answerCorrectness")
-        if missingValue(withoutGoldPaperAnswerRelevancy.to_dict().get("result")):
-            missingAnswerMetrics.append("withoutGold.answerRelevancy")
-        if missingAnswerMetrics:
-            raise ValueError(f"missing/invalid value(s) for {', '.join(missingAnswerMetrics)}")
         ####### WITHOUT GOLD - ANSWER CORRECTNESS - ANSWER RELEVANCE
 
         # floating context window 1-5 sentences, per paper
@@ -410,26 +377,30 @@ for question in questions:
         questionText = question["generationMeta"]["question"]
 
         ####### WITH GOLD - ANSWER CORRECTNESS - ANSWER RELEVANCE
-        withGoldPaperAnswerCorrectness = answerCorrectnessScorer.score(
-                user_input=questionText,
-                response=modelAnswerWithoutQuotation,
-                reference=goldGroundTruthAnswer
-        )
+        while True:
+            withGoldPaperAnswerCorrectness = answerCorrectnessScorer.score(
+                    user_input=questionText,
+                    response=modelAnswerWithoutQuotation,
+                    reference=goldGroundTruthAnswer
+            )
+            withGoldPaperAnswerRelevancy = answerRelevancyScorer.score(
+                    user_input=questionText,
+                    response=modelAnswerWithoutQuotation,
+            )
+
+            missingAnswerMetricsWithGold = []
+            if missingValue(withGoldPaperAnswerCorrectness.to_dict().get("result")):
+                missingAnswerMetricsWithGold.append("withGold.answerCorrectness")
+            if missingValue(withGoldPaperAnswerRelevancy.to_dict().get("result")):
+                missingAnswerMetricsWithGold.append("withGold.answerRelevancy")
+            if not missingAnswerMetricsWithGold:
+                break
+
+            print(f"missing/invalid value(s) for {', '.join(missingAnswerMetricsWithGold)}, retrying in 5 minutes...")
+            time.sleep(300)
+
         question["quoteJudgement"]["withGold"]["answerCorrectness"] = withGoldPaperAnswerCorrectness.to_dict()
-
-        withGoldPaperAnswerRelevancy = answerRelevancyScorer.score(
-                user_input=questionText,
-                response=modelAnswerWithoutQuotation,
-        )
         question["quoteJudgement"]["withGold"]["answerRelevancy"] = withGoldPaperAnswerRelevancy.to_dict()
-
-        missingAnswerMetricsWithGold = []
-        if missingValue(withGoldPaperAnswerCorrectness.to_dict().get("result")):
-            missingAnswerMetricsWithGold.append("withGold.answerCorrectness")
-        if missingValue(withGoldPaperAnswerRelevancy.to_dict().get("result")):
-            missingAnswerMetricsWithGold.append("withGold.answerRelevancy")
-        if missingAnswerMetricsWithGold:
-            raise ValueError(f"missing/invalid value(s) for {', '.join(missingAnswerMetricsWithGold)}")
         ####### WITH GOLD - ANSWER CORRECTNESS - ANSWER RELEVANCE
 
 
