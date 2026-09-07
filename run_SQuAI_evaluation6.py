@@ -110,7 +110,7 @@ def judgeClaim(sentence,context,query):
     contextSentences = []
 
     # Loop through splits and re-attach punctuation to the previous sentence
-    for i in range(0, len(raw_context_splits) - 1, 2):
+    for i in range(0, len(raw_context_splits), 2):
         sent = raw_context_splits[i].strip()
         punct = raw_context_splits[i+1].strip() if i+1 < len(raw_context_splits) else ""
         if sent:
@@ -131,7 +131,7 @@ def judgeClaim(sentence,context,query):
         faithfulness = faithfulnessScorer.score(user_input=query, response=sentence["sentence"], retrieved_contexts=[context]).to_dict()
         contextRelevance = contextRelevanceScorer.score(user_input=query,retrieved_contexts=[context]).to_dict()
         entailment = entailmentChecker.check_entailment(context, sentence["sentence"])
-        noise = entailmentChecker.get_entailments_for_spans(contextWindows, sentence["sentence"])
+        # noise = entailmentChecker.get_entailments_for_spans(contextWindows, sentence["sentence"])
 
         missingMetrics = []
         if missingValue(faithfulness.get("result")):
@@ -140,12 +140,12 @@ def judgeClaim(sentence,context,query):
             missingMetrics.append("contextRelevance")
         if any(missingValue(entailment.get(k)) for k in ("entailment", "neutral", "contradiction")):
             missingMetrics.append("entailment")
-        if not noise or any(
-            missingValue(span.get(k))
-            for span in noise
-            for k in ("entailment", "neutral", "contradiction")
-        ):
-            missingMetrics.append("noise")
+        # if not noise or any(
+        #     missingValue(span.get(k))
+        #     for span in noise
+        #     for k in ("entailment", "neutral", "contradiction")
+        # ):
+        #     missingMetrics.append("noise")
 
         if not missingMetrics:
             break
@@ -156,7 +156,7 @@ def judgeClaim(sentence,context,query):
     result["faithfulness"] = faithfulness
     result["contextRelevance"] = contextRelevance
     result["entailment"] = entailment
-    result["noise"] = noise
+    # result["noise"] = noise
 
     print(json.dumps(result))
 
