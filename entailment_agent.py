@@ -1,5 +1,10 @@
 import torch
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from transformers import (
+    AutoConfig,
+    AutoModelForSeq2SeqLM,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+)
 
 
 class EntailmentChecker:
@@ -34,25 +39,44 @@ class EntailmentChecker:
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-        self.model = AutoModelForSequenceClassification.from_pretrained(
-            model_name
-        ).to(self.device)
+        # Encoder-decoder checkpoints like google/t5_xxl_true_nli_mixture
+        # (the TRUE benchmark's NLI models) are generative: they were
+        # fine-tuned to emit the token "1"/"0" for a "premise: ...
+        # hypothesis: ..." prompt, not to run through a classification head.
+        # They need a different inference path from the
+        # AutoModelForSequenceClassification models below.
+        self.is_generative = AutoConfig.from_pretrained(model_name).is_encoder_decoder
 
-        self.model.eval()
+        if self.is_generative:
+            self.model = AutoModelForSeq2SeqLM.from_pretrained(
+                model_name
+            ).to(self.device)
+            self.model.eval()
 
-        # For this model:
-        # 0 = contradiction
-        # 1 = entailment
-        # 2 = neutral
-        #
-        # But obtain this from the model config rather than hardcoding it.
-        self.id2label = {
-            int(k): v.lower()
-            for k, v in self.model.config.id2label.items()
-        }
+            self._true_token_id = self.tokenizer("1", add_special_tokens=False).input_ids[0]
+            self._false_token_id = self.tokenizer("0", add_special_tokens=False).input_ids[0]
 
-        print(f"NLI labels: {self.id2label}")
-        print("NLI model loaded successfully!")
+            print("NLI model loaded successfully (generative TRUE-style binary entailment)!")
+        else:
+            self.model = AutoModelForSequenceClassification.from_pretrained(
+                model_name
+            ).to(self.device)
+
+            self.model.eval()
+
+            # For this model:
+            # 0 = contradiction
+            # 1 = entailment
+            # 2 = neutral
+            #
+            # But obtain this from the model config rather than hardcoding it.
+            self.id2label = {
+                int(k): v.lower()
+                for k, v in self.model.config.id2label.items()
+            }
+
+            print(f"NLI labels: {self.id2label}")
+            print("NLI model loaded successfully!")
 
     def check_entailment(self, paper_chunk, generated_claim):
         """
@@ -74,6 +98,8 @@ class EntailmentChecker:
                 "contradiction": float
             }
         """
+        if self.is_generative:
+            return self._check_entailment_generative(paper_chunk, generated_claim)
 
         inputs = self.tokenizer(
             paper_chunk,
@@ -104,6 +130,56 @@ class EntailmentChecker:
             "label": predicted_label,
             "span": paper_chunk,
             **scores
+        }
+
+    def _check_entailment_generative(self, paper_chunk, generated_claim):
+        """
+        TRUE-benchmark-style scoring for encoder-decoder models (e.g.
+        google/t5_xxl_true_nli_mixture): the checkpoint was fine-tuned to
+        emit "1" (entailed) or "0" (not entailed) as its first decoded
+        token, so the entailment score is the softmax over just those two
+        tokens' logits at that step. Reported natively as this 2-way
+        judgement - these models draw no neutral/contradiction distinction,
+        so nothing is coerced into the 3-way classification-model shape.
+        """
+        # Built as raw token ids (rather than one formatted string passed
+        # through the tokenizer's own truncation) so that a long context
+        # truncates the *premise* only, same as the classification path's
+        # truncation="only_first" - naive whole-string truncation would cut
+        # into the hypothesis instead, corrupting the very claim being judged.
+        prefix_ids = self.tokenizer("premise: ", add_special_tokens=False).input_ids
+        hypothesis_ids = self.tokenizer(
+            f" hypothesis: {generated_claim}", add_special_tokens=False
+        ).input_ids
+        eos_ids = [self.tokenizer.eos_token_id] if self.tokenizer.eos_token_id is not None else []
+
+        max_premise_tokens = max(512 - len(prefix_ids) - len(hypothesis_ids) - len(eos_ids), 0)
+        premise_ids = self.tokenizer(paper_chunk, add_special_tokens=False).input_ids[:max_premise_tokens]
+
+        input_ids = prefix_ids + premise_ids + hypothesis_ids + eos_ids
+
+        inputs = {
+            "input_ids": torch.tensor([input_ids], device=self.device),
+            "attention_mask": torch.ones(1, len(input_ids), dtype=torch.long, device=self.device)
+        }
+
+        decoder_input_ids = torch.tensor(
+            [[self.model.config.decoder_start_token_id]],
+            device=self.device
+        )
+
+        with torch.inference_mode():
+            logits = self.model(**inputs, decoder_input_ids=decoder_input_ids).logits[0, -1]
+            pair_logits = logits[[self._true_token_id, self._false_token_id]].float()
+            entailment_prob, not_entailment_prob = torch.softmax(pair_logits, dim=-1).tolist()
+
+        label = "entailment" if entailment_prob >= not_entailment_prob else "not_entailment"
+
+        return {
+            "label": label,
+            "span": paper_chunk,
+            "entailment": entailment_prob,
+            "not_entailment": not_entailment_prob
         }
 
     def _score_spans(self, spans, generated_claim, batch_size):
