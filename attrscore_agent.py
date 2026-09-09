@@ -38,19 +38,34 @@ class AttrScoreChecker:
         device=None
     ):
         if device is None:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+            if torch.cuda.is_available():
+                device = "cuda"
+            elif torch.backends.mps.is_available():
+                device = "mps"
+            else:
+                device = "cpu"
         elif device == "cuda" and not torch.cuda.is_available():
             print("CUDA requested but not available, falling back to CPU")
+            device = "cpu"
+        elif device == "mps" and not torch.backends.mps.is_available():
+            print("MPS requested but not available, falling back to CPU")
             device = "cpu"
 
         print(f"Initializing AttrScore checker with model: {model_name} on device: {device}")
 
         self.device = torch.device(device)
 
+        # bf16 halves the model's memory footprint and is noticeably faster
+        # on Apple Silicon's MPS backend; it's avoided on plain CPU since
+        # CPU kernels for bf16 matmuls are far slower than fp32 there, and
+        # skipped for fp16 entirely since T5's activations are known to
+        # overflow in fp16 (unlike bf16, which shares fp32's exponent range).
+        dtype = torch.bfloat16 if self.device.type == "mps" else torch.float32
+
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
         self.model = AutoModelForSeq2SeqLM.from_pretrained(
-            model_name
+            model_name, torch_dtype=dtype
         ).to(self.device)
 
         self.model.eval()
