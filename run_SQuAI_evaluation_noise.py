@@ -140,13 +140,12 @@ def main():
             except Exception as e:
                 failed += 1
                 print(f"FAILED on {anchor}: {e}")
-                continue
+            else:
+                out_file.write(json.dumps(question, ensure_ascii=False) + "\n")
+                out_file.flush()
+                processed += 1
 
-            out_file.write(json.dumps(question, ensure_ascii=False) + "\n")
-            out_file.flush()
-            processed += 1
-
-            if processed % 20 == 0:
+            if (processed + failed) % 20 == 0:
                 elapsed = time.time() - start
                 print(f"processed={processed} failed={failed} elapsed={elapsed:.1f}s")
 

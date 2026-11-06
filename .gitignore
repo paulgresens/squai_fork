@@ -87,6 +87,7 @@ results/*
 *.tar.gz
 *.7z
 *.pdf
+evaluationResultCombined*.jsonl
 
 # Temporary files
 .DS_Store
@@ -99,3 +100,7 @@ C_split_questions/questions_split_*.jsonl
 local_db/
 
 *_env/
+
+evaluationResultCombinedWithNoise.jsonl
+evaluationResultCombinedWithAttrScore.jsonl
+evaluationResultCombinedWithEntailment2.jsonl

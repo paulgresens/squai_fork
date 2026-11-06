@@ -1,10 +1,15 @@
+import os
 import torch
 from transformers import (
     AutoConfig,
     AutoModelForSeq2SeqLM,
     AutoModelForSequenceClassification,
     AutoTokenizer,
+    BitsAndBytesConfig,
 )
+
+# Replace XXX with a real Hugging Face token (https://huggingface.co/settings/tokens)
+os.environ["HF_TOKEN"] = ""
 
 
 class EntailmentChecker:
@@ -25,15 +30,37 @@ class EntailmentChecker:
     def __init__(
         self,
         model_name="cross-encoder/nli-deberta-v3-large",
-        device=None
+        device=None,
+        load_in_8bit=False,
+        cpu_offload=False,
     ):
         if device is None:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+            if torch.cuda.is_available():
+                device = "cuda"
+            elif torch.backends.mps.is_available():
+                device = "mps"
+            else:
+                device = "cpu"
         elif device == "cuda" and not torch.cuda.is_available():
             print("CUDA requested but not available, falling back to CPU")
             device = "cpu"
+        elif device == "mps" and not torch.backends.mps.is_available():
+            print("MPS requested but not available, falling back to CPU")
+            device = "cpu"
 
-        print(f"Initializing NLI checker with model: {model_name} on device: {device}")
+        # bitsandbytes' int8 matmul kernels only exist for CUDA. Requesting
+        # load_in_8bit on MPS/CPU doesn't error, but it also doesn't actually
+        # quantize anything - you silently end up materializing the model at
+        # full precision (~44GB fp32 for an 11B model like
+        # google/t5_xxl_true_nli_mixture), which is almost certainly what
+        # was blowing through 36GB of unified memory before. So 8-bit is
+        # only honored on CUDA; everywhere else it's downgraded to a plain
+        # bf16 load (CPU keeps fp32, since CPU bf16 matmuls are far slower).
+        load_in_8bit_effective = load_in_8bit and device == "cuda"
+        if load_in_8bit and not load_in_8bit_effective:
+            print("8-bit quantization (bitsandbytes) requires CUDA; falling back to bf16 on this device")
+
+        print(f"Initializing NLI checker with model: {model_name} on device: {device}" + (" (8-bit)" if load_in_8bit_effective else ""))
 
         self.device = torch.device(device)
 
@@ -47,10 +74,33 @@ class EntailmentChecker:
         # AutoModelForSequenceClassification models below.
         self.is_generative = AutoConfig.from_pretrained(model_name).is_encoder_decoder
 
+        non_quantized_dtype = torch.bfloat16 if self.device.type == "mps" else torch.float32
+
+        # load_in_8bit quantizes during loading (full-precision weights are
+        # still downloaded) via bitsandbytes, which needs device_map instead
+        # of a plain .to(device) call - this is what makes an 11B model like
+        # google/t5_xxl_true_nli_mixture (~44GB in fp32) fit in ~11-13GB.
+        # low_cpu_mem_usage=True avoids transformers fully materializing the
+        # fp32 checkpoint before quantizing/casting it, which would briefly
+        # need fp32 size + final size at once.
+        if load_in_8bit_effective:
+            load_kwargs = {
+                "quantization_config": BitsAndBytesConfig(load_in_8bit=True),
+                "device_map": {"": device},
+                "low_cpu_mem_usage": True,
+            }
+        else:
+            load_kwargs = {
+                "torch_dtype": non_quantized_dtype,
+                "low_cpu_mem_usage": True,
+            }
+
         if self.is_generative:
             self.model = AutoModelForSeq2SeqLM.from_pretrained(
-                model_name
-            ).to(self.device)
+                model_name, **load_kwargs
+            )
+            if not load_in_8bit_effective:
+                self.model = self.model.to(self.device)
             self.model.eval()
 
             self._true_token_id = self.tokenizer("1", add_special_tokens=False).input_ids[0]
@@ -59,8 +109,10 @@ class EntailmentChecker:
             print("NLI model loaded successfully (generative TRUE-style binary entailment)!")
         else:
             self.model = AutoModelForSequenceClassification.from_pretrained(
-                model_name
-            ).to(self.device)
+                model_name, **load_kwargs
+            )
+            if not load_in_8bit_effective:
+                self.model = self.model.to(self.device)
 
             self.model.eval()
 
@@ -190,6 +242,7 @@ class EntailmentChecker:
         dicts in the same order as `spans`.
         """
         results = []
+        num_batches = (len(spans) + batch_size - 1) // batch_size
         for i in range(0, len(spans), batch_size):
             span_batch = spans[i:i + batch_size]
             claim_batch = [generated_claim] * len(span_batch)
@@ -222,6 +275,69 @@ class EntailmentChecker:
                     "neutral": scores["neutral"]
                 })
 
+            print(f"_score_spans: batch {i // batch_size + 1}/{num_batches} done ({len(results)}/{len(spans)} spans scored)")
+
+        return results
+
+    def _score_spans_generative(self, spans, generated_claim, batch_size):
+        """
+        Batched counterpart to _check_entailment_generative, for
+        encoder-decoder checkpoints like google/t5_xxl_true_nli_mixture.
+        Same "premise: ... hypothesis: ..." construction and same native
+        2-way entailment/not_entailment judgement (no neutral/contradiction)
+        as the single-pair method - just amortized over a batch that shares
+        one hypothesis (generated_claim), with per-span premises right-padded
+        to the batch's longest sequence so they can run through the model
+        together.
+        """
+        prefix_ids = self.tokenizer("premise: ", add_special_tokens=False).input_ids
+        hypothesis_ids = self.tokenizer(
+            f" hypothesis: {generated_claim}", add_special_tokens=False
+        ).input_ids
+        eos_ids = [self.tokenizer.eos_token_id] if self.tokenizer.eos_token_id is not None else []
+        max_premise_tokens = max(512 - len(prefix_ids) - len(hypothesis_ids) - len(eos_ids), 0)
+
+        results = []
+        num_batches = (len(spans) + batch_size - 1) // batch_size
+        for i in range(0, len(spans), batch_size):
+            span_batch = spans[i:i + batch_size]
+
+            batch_input_ids = []
+            for span in span_batch:
+                premise_ids = self.tokenizer(span, add_special_tokens=False).input_ids[:max_premise_tokens]
+                batch_input_ids.append(prefix_ids + premise_ids + hypothesis_ids + eos_ids)
+
+            max_len = max(len(ids) for ids in batch_input_ids)
+            pad_id = self.tokenizer.pad_token_id
+            padded_input_ids = [ids + [pad_id] * (max_len - len(ids)) for ids in batch_input_ids]
+            attention_masks = [[1] * len(ids) + [0] * (max_len - len(ids)) for ids in batch_input_ids]
+
+            input_ids = torch.tensor(padded_input_ids, device=self.device)
+            attention_mask = torch.tensor(attention_masks, device=self.device)
+            decoder_input_ids = torch.full(
+                (len(span_batch), 1), self.model.config.decoder_start_token_id, device=self.device
+            )
+
+            with torch.inference_mode():
+                logits = self.model(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                    decoder_input_ids=decoder_input_ids,
+                ).logits[:, -1]
+                pair_logits = logits[:, [self._true_token_id, self._false_token_id]].float()
+                batch_probs = torch.softmax(pair_logits, dim=-1).cpu()
+
+            for span, (entailment_prob, not_entailment_prob) in zip(span_batch, batch_probs.tolist()):
+                label = "entailment" if entailment_prob >= not_entailment_prob else "not_entailment"
+                results.append({
+                    "span": span,
+                    "label": label,
+                    "entailment": entailment_prob,
+                    "not_entailment": not_entailment_prob,
+                })
+
+            print(f"_score_spans_generative: batch {i // batch_size + 1}/{num_batches} done ({len(results)}/{len(spans)} spans scored)")
+
         return results
 
     def get_entailments_for_spans(
@@ -234,7 +350,7 @@ class EntailmentChecker:
         Scores each span independently against a generated claim - no paper
         grouping, no top-k truncation.
 
-        Output:
+        For classification-head models, output:
             [
                 {
                     "span": "...",
@@ -245,10 +361,25 @@ class EntailmentChecker:
                 },
                 ...
             ]
+
+        For generative TRUE-style models (self.is_generative), output uses
+        the native 2-way judgement instead (see _check_entailment_generative):
+            [
+                {
+                    "span": "...",
+                    "label": "entailment" | "not_entailment",
+                    "entailment": 0.95,
+                    "not_entailment": 0.05
+                },
+                ...
+            ]
         """
         valid_spans = [span for span in spans if span and span.strip()]
         if not valid_spans:
             return []
+
+        if self.is_generative:
+            return self._score_spans_generative(valid_spans, generated_claim, batch_size)
 
         return self._score_spans(valid_spans, generated_claim, batch_size)
 

@@ -1,5 +1,9 @@
+import os
 import torch
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+
+# Replace XXX with a real Hugging Face token (https://huggingface.co/settings/tokens)
+os.environ["HF_TOKEN"] = ""
 
 # Official prompt template for the fine-tuned AttrScore models, per
 # https://github.com/OSU-NLP-Group/AttrScore - the model was trained on
