@@ -33,6 +33,7 @@ class EntailmentChecker:
         device=None,
         load_in_8bit=False,
         cpu_offload=False,
+        dtype=None,
     ):
         if device is None:
             if torch.cuda.is_available():
@@ -74,7 +75,11 @@ class EntailmentChecker:
         # AutoModelForSequenceClassification models below.
         self.is_generative = AutoConfig.from_pretrained(model_name).is_encoder_decoder
 
-        non_quantized_dtype = torch.bfloat16 if self.device.type == "mps" else torch.float32
+        # dtype lets a caller opt into bf16 on CUDA (e.g. for a faster/leaner
+        # load on an H100) without changing the default for every existing
+        # caller of this class - leaving it unset keeps the old behavior
+        # (bf16 only on MPS, fp32 everywhere else).
+        non_quantized_dtype = dtype if dtype is not None else (torch.bfloat16 if self.device.type == "mps" else torch.float32)
 
         # load_in_8bit quantizes during loading (full-precision weights are
         # still downloaded) via bitsandbytes, which needs device_map instead

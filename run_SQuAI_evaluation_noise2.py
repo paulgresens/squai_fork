@@ -12,6 +12,8 @@ import json
 import re
 import time
 
+import torch
+
 from entailment_agent import EntailmentChecker
 
 INPUT_FILE = "evaluationResultCombinedWithNoise.jsonl"
@@ -26,8 +28,10 @@ BATCH_SIZE = 64
 # H100 has 94GB, more than enough for this 11B model in fp32 (~44GB), so
 # bitsandbytes quantization isn't needed and is one less thing to break on
 # a long unattended cluster job. device="cuda" (no MPS fallback) since this
-# runs on Capella.
-entailmentChecker = EntailmentChecker(device="cuda", model_name="google/t5_xxl_true_nli_mixture")
+# runs on Capella. dtype=bfloat16 (opt-in, doesn't affect any other script
+# using EntailmentChecker) halves the weight footprint to ~22GB and runs
+# natively on H100 tensor cores, roughly 2x the throughput of fp32.
+entailmentChecker = EntailmentChecker(device="cuda", model_name="google/t5_xxl_true_nli_mixture", dtype=torch.bfloat16)
 
 referencesNativeKey = "referencesNative"
 referencesKeys = ["referencesBiencoderTop1","referencesBM25Top1","referencesBiencoderTop10Bm25Top1","referencesBM25Top10BiencoderTop1","referencesBiencoderTop10CrossEncoderTop1","referencesBM25Top10CrossEncoderTop1","referencesBiencoderAndBm25Top1","referencesBiencoderAndBm25Top10CrossEncoderTop1","referencesWithLLM"]
