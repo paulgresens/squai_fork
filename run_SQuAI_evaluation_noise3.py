@@ -19,7 +19,8 @@ OUTPUT_FILE = "evaluationResultCombinedWithNoise3.jsonl"
 
 # AttrScoreChecker.check_attribution scores one span at a time - there's no
 # batched equivalent of EntailmentChecker.get_entailments_for_spans, so
-# there's no BATCH_SIZE here to tune.
+# there's no BATCH_SIZE here to tune. device="cuda" for Capella (not "mps" -
+# this isn't running locally anymore).
 attrScoreChecker = AttrScoreChecker(device="cuda")
 
 referencesNativeKey = "referencesNative"
@@ -48,10 +49,23 @@ def build_context_windows(context):
 
 def compute_noise(context, claim):
     contextWindows = build_context_windows(context)
-    noise = [attrScoreChecker.check_attribution(window, claim) for window in contextWindows]
-    if not noise:
-        print(f"compute_noise: empty result for context={context!r} claim={claim!r}")
-    return noise
+    return [attrScoreChecker.check_attribution(window, claim) for window in contextWindows]
+
+
+PROGRESS_INTERVAL_SECONDS = 10
+
+
+def maybe_print_progress(stats):
+    """
+    Prints a cumulative evaluated count on a wall-clock cadence, independent
+    of question/citation size - a per-question print alone can go quiet for
+    a long time if one question has many citations.
+    """
+    now = time.time()
+    if now - stats["last_print"] >= PROGRESS_INTERVAL_SECONDS:
+        evaluated = stats["added"] + stats["replaced"]
+        print(f"progress: evaluated={evaluated}")
+        stats["last_print"] = now
 
 
 def set_noise(judgement, context, claim, stats):
@@ -66,6 +80,7 @@ def set_noise(judgement, context, claim, stats):
     else:
         stats["added"] += 1
     judgement["noise3"] = compute_noise(context, claim)
+    maybe_print_progress(stats)
 
 
 def recompute_native(question, side_key, model_answer_key, stats):
@@ -123,7 +138,7 @@ def main():
     start = time.time()
     processed = 0
     failed = 0
-    stats = {"replaced": 0, "added": 0}
+    stats = {"replaced": 0, "added": 0, "last_print": start}
 
     with open(INPUT_FILE, "r", encoding="utf-8") as in_file, \
          open(OUTPUT_FILE, "w", encoding="utf-8") as out_file:
@@ -146,7 +161,11 @@ def main():
                 processed += 1
 
             elapsed = time.time() - start
-            print(f"question {lineNumber} done ({anchor}): processed={processed} failed={failed} elapsed={elapsed:.1f}s")
+            print(
+                f"question {lineNumber} done ({anchor}): processed={processed} failed={failed} "
+                f"evaluated={stats['added'] + stats['replaced']} "
+                f"elapsed={elapsed:.1f}s"
+            )
 
     print(
         f"DONE. processed={processed} failed={failed} "

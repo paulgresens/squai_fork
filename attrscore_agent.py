@@ -69,7 +69,7 @@ class AttrScoreChecker:
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
         self.model = AutoModelForSeq2SeqLM.from_pretrained(
-            model_name, torch_dtype=dtype
+            model_name, torch_dtype=dtype, low_cpu_mem_usage=True
         ).to(self.device)
 
         self.model.eval()

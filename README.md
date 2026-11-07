@@ -181,3 +181,5 @@ curl "https://llm.scads.ai/v1/chat/completions" \
 }'
 
 last prompt edit: beginning with question 16
+
+scp evaluationResultCombinedWithNoise.jsonl pagr699i@dataport1.hpc.tu-dresden.de:/data/cat/ws/pagr699i-thesis_eval/
