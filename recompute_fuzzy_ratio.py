@@ -43,10 +43,22 @@ Input file may be either:
   - a single JSON object (one record, e.g. a pretty-printed testi.json), or
   - a JSON array of records, or
   - a JSONL file (one compact record per line, e.g. raw run_SQuAI.py output)
-Output is always written as JSONL, one record per line.
+Output is always written as JSONL, one record per line, to a separate file
+- the input file is never modified. Each hallucinationCheck entry gets two
+new fields added alongside the original partialRatioWithSourceText:
+recomputedPartialRatioWithSourceText and recomputeDelta.
+
+Entries where contextForSentence is exactly MODEL_DECLINED_RESPONSE are
+excluded from the recompute entirely (recomputedPartialRatioWithSourceText
+is set to None, modelDeclinedToAnswer is set to True, no delta is computed).
+That string is not something the LLM ever "decided" to write - it's a
+hardcoded fallback in ScadsApiAgent.generate/FalconAgent.generate substituted
+whenever the underlying API call returned an empty completion, so scoring it
+for fuzzy/hallucination purposes would be scoring an API failure, not a bad
+extraction.
 
 Usage:
-    python recompute_fuzzy_ratio.py --input testi.json --output testi.recomputed.jsonl
+    python recompute_fuzzy_ratio.py --input testi.json --output testi.recomputed.jsonl --db_path /path/to/full_text_db
 """
 import argparse
 import json
@@ -60,8 +72,15 @@ from rapidfuzz import fuzz
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("recompute_fuzzy_ratio")
 
+INPUT_FILE = "evaluationResultCombinedWithNoise3.jsonl"
+OUTPUT_FILE = "evaluationTotalWithFuzzyRecomputed.jsonl"
+
 REFERENCES_WITH_LLM_KEY = "referencesWithLLM"
 SIDE_KEYS = ("withoutGold", "withGold")
+
+# Hardcoded fallback in ScadsApiAgent.generate/FalconAgent.generate when the
+# underlying API call returns an empty completion - not a real extraction.
+MODEL_DECLINED_RESPONSE = "I don't have enough information to provide a specific answer."
 
 # must match EnhancedCitationHandler._extract_context_passages_using_llm
 MAX_DOCUMENT_TEXT_CHARS = 999999999
@@ -120,6 +139,7 @@ def get_document_text(paper_id, db, cache, stats):
     if content is None:
         logger.warning(f"no full text found for paperId={paper_id}")
         stats["missing_document"] += 1
+        stats["missing_paper_ids"].add(paper_id)
         cache[paper_id] = None
         return None
 
@@ -153,6 +173,12 @@ def recompute_side(record, side_key, db, cache, stats):
             paperId = entry.get("paperId")
             contextForSentence = hallucinationCheck.get("contextForSentence", entry.get("contextPassage"))
 
+            if contextForSentence == MODEL_DECLINED_RESPONSE:
+                hallucinationCheck["recomputedPartialRatioWithSourceText"] = None
+                hallucinationCheck["modelDeclinedToAnswer"] = True
+                stats["declined"] += 1
+                continue
+
             documentText = get_document_text(paperId, db, cache, stats)
             if documentText is None:
                 hallucinationCheck["recomputedPartialRatioWithSourceText"] = None
@@ -177,8 +203,8 @@ def recompute_record(record, db, cache, stats):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--input", required=True, help="Generation output file (JSON, JSON array, or JSONL)")
-    parser.add_argument("--output", default="recomputedFuzzyRatios.jsonl", help="Where to write the annotated records (JSONL)")
+    parser.add_argument("--input", default=INPUT_FILE, help="Generation output file (JSON, JSON array, or JSONL)")
+    parser.add_argument("--output", default=OUTPUT_FILE, help="Where to write the annotated records (JSONL) - input file is never modified")
     parser.add_argument("--db_path", required=True, help="Path to the full-text LevelDB database")
     args = parser.parse_args()
 
@@ -190,7 +216,7 @@ def main():
     logger.info(f"Loaded {len(records)} record(s)")
 
     document_text_cache = {}
-    stats = {"recomputed": 0, "missing_document": 0, "papers_loaded": 0, "deltas": []}
+    stats = {"recomputed": 0, "missing_document": 0, "papers_loaded": 0, "deltas": [], "missing_paper_ids": set(), "declined": 0}
 
     start = time.time()
     with open(args.output, "w", encoding="utf-8") as out_file:
@@ -203,7 +229,7 @@ def main():
 
             out_file.write(json.dumps(record, ensure_ascii=False) + "\n")
             out_file.flush()
-            logger.info(f"processed record {i}/{len(records)} (recomputed={stats['recomputed']}, missing_document={stats['missing_document']})")
+            logger.info(f"processed record {i}/{len(records)} (recomputed={stats['recomputed']}, missing_document={stats['missing_document']}, declined={stats['declined']})")
 
     db.close()
 
@@ -212,7 +238,10 @@ def main():
     logger.info(f"DONE in {time.time() - start:.1f}s")
     logger.info(f"  papers successfully loaded: {stats['papers_loaded']}/{papers_attempted}")
     logger.info(f"  papers missing/failed:      {stats['missing_document']}/{papers_attempted}")
+    if stats["missing_paper_ids"]:
+        logger.info(f"  missing paperIds ({len(stats['missing_paper_ids'])}): {sorted(stats['missing_paper_ids'])}")
     logger.info(f"  entries recomputed:        {stats['recomputed']}")
+    logger.info(f"  entries excluded (model declined to answer): {stats['declined']}")
     if deltas:
         changed = [d for d in deltas if abs(d) > 1e-6]
         logger.info(f"  entries with a changed score: {len(changed)}/{len(deltas)}")

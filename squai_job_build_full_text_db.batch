@@ -1,0 +1,20 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --tasks-per-node=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=32G
+#SBATCH --gres=gpu:1
+#SBATCH --partition=capella
+#SBATCH --time=12:00:00
+#SBATCH --mail-type=start,end,fail
+#SBATCH --mail-user=tpgresens@gmail.com
+
+set -e
+
+ml release/24.04 GCC/12.3.0 OpenMPI/4.1.5 PyTorch/2.1.2
+cd /data/cat/ws/pagr699i-thesis_eval/squai_fork
+source env/bin/activate
+
+cat unarXive_2024.tar.gz.part_aa unarXive_2024.tar.gz.part_ab unarXive_2024.tar.gz.part_ac \
+  | tar -xzO \
+  | python3 -u build_full_text_db.py --db-path /data/cat/ws/pagr699i-thesis_eval/full_text_db
