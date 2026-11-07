@@ -57,9 +57,6 @@ import time
 import plyvel
 from rapidfuzz import fuzz
 
-from agents.util import initialize_retriever
-from config import E5_INDEX_DIR, BM25_INDEX_DIR, DB_PATH
-
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("recompute_fuzzy_ratio")
 
@@ -110,23 +107,23 @@ def clean_document_text(raw_text):
     return clean_text
 
 
-def get_document_text(paper_id, retriever, db, cache, stats):
+def get_document_text(paper_id, db, cache, stats):
     if paper_id in cache:
         return cache[paper_id]
 
     try:
-        results = retriever.get_full_texts([paper_id], db=db)
+        content = db.get(paper_id.encode("utf-8"))
     except Exception as e:
-        logger.warning(f"get_full_texts failed for paperId={paper_id}: {e}")
-        results = []
+        logger.warning(f"db.get failed for paperId={paper_id}: {e}")
+        content = None
 
-    if not results:
+    if content is None:
         logger.warning(f"no full text found for paperId={paper_id}")
         stats["missing_document"] += 1
         cache[paper_id] = None
         return None
 
-    raw_text, _ = results[0]
+    raw_text = content.decode("utf-8")
     cache[paper_id] = clean_document_text(raw_text)
     stats["papers_loaded"] += 1
     logger.info(f"loaded full text for paperId={paper_id} ({stats['papers_loaded']} papers loaded so far)")
@@ -142,7 +139,7 @@ def recompute_partial_ratio(contextForSentence, documentText):
     return fuzz.partial_ratio(cleanedContextSentence, cleanedDocumentText)
 
 
-def recompute_side(record, side_key, retriever, db, cache, stats):
+def recompute_side(record, side_key, db, cache, stats):
     refs = record.get(side_key, {}).get(REFERENCES_WITH_LLM_KEY)
     if not refs:
         return
@@ -156,7 +153,7 @@ def recompute_side(record, side_key, retriever, db, cache, stats):
             paperId = entry.get("paperId")
             contextForSentence = hallucinationCheck.get("contextForSentence", entry.get("contextPassage"))
 
-            documentText = get_document_text(paperId, retriever, db, cache, stats)
+            documentText = get_document_text(paperId, db, cache, stats)
             if documentText is None:
                 hallucinationCheck["recomputedPartialRatioWithSourceText"] = None
                 continue
@@ -173,28 +170,20 @@ def recompute_side(record, side_key, retriever, db, cache, stats):
             stats["recomputed"] += 1
 
 
-def recompute_record(record, retriever, db, cache, stats):
+def recompute_record(record, db, cache, stats):
     for side_key in SIDE_KEYS:
-        recompute_side(record, side_key, retriever, db, cache, stats)
+        recompute_side(record, side_key, db, cache, stats)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--input", required=True, help="Generation output file (JSON, JSON array, or JSONL)")
     parser.add_argument("--output", default="recomputedFuzzyRatios.jsonl", help="Where to write the annotated records (JSONL)")
-    parser.add_argument("--db_path", default=DB_PATH, help="Path to the full-text LevelDB database")
-    parser.add_argument("--retriever_type", default="hybrid", choices=["hybrid", "e5", "bm25"])
-    parser.add_argument("--top_k", type=int, default=5)
-    parser.add_argument("--alpha", type=float, default=0.65, help="E5 weight in hybrid mode")
+    parser.add_argument("--db_path", required=True, help="Path to the full-text LevelDB database")
     args = parser.parse_args()
 
     logger.info(f"Opening full-text database at {args.db_path}...")
     db = plyvel.DB(args.db_path, create_if_missing=False)
-
-    logger.info(f"Initializing {args.retriever_type} retriever...")
-    retriever = initialize_retriever(
-        args.retriever_type, E5_INDEX_DIR, BM25_INDEX_DIR, args.db_path, args.top_k, args.alpha
-    )
 
     logger.info(f"Loading records from {args.input}...")
     records = load_records(args.input)
@@ -207,7 +196,7 @@ def main():
     with open(args.output, "w", encoding="utf-8") as out_file:
         for i, record in enumerate(records, start=1):
             try:
-                recompute_record(record, retriever, db, document_text_cache, stats)
+                recompute_record(record, db, document_text_cache, stats)
             except Exception as e:
                 logger.error(f"FAILED on record {i}: {e}")
                 continue
